@@ -21,5 +21,5 @@ jobs:
       - run: npm run vsix
       - uses: actions/upload-artifact@v7
         with:
-          name: vsix-${{ github.run_number }}
+          name: vsix-build${{ github.run_number }}
           path: '*.vsix'
