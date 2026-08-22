@@ -111,13 +111,13 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
   // should ever reach the webview.
   let requestGeneration = 0;
 
-  const refresh = async () => {
+  const refresh = async (focusOnHead = false) => {
     const generation = ++requestGeneration;
     try {
       const commits = await fetchCommits(cwd, scope, reduce.simplifyByDecoration);
       const reduced = reduceDag(commits, reduce);
       if (generation !== requestGeneration) return;
-      const message: HostToWebviewMessage = { type: 'graphData', commits: reduced };
+      const message: HostToWebviewMessage = { type: 'graphData', commits: reduced, focusOnHead };
       await panel.webview.postMessage(message);
     } catch (err) {
       if (generation !== requestGeneration) return;
@@ -174,7 +174,7 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
   });
 }
 
-async function showIncrementalCheckout(cwd: string, refresh: () => Promise<void>): Promise<void> {
+async function showIncrementalCheckout(cwd: string, refresh: (focusOnHead?: boolean) => Promise<void>): Promise<void> {
   const candidates = await listCheckoutCandidates(cwd);
   const items = candidates.map((candidate) => ({
     label: candidate.label,
@@ -194,7 +194,7 @@ async function showIncrementalCheckout(cwd: string, refresh: () => Promise<void>
 
   try {
     await checkoutRef(cwd, picked.target, SIMPLE_CHECKOUT_OPTIONS);
-    await refresh();
+    await refresh(true);
   } catch (err) {
     vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: checkout failed ({0})', (err as Error).message));
   }
@@ -270,7 +270,7 @@ function showCheckoutDialog(
   context: vscode.ExtensionContext,
   cwd: string,
   target: CheckoutTarget,
-  refreshGraph: () => Promise<void>,
+  refreshGraph: (focusOnHead?: boolean) => Promise<void>,
 ): void {
   const panel = vscode.window.createWebviewPanel(
     'revisionGraphCheckout',
@@ -315,7 +315,7 @@ function showCheckoutDialog(
         }
       }
 
-      await refreshGraph();
+      await refreshGraph(true);
     }
   });
 }
