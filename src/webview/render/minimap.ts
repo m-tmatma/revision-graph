@@ -4,6 +4,14 @@
 // note. Nodes are drawn as plain unlabeled rects (no refs/text/tooltips):
 // at minimap scale they'd be illegible, and skipping them keeps rebuilding
 // the minimap on every graph re-render cheap even for a large history.
+//
+// Each node is drawn as a small fixed-size marker centered on the node's own
+// center point, not scaled from its actual width/height — a node's real
+// size is driven by its longest ref name's text width (see
+// buildGraphNodes), which the minimap never renders, so reusing it here
+// just produced fat, disproportionate bars for repos with long branch
+// names. A constant on-screen marker size keeps the minimap reading as a
+// compact overview regardless of ref-name length.
 
 import type { LaidOutGraph } from '../../shared/types';
 import type { PanZoomController } from './panZoom';
@@ -27,6 +35,11 @@ const MAX_HEIGHT_FRACTION = 0.65;
 const MAX_WIDTH_CAP = 220;
 const MAX_HEIGHT_CAP = 650;
 const MIN_WIDTH = 70;
+
+// Desired on-screen size (CSS px) of a node marker, kept roughly constant
+// regardless of the graph's own scale — converted to the minimap SVG's
+// logical units via `fitScale` below.
+const MARKER_SCREEN_SIZE = 5;
 
 export class Minimap {
   private readonly svg: SVGSVGElement;
@@ -54,14 +67,15 @@ export class Minimap {
     this.svg.setAttribute('height', '100%');
     this.svg.style.display = 'block';
 
+    const markerSize = MARKER_SCREEN_SIZE / fitScale;
     const nodesGroup = document.createElementNS(SVG_NS, 'g');
     for (const node of graph.nodes) {
       const rect = document.createElementNS(SVG_NS, 'rect');
-      rect.setAttribute('x', String(node.x));
-      rect.setAttribute('y', String(node.y));
-      rect.setAttribute('width', String(node.width));
-      rect.setAttribute('height', String(node.height));
-      rect.setAttribute('rx', '2');
+      rect.setAttribute('x', String(node.x + node.width / 2 - markerSize / 2));
+      rect.setAttribute('y', String(node.y + node.height / 2 - markerSize / 2));
+      rect.setAttribute('width', String(markerSize));
+      rect.setAttribute('height', String(markerSize));
+      rect.setAttribute('rx', String(markerSize / 4));
       rect.setAttribute('fill', 'var(--vscode-editorLineNumber-foreground, #888888)');
       nodesGroup.appendChild(rect);
     }
