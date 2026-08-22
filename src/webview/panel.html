@@ -13,6 +13,60 @@
       background: var(--vscode-editor-background);
       color: var(--vscode-editor-foreground);
       font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+    }
+    body {
+      overflow: hidden;
+    }
+    main {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    #toolbar {
+      flex: 0 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--vscode-panel-border, #454545);
+    }
+    #toolbar label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    #toolbar select,
+    #toolbar input[type='text'] {
+      background: var(--vscode-input-background);
+      color: var(--vscode-input-foreground);
+      border: 1px solid var(--vscode-input-border, transparent);
+      border-radius: 2px;
+      padding: 2px 4px;
+      font: inherit;
+    }
+    #toolbar input[type='text'] {
+      width: 8em;
+    }
+    #toolbar button {
+      background: var(--vscode-button-background);
+      color: var(--vscode-button-foreground);
+      border: none;
+      border-radius: 2px;
+      padding: 3px 10px;
+      font: inherit;
+      cursor: pointer;
+    }
+    #toolbar button:hover {
+      background: var(--vscode-button-hoverBackground);
+    }
+    #range-inputs[hidden] {
+      display: none;
+    }
+    #graph-scroll {
+      flex: 1 1 auto;
       overflow: auto;
     }
     #graph-status {
@@ -39,8 +93,34 @@
 <body>
   <h1 class="visually-hidden">Git Revision Graph</h1>
   <main>
-    <div id="graph-status">Loading revision graph…</div>
-    <div id="graph-root"></div>
+    <div id="toolbar">
+      <label for="scope-select">
+        Scope
+        <select id="scope-select">
+          <option value="all-branches" selected>All branches</option>
+          <option value="local-branches">Local branches</option>
+          <option value="current-branch">Current branch</option>
+          <option value="range">From..To range</option>
+        </select>
+      </label>
+      <span id="range-inputs" hidden>
+        <label for="range-from">From <input id="range-from" type="text" placeholder="(optional)" /></label>
+        <label for="range-to">To <input id="range-to" type="text" placeholder="HEAD" /></label>
+      </span>
+      <label for="collapse-toggle">
+        <input id="collapse-toggle" type="checkbox" checked />
+        Collapse straight runs
+      </label>
+      <label for="show-tags-toggle">
+        <input id="show-tags-toggle" type="checkbox" />
+        Show all tags
+      </label>
+      <button id="refresh-button" type="button">Refresh</button>
+    </div>
+    <div id="graph-scroll">
+      <div id="graph-status">Loading revision graph…</div>
+      <div id="graph-root"></div>
+    </div>
   </main>
   <script nonce="__NONCE__">
     window.__LAYOUT_WORKER_URI__ = "__WORKER_URI__";

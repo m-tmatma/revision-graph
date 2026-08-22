@@ -36,10 +36,15 @@ export interface ReduceOptions {
 }
 
 /** Message sent from the extension host to the webview. */
-export type HostToWebviewMessage = { type: 'graphData'; commits: GraphCommit[] };
+export type HostToWebviewMessage =
+  | { type: 'graphData'; commits: GraphCommit[] }
+  | { type: 'error'; message: string };
 
 /** Message sent from the webview back to the extension host. */
-export type WebviewToHostMessage = { type: 'ready' } | { type: 'error'; message: string };
+export type WebviewToHostMessage =
+  | { type: 'ready' }
+  | { type: 'error'; message: string }
+  | { type: 'setFilter'; scope: LogScopeOptions; reduce: ReduceOptions };
 
 /** Node shape handed to the layout engine, after size measurement. */
 export interface GraphNode {

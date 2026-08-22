@@ -7,9 +7,9 @@ import * as fs from 'node:fs/promises';
 import * as vscode from 'vscode';
 import { reduceDag } from './git/dagReducer';
 import { fetchCommits } from './git/logReader';
-import type { HostToWebviewMessage, ReduceOptions, WebviewToHostMessage } from './shared/types';
+import type { HostToWebviewMessage, LogScopeOptions, ReduceOptions, WebviewToHostMessage } from './shared/types';
 
-// M2 will expose these as UI toggles; M1 just applies sensible defaults.
+const DEFAULT_SCOPE: LogScopeOptions = { scope: 'all-branches' };
 const DEFAULT_REDUCE_OPTIONS: ReduceOptions = { showAllTags: false, collapseStraightRuns: true };
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -44,24 +44,39 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
 
   panel.webview.html = await getWebviewHtml(panel.webview, context.extensionUri);
 
+  let scope: LogScopeOptions = DEFAULT_SCOPE;
+  let reduce: ReduceOptions = DEFAULT_REDUCE_OPTIONS;
+  // Filter changes can arrive faster than the git log they trigger resolves
+  // (e.g. rapidly toggling checkboxes); only the latest request's result
+  // should ever reach the webview.
+  let requestGeneration = 0;
+
+  const refresh = async () => {
+    const generation = ++requestGeneration;
+    try {
+      const commits = await fetchCommits(cwd, scope);
+      const reduced = reduceDag(commits, reduce);
+      if (generation !== requestGeneration) return;
+      const message: HostToWebviewMessage = { type: 'graphData', commits: reduced };
+      await panel.webview.postMessage(message);
+    } catch (err) {
+      if (generation !== requestGeneration) return;
+      const message: HostToWebviewMessage = { type: 'error', message: (err as Error).message };
+      await panel.webview.postMessage(message);
+    }
+  };
+
   panel.webview.onDidReceiveMessage(async (message: WebviewToHostMessage) => {
     if (message.type === 'ready') {
-      await sendGraphData(panel.webview, cwd);
+      await refresh();
+    } else if (message.type === 'setFilter') {
+      scope = message.scope;
+      reduce = message.reduce;
+      await refresh();
     } else if (message.type === 'error') {
       vscode.window.showErrorMessage(`Git Revision Graph: ${message.message}`);
     }
   });
-}
-
-async function sendGraphData(webview: vscode.Webview, cwd: string): Promise<void> {
-  try {
-    const commits = await fetchCommits(cwd, { scope: 'all-branches' });
-    const reduced = reduceDag(commits, DEFAULT_REDUCE_OPTIONS);
-    const message: HostToWebviewMessage = { type: 'graphData', commits: reduced };
-    await webview.postMessage(message);
-  } catch (err) {
-    vscode.window.showErrorMessage(`Git Revision Graph: failed to load commits (${(err as Error).message})`);
-  }
 }
 
 function getNonce(): string {
