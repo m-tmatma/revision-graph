@@ -9,5 +9,6 @@ tsconfig.json
 esbuild.js
 .gitignore
 .vscodeignore
+CLAUDE.md
 **/*.map
 *.vsix
