@@ -52,7 +52,8 @@ export type WebviewToHostMessage =
   | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string }
   | { type: 'deleteRef'; refType: RefType; refName: string }
   | { type: 'exportSvg'; svg: string }
-  | { type: 'exportPng'; dataUrl: string };
+  | { type: 'exportPng'; dataUrl: string }
+  | { type: 'incrementalCheckout' };
 
 /** Node shape handed to the layout engine, after size measurement. */
 export interface GraphNode {

@@ -67,6 +67,10 @@ This produces `vscode-git-revision-graph-<version>.vsix` in the project root.
   collapsed by the toggle above; when on, every tagged commit is kept.
 - **Refresh**: re-applies the current settings (mainly useful after typing
   into From/To, which otherwise apply on blur/Enter).
+- **Checkout…**: opens a QuickPick listing every local and remote branch —
+  type to filter, arrow keys to move the selection, Enter to check it out.
+  Always a plain, no-options checkout (no force/merge/new branch); for
+  more control, right-click a specific node in the graph instead.
 - **Export SVG** / **Export PNG**: save the full graph (not just the
   currently visible/zoomed area) to a file. PNG export rasterizes in the
   browser and isn't theme-matched (colors fall back to their default
