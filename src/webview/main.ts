@@ -106,10 +106,13 @@ function applyFilter(): void {
 
 // Whether the *next* `graphData` message should re-center the viewport on
 // the current branch, rather than keeping wherever the user last panned/
-// zoomed to. True initially (so the very first render focuses HEAD) and
-// after an explicit Refresh click; false for every other client-triggered
-// request — scope/checkbox/range changes, and repo-watcher's own automatic
-// refresh on external changes (a checkout, commit, or pull from outside the
+// zoomed to. True initially (so the very first render focuses HEAD), after
+// an explicit Refresh click, and after toggling "Show branches and merges"
+// (it can prune or restore a large number of merges at once, moving the
+// current branch's node far enough that the old pan/zoom position no
+// longer makes sense); false for every other client-triggered request —
+// scope/tags/range changes, and repo-watcher's own automatic refresh on
+// external changes (a checkout, commit, or pull from outside the
 // extension), which used to yank the view back to HEAD without the user
 // asking for that. Consumed (read, then reset to false) by the next
 // handleGraphData call, so it only ever applies to the one render it was
@@ -123,7 +126,10 @@ toolbar.scopeSelect.addEventListener('change', () => {
   toolbar.rangeInputs!.hidden = toolbar.scopeSelect!.value !== 'range';
   applyFilter();
 });
-toolbar.showBranchesMergesToggle.addEventListener('change', applyFilter);
+toolbar.showBranchesMergesToggle.addEventListener('change', () => {
+  focusOnHeadForNextGraphData = true;
+  applyFilter();
+});
 toolbar.showTagsToggle.addEventListener('change', applyFilter);
 toolbar.refreshButton.addEventListener('click', () => {
   focusOnHeadForNextGraphData = true;
@@ -147,8 +153,9 @@ for (const input of [toolbar.rangeFrom, toolbar.rangeTo]) {
 //
 // `focusOnHead` controls whether this also (re-)centers the viewport on
 // the current branch: true for the very first render, an explicit Refresh
-// click, and a checkout we performed ourselves (see
-// `focusOnHeadForNextGraphData`'s own comment) — every other re-render (a
+// click, toggling "Show branches and merges", and a checkout we performed
+// ourselves (see `focusOnHeadForNextGraphData`'s own comment) — every other
+// re-render (a
 // filter/checkbox change, or an automatic refresh from repo-watcher
 // noticing an external change) instead carries over the previous
 // controller's exact pan/zoom state, so the view doesn't jump out from
