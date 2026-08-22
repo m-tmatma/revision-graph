@@ -29,6 +29,30 @@ Alternatively, install from a `.vsix` file:
    - Or in VSCode: Extensions view → `...` menu → "Install from VSIX..." →
      select the file
 
+**Using Remote-SSH (or Dev Containers/WSL)?** This extension runs in the
+*remote* extension host, not the local one, since it shells out to `git` in
+the workspace. Running `code --install-extension`/`install.sh` from a plain
+`ssh` session on the remote host is **not** reliable: whatever `code` is
+first in that session's `PATH` may be an unrelated local install on the
+remote machine, or resolve to nothing at all — either way, the extension
+doesn't end up where the Remote-SSH connection actually looks for it, and
+VS Code reports it as installed locally but "disabled ... defined to run in
+the Remote Extension Host". Instead, either:
+   - Install it normally on your local machine first (Marketplace or a
+     `.vsix`, as above) — once connected via Remote-SSH, the Extensions view
+     then offers a one-click **"Install in SSH: \<host\>"** button; or
+   - Run "Install from VSIX..." from the Command Palette **of the
+     Remote-SSH-connected window itself** (not a separate terminal) — that
+     always targets the extension host you're actually connected to.
+
+   Note that "Install in SSH: \<host\>" installs the **exact same version
+   already installed locally** (whatever `.vsix` you sideloaded, or
+   whichever Marketplace version you have) — it doesn't fetch a different
+   or newer one. If you install/uninstall on one side, the other side's
+   copy is unaffected until you explicitly repeat the action there too;
+   the two are entirely independent installs that happen to share a
+   version number.
+
 ## Usage
 
 1. Open a folder that's a Git repository.

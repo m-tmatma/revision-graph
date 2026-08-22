@@ -2,6 +2,11 @@
 # Installs the extension's .vsix into VS Code.
 # Linux: mark as executable and enable "Run" on double-click in your file
 # manager, or run it from a terminal: sh install.sh
+#
+# Using Remote-SSH (or Dev Containers/WSL)? Running this from a plain `ssh`
+# session on the remote host is not reliable -- whatever "code" is first in
+# PATH there may be an unrelated local install, installing the extension to
+# the wrong place. See the README's "Using Remote-SSH" note instead.
 set -e
 cd "$(dirname "$0")"
 
@@ -17,6 +22,6 @@ if [ -z "$VSIX" ]; then
     exit 1
 fi
 
-echo "Installing $VSIX ..."
+echo "Installing $VSIX using $(command -v code) ..."
 code --install-extension "$VSIX"
 echo "Done."
