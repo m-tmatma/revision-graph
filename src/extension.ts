@@ -17,6 +17,7 @@ import {
   updateSubmodules,
 } from './git/gitActions';
 import { fetchCommits } from './git/logReader';
+import { watchRepositoryChanges } from './git/repoWatcher';
 import type {
   CheckoutHostToWebviewMessage,
   CheckoutTarget,
@@ -100,6 +101,12 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       await panel.webview.postMessage(message);
     }
   };
+
+  // Refreshes on external repo changes too (a checkout done outside this
+  // extension, a commit, a pull, ...), not just after our own
+  // checkout/delete-ref actions, which already refresh explicitly.
+  const repoWatcher = watchRepositoryChanges(cwd, () => void refresh());
+  panel.onDidDispose(() => repoWatcher.dispose());
 
   panel.webview.onDidReceiveMessage(async (message: WebviewToHostMessage) => {
     if (message.type === 'ready') {

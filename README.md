@@ -13,6 +13,8 @@ Early development. Implemented so far:
 - Filtering (scope, straight-run collapsing, tag visibility), pan/zoom,
   node selection, tooltips, and the full context menu (checkout, copy
   hash, copy ref name(s), compare, delete ref) (Milestones 2 and 3)
+- Automatic refresh when the repo changes outside the extension — a
+  checkout, commit, or pull from a terminal or another tool (Milestone 4)
 
 A minimap and SVG/PNG export are planned but not yet built — see
 [docs/DESIGN.md](docs/DESIGN.md) for the full roadmap.

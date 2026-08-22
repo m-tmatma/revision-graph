@@ -487,7 +487,28 @@ context menu (checkout, copy hash, copy ref name(s), compare, delete ref).
 Next up per DESIGN.md: **M4** (minimap, SVG/PNG export, automatic refresh
 on repo change).
 
-## M4 (after M3)
+## M4 status: in progress
 
-- Minimap, SVG/PNG export, automatic refresh on repo change (via the
-  `vscode.git` extension API's `Repository.state.onDidChange`).
+M4 items are landing one at a time, same as M3.
+
+- **Automatic refresh on repo change** (done, `src/git/repoWatcher.ts`):
+  `watchRepositoryChanges(cwd, onChange)` gets the built-in `vscode.git`
+  extension's API (activating it if needed), finds the `Repository` whose
+  `rootUri.fsPath` matches `cwd` (case-insensitive — Windows drive-letter
+  casing can differ between VSCode's own resolution and the git
+  extension's), and subscribes to its `state.onDidChange`. Also listens on
+  `git.onDidOpenRepository`, since the matching repository may not exist
+  yet when this runs (the git extension discovers repositories
+  asynchronously). `state.onDidChange` fires for more than ref/HEAD
+  changes (working tree edits too) and can fire several times in quick
+  succession for one user action, so events are debounced (500ms) before
+  triggering `refresh()` — the same function filter changes and our own
+  checkout/delete-ref actions already use. `showRevisionGraph` disposes
+  the watcher when the panel closes (`panel.onDidDispose`). No local
+  `@types/vscode.git`-style dependency: the file declares its own minimal
+  `GitRepository`/`GitAPI`/`GitExtensionExports` interfaces covering only
+  what's used. Confirmed working: checking out a branch from *outside* the
+  extension (a terminal, TortoiseGit, another VSCode window) while the
+  graph panel is open refreshes it automatically.
+
+**Remaining M4 scope**: minimap, SVG/PNG export.
