@@ -12,6 +12,13 @@ it as a clearly separate, unmodified vendored file (mere aggregation) rather
 than bundling/merging it into GPLv2-licensed source, and document the
 exception clearly.
 
+## Pull request merges
+
+When merging a PR (`gh pr merge`), always use a merge commit
+(`--merge`), never squash (`--squash`) or rebase (`--rebase`) — this
+keeps each feature's individual commits visible in `master`'s history
+instead of collapsing them into one.
+
 ## Accessibility
 
 AccessLint runs on every PR and has flagged issues on webview HTML files
