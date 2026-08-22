@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="__CSP__" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Changed Files</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--vscode-editor-background);
+      color: var(--vscode-editor-foreground);
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+    }
+    #header {
+      padding: 12px;
+      border-bottom: 1px solid var(--vscode-panel-border, #454545);
+    }
+    #header .label {
+      opacity: 0.7;
+    }
+    #header .rev {
+      font-family: var(--vscode-editor-font-family, monospace);
+      margin: 2px 0 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      text-align: left;
+      padding: 4px 12px;
+      border-bottom: 1px solid var(--vscode-panel-border, #333333);
+      white-space: nowrap;
+    }
+    th:first-child, td:first-child {
+      white-space: normal;
+      width: 100%;
+    }
+    tbody tr {
+      cursor: pointer;
+    }
+    tbody tr:hover {
+      background: var(--vscode-list-hoverBackground);
+    }
+    .added {
+      color: var(--vscode-gitDecoration-addedResourceForeground, #81b88b);
+    }
+    .deleted {
+      color: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+    }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <div class="label">Comparing</div>
+    <div class="rev" id="from-rev"></div>
+    <div class="rev" id="to-rev"></div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>File</th>
+        <th>Ext</th>
+        <th>Action</th>
+        <th>Added</th>
+        <th>Deleted</th>
+      </tr>
+    </thead>
+    <tbody id="file-list"></tbody>
+  </table>
+  <script nonce="__NONCE__" src="__SCRIPT_URI__"></script>
+</body>
+</html>

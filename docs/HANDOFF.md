@@ -329,8 +329,64 @@ the whole milestone, per the user's explicit request ("M3 は要素ずつ PR 分
   `SelectionController` is created per render in `renderAndFocus`, with the
   previous one `destroy()`d first.
 
-**Remaining M3 scope**: context menu (checkout, delete ref, copy hash,
-compare — the last of which will consume the selection state above).
+- **Context menu — "Compare" only** (`src/webview/render/contextMenu.ts`):
+  right-clicking one of the two currently-selected nodes shows a small
+  custom HTML/CSS menu (webviews can't use VSCode's native menu API) with a
+  single "Compare `<hashA>` with `<hashB>`" item — right-clicking anything
+  else (an unselected node, the background) does nothing, since there's no
+  other menu item yet. Clicking it posts `{type:'compare', from, to}` to
+  the extension host (`WebviewToHostMessage`).
+
+  This turned into a materially bigger feature than a plain `git diff`
+  text dump: the user asked for something closer to TortoiseGit's own
+  "Compare Revisions" dialog (a screenshot of it was provided) — a
+  changed-files list with per-file added/deleted line counts, opened as
+  its own panel (they'd first asked whether it could be a genuinely
+  separate OS window; VSCode extensions have no supported API for that —
+  a `WebviewPanel` is always a tab/split within the same VSCode window,
+  though a user can drag any tab out into its own window themselves).
+
+  What's built, on `{type:'compare'}`:
+  - `src/git/gitActions.ts` (new): `getCommitSummary` (hash + subject, via
+    `git log -1`), `diffFileChanges` (per-file added/deleted line counts
+    and A/M/D status, via parallel `git diff --no-renames --numstat` and
+    `--no-renames --name-status` calls merged by path — `--no-renames` is
+    deliberate: without it, a renamed file's numstat path uses an
+    ambiguous `old => new` notation that's needlessly fiddly to parse
+    correctly; renames just show as a delete + an add instead), and
+    `readFileAtRevision` (`git show rev:path`, returning `''` if the file
+    doesn't exist at that revision — expected for a file the diff added or
+    deleted, not an error).
+  - `extension.ts`'s `showCompareChanges` opens a **second, separate**
+    `WebviewPanel` (`'revisionGraphCompare'`, title "Changed Files",
+    `ViewColumn.Beside`) with its own minimal webview: a header (which
+    commit is "from"/"to") and a static table (file / extension / action /
+    added / deleted), built from `src/webview/compare.ts` +
+    `comparePanel.html` — no dagre/worker/pan-zoom needed, just a table.
+    New esbuild entry point (`compareConfig`) and `copyHtmlTemplates`
+    (renamed from `copyPanelHtml`, now copies both HTML templates).
+  - Clicking a file row posts `{type:'openFile', path}` back;
+    `openFileDiff` opens it in VSCode's **native** side-by-side diff view
+    via `vscode.diff`, comparing two virtual documents under a registered
+    `revision-graph-git://<rev>/<path>` `TextDocumentContentProvider`
+    (registered once in `activate()`) that resolves content through
+    `readFileAtRevision`. Using the real path (not an encoded blob) in the
+    URI keeps the file extension intact, so VSCode's language detection
+    still syntax-highlights the diff correctly.
+  - New shared types: `FileChange`, `CompareData`,
+    `CompareHostToWebviewMessage`, `CompareWebviewToHostMessage` — kept
+    separate from the main graph panel's own message types, since these
+    two webviews never talk to each other, only each to the extension
+    host.
+
+  Verified against real multi-file changes in the TortoiseGit repo,
+  including one that touches a submodule reference (`ext/tgit`) — that
+  path correctly falls back to empty content rather than erroring, since
+  `git show rev:path` doesn't return normal blob content for a submodule
+  gitlink entry.
+
+**Remaining M3 scope**: the rest of the context menu (checkout, delete ref,
+copy hash).
 
 ## M4 (after M3)
 

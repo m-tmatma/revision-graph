@@ -6,15 +6,37 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as vscode from 'vscode';
 import { reduceDag } from './git/dagReducer';
+import { diffFileChanges, getCommitSummary, readFileAtRevision } from './git/gitActions';
 import { fetchCommits } from './git/logReader';
-import type { HostToWebviewMessage, LogScopeOptions, ReduceOptions, WebviewToHostMessage } from './shared/types';
+import type {
+  CompareData,
+  CompareHostToWebviewMessage,
+  CompareWebviewToHostMessage,
+  HostToWebviewMessage,
+  LogScopeOptions,
+  ReduceOptions,
+  WebviewToHostMessage,
+} from './shared/types';
 
 const DEFAULT_SCOPE: LogScopeOptions = { scope: 'all-branches' };
 const DEFAULT_REDUCE_OPTIONS: ReduceOptions = { showAllTags: false, collapseStraightRuns: true };
 
+// Custom scheme for reading a file's content as of a given revision, so the
+// "Compare" panel can open a per-file diff via the native `vscode.diff`
+// command. URI shape: `revision-graph-git://<rev>/<repo-relative-path>`.
+const GIT_SHOW_SCHEME = 'revision-graph-git';
+
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('revisionGraph.show', () => showRevisionGraph(context)),
+    vscode.workspace.registerTextDocumentContentProvider(GIT_SHOW_SCHEME, {
+      provideTextDocumentContent(uri) {
+        const cwd = getWorkspaceRoot();
+        if (!cwd) return '';
+        const path = decodeURIComponent(uri.path.replace(/^\//, ''));
+        return readFileAtRevision(cwd, uri.authority, path);
+      },
+    }),
   );
 }
 
@@ -75,8 +97,60 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       await refresh();
     } else if (message.type === 'error') {
       vscode.window.showErrorMessage(`Git Revision Graph: ${message.message}`);
+    } else if (message.type === 'compare') {
+      await showCompareChanges(context, cwd, message.from, message.to);
     }
   });
+}
+
+async function showCompareChanges(
+  context: vscode.ExtensionContext,
+  cwd: string,
+  from: string,
+  to: string,
+): Promise<void> {
+  let fromSummary: { hash: string; subject: string };
+  let toSummary: { hash: string; subject: string };
+  let files: CompareData['files'];
+  try {
+    [fromSummary, toSummary, files] = await Promise.all([
+      getCommitSummary(cwd, from),
+      getCommitSummary(cwd, to),
+      diffFileChanges(cwd, from, to),
+    ]);
+  } catch (err) {
+    vscode.window.showErrorMessage(`Git Revision Graph: compare failed (${(err as Error).message})`);
+    return;
+  }
+
+  const panel = vscode.window.createWebviewPanel(
+    'revisionGraphCompare',
+    'Changed Files',
+    vscode.ViewColumn.Beside,
+    {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview')],
+    },
+  );
+
+  panel.webview.html = await getComparePanelHtml(panel.webview, context.extensionUri);
+
+  panel.webview.onDidReceiveMessage(async (message: CompareWebviewToHostMessage) => {
+    if (message.type === 'ready') {
+      const data: CompareData = { from: fromSummary, to: toSummary, files };
+      const hostMessage: CompareHostToWebviewMessage = { type: 'compareData', data };
+      await panel.webview.postMessage(hostMessage);
+    } else if (message.type === 'openFile') {
+      await openFileDiff(from, to, message.path);
+    }
+  });
+}
+
+async function openFileDiff(from: string, to: string, path: string): Promise<void> {
+  const fromUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, authority: from, path: `/${path}` });
+  const toUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, authority: to, path: `/${path}` });
+  const title = `${path} (${from.slice(0, 7)} ↔ ${to.slice(0, 7)})`;
+  await vscode.commands.executeCommand('vscode.diff', fromUri, toUri, title);
 }
 
 function getNonce(): string {
@@ -108,4 +182,21 @@ async function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri)
     .replaceAll('__NONCE__', nonce)
     .replaceAll('__SCRIPT_URI__', scriptUri.toString())
     .replaceAll('__WORKER_URI__', workerUri.toString());
+}
+
+async function getComparePanelHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {
+  const webviewDir = vscode.Uri.joinPath(extensionUri, 'dist', 'webview');
+  const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(webviewDir, 'compare.js'));
+  const nonce = getNonce();
+
+  const csp = [
+    `default-src 'none'`,
+    `style-src ${webview.cspSource} 'unsafe-inline'`,
+    `script-src 'nonce-${nonce}'`,
+  ].join('; ');
+
+  const templatePath = vscode.Uri.joinPath(webviewDir, 'comparePanel.html').fsPath;
+  const template = await fs.readFile(templatePath, 'utf-8');
+
+  return template.replaceAll('__CSP__', csp).replaceAll('__NONCE__', nonce).replaceAll('__SCRIPT_URI__', scriptUri.toString());
 }

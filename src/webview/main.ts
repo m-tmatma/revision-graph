@@ -16,6 +16,7 @@ import { computeLayout } from './computeLayout';
 import { renderGraph } from './render/graphRenderer';
 import { NODE_MIN_WIDTH, NODE_PADDING_X, NODE_PADDING_Y, NODE_ROW_HEIGHT } from './render/layoutConstants';
 import { PanZoomController } from './render/panZoom';
+import { closeContextMenu, showContextMenu } from './render/contextMenu';
 import { SelectionController } from './render/selection';
 
 declare function acquireVsCodeApi(): { postMessage(message: WebviewToHostMessage): void };
@@ -111,10 +112,13 @@ let panZoomController: PanZoomController | null = null;
 let selectionController: SelectionController | null = null;
 
 function renderAndFocus(graph: LaidOutGraph): void {
+  closeContextMenu();
   const svg = renderGraph(rootEl!, graph);
 
   selectionController?.destroy();
-  selectionController = new SelectionController(svg);
+  const newSelectionController = new SelectionController(svg);
+  selectionController = newSelectionController;
+  attachContextMenu(svg, newSelectionController);
 
   if (!graphScrollEl) return;
 
@@ -129,6 +133,34 @@ function renderAndFocus(graph: LaidOutGraph): void {
   } else {
     controller.centerOn(graph.width / 2, graph.height / 2);
   }
+}
+
+// Right-click a node while exactly two are selected to compare them.
+// Deliberately requires the clicked node to be one of the two selected —
+// right-clicking an unrelated third node wouldn't have an obvious meaning
+// yet (there's no other menu item until the rest of M3's context-menu
+// scope is built out).
+function attachContextMenu(svg: SVGSVGElement, controller: SelectionController): void {
+  svg.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    const target = event.target as Element;
+    const group = target.closest?.('[data-commit-id]') as SVGGElement | null;
+    if (!group) return;
+    const commitId = group.getAttribute('data-commit-id');
+
+    const { first, second } = controller.getState();
+    if (!first || !second || (commitId !== first && commitId !== second)) return;
+
+    showContextMenu(event.clientX, event.clientY, [
+      {
+        label: `Compare ${first.slice(0, 7)} with ${second.slice(0, 7)}`,
+        onClick: () => {
+          const message: WebviewToHostMessage = { type: 'compare', from: first, to: second };
+          vscode.postMessage(message);
+        },
+      },
+    ]);
+  });
 }
 
 function buildGraphNodes(commits: GraphCommit[]): GraphNode[] {

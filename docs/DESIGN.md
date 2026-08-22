@@ -136,6 +136,7 @@ Web Worker内で実行し、`postMessage`でメインスレッドに結果(`Laid
 - 選択: クリックで1点目選択、Ctrl+クリックで2点目選択(比較用)。選択状態はWebview内のstateで管理。ネイティブの`click`イベントには頼らず、pointerdown/pointerupの座標差が4px未満の場合のみ「クリック」として扱う(パン操作のドラッグと区別するため)。
 - ツールチップ: ノードの`<g>`の最初の子としてネイティブ`<title>`要素を追加し、ブラウザ標準のホバー表示に任せる(追加のJS/CSS不要)。内容はTortoiseGit本家のツールチップに合わせ、フルハッシュ→`{author} <{email}> {date}`(`YYYY-MM-DD HH:mm`)→空行→コミットメッセージ全文(subjectだけでなくbody込み)の順。
 - 右クリックメニュー: VSCodeのwebview内では独自HTML/CSSでコンテキストメニューを実装(ネイティブメニューAPIはwebview内で使えないため)。メニュー項目(ブランチチェックアウト、ref削除、hashコピー、比較)はExtension Hostにアクション名+hashをpostMessageし、Extension Host側でVSCode Git拡張のAPIまたはgit CLIで実行。
+  - 「比較」はTortoiseGitの「変更を比較」ダイアログに近いものを求められたため、単純な`git diff`テキスト表示ではなく、2つ目の独立した`WebviewPanel`(`ViewColumn.Beside`)を開き、ファイルごとの追加/削除行数一覧を表示する。行をクリックするとVSCodeネイティブの差分ビュー(`vscode.diff`)でそのファイルの差分を開く(各revisionでのファイル内容は`revision-graph-git://<rev>/<path>`スキームの`TextDocumentContentProvider`が`git show`経由で提供)。VSCode拡張には別OSウィンドウを直接起動するAPIがないため、「別ウィンドウ」はユーザーがタブをドラッグして切り離す形になる。
 - ミニマップ: 縮小した別SVGをオーバーレイ表示し、ビューポート矩形をドラッグ可能にする。
 
 ## VSCode統合ポイント

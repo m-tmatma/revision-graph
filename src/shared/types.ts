@@ -47,7 +47,8 @@ export type HostToWebviewMessage =
 export type WebviewToHostMessage =
   | { type: 'ready' }
   | { type: 'error'; message: string }
-  | { type: 'setFilter'; scope: LogScopeOptions; reduce: ReduceOptions };
+  | { type: 'setFilter'; scope: LogScopeOptions; reduce: ReduceOptions }
+  | { type: 'compare'; from: string; to: string };
 
 /** Node shape handed to the layout engine, after size measurement. */
 export interface GraphNode {
@@ -81,3 +82,24 @@ export interface LaidOutGraph {
   width: number;
   height: number;
 }
+
+// --- Compare panel (a second, separate WebviewPanel opened from the main
+// graph's "Compare" context-menu item) ---
+
+export interface FileChange {
+  path: string;
+  status: 'added' | 'deleted' | 'modified' | 'other';
+  /** Undefined for a binary file, which `git diff --numstat` reports as `-`. */
+  added?: number;
+  deleted?: number;
+}
+
+export interface CompareData {
+  from: { hash: string; subject: string };
+  to: { hash: string; subject: string };
+  files: FileChange[];
+}
+
+export type CompareHostToWebviewMessage = { type: 'compareData'; data: CompareData };
+
+export type CompareWebviewToHostMessage = { type: 'ready' } | { type: 'openFile'; path: string };
