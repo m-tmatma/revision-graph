@@ -3,7 +3,7 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## 0.0.1
+## 0.1.0
 
 Initial feature set.
 
