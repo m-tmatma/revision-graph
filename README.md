@@ -17,22 +17,25 @@ full roadmap.
 This extension isn't published to the Marketplace yet. Install it from a
 `.vsix` file instead:
 
-1. Get a `.vsix`:
-   - Download the `vsix-build<N>` artifact from a [CI run](../../actions) on
-     GitHub (it's a zip; unzip it to get the `.vsix` file), or
-   - Build it yourself:
-     ```sh
-     npm install
-     npm run package
-     npm run vsix
-     ```
-     This produces `revision-graph-<version>.vsix` in the project root.
+1. Get a `.vsix`: download the `vsix-build<N>` artifact from a
+   [CI run](../../actions) on GitHub (it's a zip; unzip it to get the
+   `.vsix` file), or build one yourself (see [Build](#build) below).
 2. Install it — **don't double-click the file** (`.vsix` is also Visual
    Studio's extension package extension, so Windows may open it with the
    wrong application). Instead:
    - From the command line: `code --install-extension revision-graph-<version>.vsix`
    - Or in VSCode: Extensions view → `...` menu → "Install from VSIX..." →
      select the file
+
+## Build
+
+```sh
+npm install
+npm run package
+npm run vsix
+```
+
+This produces `revision-graph-<version>.vsix` in the project root.
 
 ## Usage
 
