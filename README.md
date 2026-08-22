@@ -100,10 +100,9 @@ This produces `vscode-git-revision-graph-<version>.vsix` in the project root.
     **Compare**, which opens a "Changed Files" panel (added/deleted line
     counts per file); click a file there to view its diff in VSCode's
     native diff editor.
-  - Right-click a *specific ref chip* (not just anywhere on the node) for
-    **Delete** — asks for confirmation first. Deleting a remote-tracking
-    branch (e.g. `origin/foo`) only removes the local tracking ref; it
-    does not touch the actual branch on the remote server.
+  - Right-click a *specific local branch's ref chip* (not a remote branch
+    or tag, and not just anywhere on the node) for **Delete** — asks for
+    confirmation first.
 
 ## Development
 

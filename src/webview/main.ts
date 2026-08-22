@@ -300,12 +300,20 @@ function fullRefName(ref: RefInfo): string {
   }
 }
 
-// Deletion isn't offered for 'current-branch' (can't delete the branch
-// you're on), 'head' (not a real ref), 'stash' (needs an index, not a
-// name, to target a specific entry — different operation), or 'other'
-// (too ambiguous what deleting it would even mean).
+// Only 'local-branch' is offered now. 'remote-branch' and 'tag' used to
+// be too, but deleting a remote-tracking branch only ever touched local
+// bookkeeping (never the actual branch on the remote server) — and a
+// node commonly stacks a local branch and the remote-tracking branch it
+// tracks as separate, closely-spaced ref chips (e.g. "master" right above
+// "origin/master"), so a right-click meant for the local one landing on
+// the remote-tracking one instead was an easy mistake to make, and
+// confusing/alarming to see happen even though it was harmless and
+// `git fetch`-recoverable. Dropped both rather than only 'remote-branch',
+// on request. 'current-branch' (can't delete the branch you're on),
+// 'head' (not a real ref), and 'stash' (needs an index, not a name) were
+// never offered either.
 function isDeletableRefType(type: RefType): boolean {
-  return type === 'local-branch' || type === 'remote-branch' || type === 'tag';
+  return type === 'local-branch';
 }
 
 // Checkout targets the right-clicked node's own local branch if it has
