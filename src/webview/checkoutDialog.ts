@@ -4,10 +4,12 @@
 // chosen options) or `cancel`.
 
 import type { CheckoutHostToWebviewMessage, CheckoutOptions, CheckoutWebviewToHostMessage } from '../shared/types';
+import { applyLocalization, t } from './l10n';
 
 declare function acquireVsCodeApi(): { postMessage(message: CheckoutWebviewToHostMessage): void };
 
 const vscode = acquireVsCodeApi();
+applyLocalization(document);
 
 const targetLabelEl = document.getElementById('target-label');
 const createBranchEl = document.getElementById('create-branch') as HTMLInputElement | null;
@@ -32,7 +34,7 @@ if (
   !okButton ||
   !cancelButton
 ) {
-  throw new Error('Git Revision Graph: checkout dialog markup is missing expected elements');
+  throw new Error(t('Git Revision Graph: checkout dialog markup is missing expected elements'));
 }
 
 function updateEnabledState(): void {

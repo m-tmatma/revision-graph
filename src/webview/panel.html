@@ -106,42 +106,48 @@
 </head>
 <body>
   <main>
-    <h1 class="visually-hidden">Git Revision Graph</h1>
+    <h1 class="visually-hidden" data-i18n="Git Revision Graph">Git Revision Graph</h1>
     <div id="toolbar">
       <label for="scope-select">
-        Scope
+        <span data-i18n="Scope">Scope</span>
         <select id="scope-select">
-          <option value="all-branches" selected>All branches</option>
-          <option value="local-branches">Local branches</option>
-          <option value="current-branch">Current branch</option>
-          <option value="range">From..To range</option>
+          <option value="all-branches" selected data-i18n="All branches">All branches</option>
+          <option value="local-branches" data-i18n="Local branches">Local branches</option>
+          <option value="current-branch" data-i18n="Current branch">Current branch</option>
+          <option value="range" data-i18n="From..To range">From..To range</option>
         </select>
       </label>
       <span id="range-inputs" hidden>
-        <label for="range-from">From <input id="range-from" type="text" placeholder="(optional)" /></label>
-        <label for="range-to">To <input id="range-to" type="text" placeholder="HEAD" /></label>
+        <label for="range-from"
+          ><span data-i18n="From">From</span>
+          <input id="range-from" type="text" placeholder="(optional)" data-i18n-placeholder="(optional)"
+        /></label>
+        <label for="range-to"
+          ><span data-i18n="To">To</span> <input id="range-to" type="text" placeholder="HEAD" data-i18n-placeholder="HEAD"
+        /></label>
       </span>
       <label for="show-branches-merges-toggle">
         <input id="show-branches-merges-toggle" type="checkbox" checked />
-        Show branches and merges
+        <span data-i18n="Show branches and merges">Show branches and merges</span>
       </label>
       <label for="show-tags-toggle">
         <input id="show-tags-toggle" type="checkbox" />
-        Show all tags
+        <span data-i18n="Show all tags">Show all tags</span>
       </label>
-      <button id="refresh-button" type="button">Refresh</button>
-      <button id="checkout-button" type="button">Checkout…</button>
-      <button id="export-svg-button" type="button">Export SVG</button>
-      <button id="export-png-button" type="button">Export PNG</button>
+      <button id="refresh-button" type="button" data-i18n="Refresh">Refresh</button>
+      <button id="checkout-button" type="button" data-i18n="Checkout…">Checkout…</button>
+      <button id="export-svg-button" type="button" data-i18n="Export SVG">Export SVG</button>
+      <button id="export-png-button" type="button" data-i18n="Export PNG">Export PNG</button>
     </div>
     <div id="graph-scroll">
-      <div id="graph-status">Loading revision graph…</div>
+      <div id="graph-status" data-i18n="Loading revision graph…">Loading revision graph…</div>
       <div id="graph-root"></div>
       <div id="minimap"></div>
     </div>
   </main>
   <script nonce="__NONCE__">
     window.__LAYOUT_WORKER_URI__ = "__WORKER_URI__";
+    window.__L10N_BUNDLE__ = __L10N_BUNDLE_JSON__;
   </script>
   <script nonce="__NONCE__" src="__SCRIPT_URI__"></script>
 </body>

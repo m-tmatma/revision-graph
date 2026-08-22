@@ -66,29 +66,32 @@
 </head>
 <body>
   <main>
-    <h1 class="visually-hidden">Changed Files</h1>
+    <h1 class="visually-hidden" data-i18n="Changed Files">Changed Files</h1>
     <div id="header">
-      <div class="label">Comparing</div>
+      <div class="label" data-i18n="Comparing">Comparing</div>
       <div class="rev" id="from-rev"></div>
       <div class="rev" id="to-rev"></div>
     </div>
     <table>
       <thead>
         <tr>
-          <th>File</th>
-          <th>Ext</th>
-          <th>Action</th>
-          <th>Added</th>
-          <th>Deleted</th>
+          <th data-i18n="File">File</th>
+          <th data-i18n="Ext">Ext</th>
+          <th data-i18n="Action">Action</th>
+          <th data-i18n="Added">Added</th>
+          <th data-i18n="Deleted">Deleted</th>
         </tr>
       </thead>
       <tbody id="file-list">
         <tr>
-          <td colspan="5">Loading…</td>
+          <td colspan="5" data-i18n="Loading…">Loading…</td>
         </tr>
       </tbody>
     </table>
   </main>
+  <script nonce="__NONCE__">
+    window.__L10N_BUNDLE__ = __L10N_BUNDLE_JSON__;
+  </script>
   <script nonce="__NONCE__" src="__SCRIPT_URI__"></script>
 </body>
 </html>

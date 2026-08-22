@@ -86,13 +86,13 @@ function getWorkspaceRoot(): string | undefined {
 async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void> {
   const cwd = getWorkspaceRoot();
   if (!cwd) {
-    vscode.window.showErrorMessage('Git Revision Graph: open a folder first.');
+    vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: open a folder first.'));
     return;
   }
 
   const panel = vscode.window.createWebviewPanel(
     'revisionGraph',
-    'Git Revision Graph',
+    vscode.l10n.t('Git Revision Graph'),
     vscode.ViewColumn.Active,
     {
       enableScripts: true,
@@ -139,7 +139,7 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       reduce = message.reduce;
       await refresh();
     } else if (message.type === 'error') {
-      vscode.window.showErrorMessage(`Git Revision Graph: ${message.message}`);
+      vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', message.message));
     } else if (message.type === 'compare') {
       await showCompareChanges(context, cwd, message.from, message.to);
     } else if (message.type === 'compareWithDefaultBranch') {
@@ -147,7 +147,7 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
         const defaultBranch = await getDefaultBranchRef(cwd);
         await showCompareChanges(context, cwd, defaultBranch, message.to);
       } catch (err) {
-        vscode.window.showErrorMessage(`Git Revision Graph: ${(err as Error).message}`);
+        vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
       }
     } else if (message.type === 'openCheckoutDialog') {
       showCheckoutDialog(
@@ -159,10 +159,14 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
     } else if (message.type === 'deleteRef') {
       await handleDeleteRef(cwd, message.refType, message.refName, refresh);
     } else if (message.type === 'exportSvg') {
-      await exportToFile('revision-graph.svg', { 'SVG Image': ['svg'] }, Buffer.from(message.svg, 'utf-8'));
+      await exportToFile('revision-graph.svg', { [vscode.l10n.t('SVG Image')]: ['svg'] }, Buffer.from(message.svg, 'utf-8'));
     } else if (message.type === 'exportPng') {
       const base64 = message.dataUrl.replace(/^data:image\/png;base64,/, '');
-      await exportToFile('revision-graph.png', { 'PNG Image': ['png'] }, Buffer.from(base64, 'base64'));
+      await exportToFile(
+        'revision-graph.png',
+        { [vscode.l10n.t('PNG Image')]: ['png'] },
+        Buffer.from(base64, 'base64'),
+      );
     } else if (message.type === 'incrementalCheckout') {
       await showIncrementalCheckout(cwd, refresh);
     }
@@ -173,12 +177,16 @@ async function showIncrementalCheckout(cwd: string, refresh: () => Promise<void>
   const candidates = await listCheckoutCandidates(cwd);
   const items = candidates.map((candidate) => ({
     label: candidate.label,
-    description: candidate.isCurrent ? 'current branch' : candidate.target !== candidate.label ? 'remote' : undefined,
+    description: candidate.isCurrent
+      ? vscode.l10n.t('current branch')
+      : candidate.target !== candidate.label
+        ? vscode.l10n.t('remote')
+        : undefined,
     target: candidate.target,
   }));
 
   const picked = await vscode.window.showQuickPick(items, {
-    placeHolder: 'Type to filter branches, then select one to check out',
+    placeHolder: vscode.l10n.t('Type to filter branches, then select one to check out'),
     matchOnDescription: false,
   });
   if (!picked) return;
@@ -187,7 +195,7 @@ async function showIncrementalCheckout(cwd: string, refresh: () => Promise<void>
     await checkoutRef(cwd, picked.target, SIMPLE_CHECKOUT_OPTIONS);
     await refresh();
   } catch (err) {
-    vscode.window.showErrorMessage(`Git Revision Graph: checkout failed (${(err as Error).message})`);
+    vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: checkout failed ({0})', (err as Error).message));
   }
 }
 
@@ -201,9 +209,9 @@ async function exportToFile(
 
   try {
     await vscode.workspace.fs.writeFile(uri, content);
-    vscode.window.showInformationMessage(`Git Revision Graph: exported to ${uri.fsPath}`);
+    vscode.window.showInformationMessage(vscode.l10n.t('Git Revision Graph: exported to {0}', uri.fsPath));
   } catch (err) {
-    vscode.window.showErrorMessage(`Git Revision Graph: export failed (${(err as Error).message})`);
+    vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: export failed ({0})', (err as Error).message));
   }
 }
 
@@ -223,13 +231,13 @@ async function showCompareChanges(
       diffFileChanges(cwd, from, to),
     ]);
   } catch (err) {
-    vscode.window.showErrorMessage(`Git Revision Graph: compare failed (${(err as Error).message})`);
+    vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: compare failed ({0})', (err as Error).message));
     return;
   }
 
   const panel = vscode.window.createWebviewPanel(
     'revisionGraphCompare',
-    'Changed Files',
+    vscode.l10n.t('Changed Files'),
     vscode.ViewColumn.Beside,
     {
       enableScripts: true,
@@ -253,7 +261,7 @@ async function showCompareChanges(
 async function openFileDiff(from: string, to: string, path: string): Promise<void> {
   const fromUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, authority: from, path: `/${path}` });
   const toUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, authority: to, path: `/${path}` });
-  const title = `${path} (${from.slice(0, 7)} ↔ ${to.slice(0, 7)})`;
+  const title = vscode.l10n.t('{0} ({1} ↔ {2})', path, from.slice(0, 7), to.slice(0, 7));
   await vscode.commands.executeCommand('vscode.diff', fromUri, toUri, title);
 }
 
@@ -265,7 +273,7 @@ function showCheckoutDialog(
 ): void {
   const panel = vscode.window.createWebviewPanel(
     'revisionGraphCheckout',
-    'Switch / Checkout',
+    vscode.l10n.t('Switch / Checkout'),
     vscode.ViewColumn.Beside,
     {
       enableScripts: true,
@@ -287,9 +295,9 @@ function showCheckoutDialog(
       try {
         await checkoutRef(cwd, target.ref, message.options);
         panel.dispose();
-        vscode.window.showInformationMessage(`Git Revision Graph: checked out ${target.label}`);
+        vscode.window.showInformationMessage(vscode.l10n.t('Git Revision Graph: checked out {0}', target.label));
       } catch (err) {
-        vscode.window.showErrorMessage(`Git Revision Graph: checkout failed (${(err as Error).message})`);
+        vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: checkout failed ({0})', (err as Error).message));
         return;
       }
 
@@ -300,7 +308,9 @@ function showCheckoutDialog(
         try {
           await updateSubmodules(cwd);
         } catch (err) {
-          vscode.window.showErrorMessage(`Git Revision Graph: submodule update failed (${(err as Error).message})`);
+          vscode.window.showErrorMessage(
+            vscode.l10n.t('Git Revision Graph: submodule update failed ({0})', (err as Error).message),
+          );
         }
       }
 
@@ -315,12 +325,13 @@ async function handleDeleteRef(
   refName: string,
   refreshGraph: () => Promise<void>,
 ): Promise<void> {
+  const deleteActionLabel = vscode.l10n.t('Delete');
   const confirmed = await vscode.window.showWarningMessage(
-    `Delete ${refName}? This cannot be undone.`,
+    vscode.l10n.t('Delete {0}? This cannot be undone.', refName),
     { modal: true },
-    'Delete',
+    deleteActionLabel,
   );
-  if (confirmed !== 'Delete') return;
+  if (confirmed !== deleteActionLabel) return;
 
   try {
     if (refType === 'local-branch' || refType === 'current-branch') {
@@ -334,10 +345,10 @@ async function handleDeleteRef(
     } else {
       return;
     }
-    vscode.window.showInformationMessage(`Git Revision Graph: deleted ${refName}`);
+    vscode.window.showInformationMessage(vscode.l10n.t('Git Revision Graph: deleted {0}', refName));
     await refreshGraph();
   } catch (err) {
-    vscode.window.showErrorMessage(`Git Revision Graph: delete failed (${(err as Error).message})`);
+    vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: delete failed ({0})', (err as Error).message));
   }
 }
 
@@ -345,11 +356,40 @@ function getNonce(): string {
   return crypto.randomBytes(16).toString('base64');
 }
 
+// The webview runs in a separate, non-Node context and can't use
+// `vscode.l10n` directly (see src/webview/l10n.ts) — instead, this reads
+// whatever locale bundle matches `vscode.env.language` (falling back from
+// e.g. "ja-JP" to "ja", then to "" if there's no match — the extension
+// simply has no translations for that language, so the webview's own
+// @vscode/l10n falls back to the original source strings, same as
+// vscode.l10n does on the host side) and hands its raw JSON to every
+// webview panel as `window.__L10N_BUNDLE__`. Cached: the language doesn't
+// change while the extension host is running.
+let l10nBundleJsonPromise: Promise<string> | undefined;
+
+function loadL10nBundleJson(extensionUri: vscode.Uri): Promise<string> {
+  l10nBundleJsonPromise ??= (async () => {
+    const language = vscode.env.language;
+    const candidates = [language, language.split('-')[0]];
+    for (const candidate of candidates) {
+      try {
+        const path = vscode.Uri.joinPath(extensionUri, 'l10n', `bundle.l10n.${candidate}.json`).fsPath;
+        return await fs.readFile(path, 'utf-8');
+      } catch {
+        // No bundle for this candidate — try the next, or fall through to '{}'.
+      }
+    }
+    return '{}';
+  })();
+  return l10nBundleJsonPromise;
+}
+
 async function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {
   const webviewDir = vscode.Uri.joinPath(extensionUri, 'dist', 'webview');
   const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(webviewDir, 'main.js'));
   const workerUri = webview.asWebviewUri(vscode.Uri.joinPath(webviewDir, 'layoutWorker.js'));
   const nonce = getNonce();
+  const l10nBundleJson = await loadL10nBundleJson(extensionUri);
 
   const csp = [
     `default-src 'none'`,
@@ -372,7 +412,8 @@ async function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri)
     .replaceAll('__CSP__', csp)
     .replaceAll('__NONCE__', nonce)
     .replaceAll('__SCRIPT_URI__', scriptUri.toString())
-    .replaceAll('__WORKER_URI__', workerUri.toString());
+    .replaceAll('__WORKER_URI__', workerUri.toString())
+    .replaceAll('__L10N_BUNDLE_JSON__', l10nBundleJson);
 }
 
 // Shared by the compare and checkout-dialog panels: neither needs a Web
@@ -387,6 +428,7 @@ async function getSimplePanelHtml(
   const webviewDir = vscode.Uri.joinPath(extensionUri, 'dist', 'webview');
   const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(webviewDir, scriptName));
   const nonce = getNonce();
+  const l10nBundleJson = await loadL10nBundleJson(extensionUri);
 
   const csp = [
     `default-src 'none'`,
@@ -397,7 +439,11 @@ async function getSimplePanelHtml(
   const templatePath = vscode.Uri.joinPath(webviewDir, templateName).fsPath;
   const template = await fs.readFile(templatePath, 'utf-8');
 
-  return template.replaceAll('__CSP__', csp).replaceAll('__NONCE__', nonce).replaceAll('__SCRIPT_URI__', scriptUri.toString());
+  return template
+    .replaceAll('__CSP__', csp)
+    .replaceAll('__NONCE__', nonce)
+    .replaceAll('__SCRIPT_URI__', scriptUri.toString())
+    .replaceAll('__L10N_BUNDLE_JSON__', l10nBundleJson);
 }
 
 function getComparePanelHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {

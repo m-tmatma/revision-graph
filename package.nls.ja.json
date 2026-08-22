@@ -1,0 +1,5 @@
+{
+  "extension.description": "TortoiseGitの「リビジョングラフ」に着想を得た、GitリポジトリのコミットDAG(ブランチ・マージ・タグ)の可視化。",
+  "command.show.title": "リビジョングラフを表示",
+  "viewsWelcome.contents": "このリポジトリのコミット履歴をグラフとして可視化します。\n[リビジョングラフを表示](command:revisionGraph.show)"
+}

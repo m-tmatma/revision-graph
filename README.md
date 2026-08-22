@@ -21,6 +21,16 @@ All planned milestones are now implemented — see
 [docs/DESIGN.md](docs/DESIGN.md) for design details and
 [docs/HANDOFF.md](docs/HANDOFF.md) for implementation notes.
 
+## Localization
+
+The UI follows VS Code's own display language setting automatically —
+Japanese is included today. Adding another language is just two files,
+no code changes: `package.nls.<lang>.json` for `package.json`'s own
+contributed strings (command name, description, ...), and
+`l10n/bundle.l10n.<lang>.json` for everything else (shared by the
+extension host and every webview panel). Any string missing from a
+translation file falls back to its original English.
+
 ## Installation
 
 This extension isn't published to the Marketplace yet. Install it from a

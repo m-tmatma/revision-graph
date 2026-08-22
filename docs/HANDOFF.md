@@ -726,3 +726,64 @@ real content — `extension.ts` registers a `TreeDataProvider` for it whose
 "Show Revision Graph" button (`command:revisionGraph.show`) that opens
 the graph the same way the existing Command Palette entry and SCM
 title-bar button already do.
+
+## Post-M4: localization (Japanese first)
+
+First requested as "multi-language support, starting with Japanese", with
+an explicit follow-up requirement: adding a new language later should
+only mean dropping in resource files, no code changes. That shaped the
+whole approach — everything routes through VS Code's own built-in
+mechanisms rather than anything homegrown:
+
+- **`package.json`'s own contributed strings** (command title,
+  description, `viewsWelcome` contents) use VS Code's standard
+  `package.nls.json` (default) / `package.nls.<lang>.json` (override)
+  mechanism, referenced from the manifest as `%key%` placeholders, wired
+  up via the top-level `"l10n": "./l10n"` field.
+- **Extension host strings** (`extension.ts`, `gitActions.ts`) use the
+  built-in `vscode.l10n.t()` API directly — no dependency needed, it's
+  part of the `vscode` module itself in any reasonably recent VS Code.
+  The source string doubles as the lookup key and the automatic fallback
+  when no translation matches, so a *partial* translation file degrades
+  gracefully (untranslated strings just show their original English)
+  rather than erroring.
+- **Webview strings are the harder case**: a webview is a separate,
+  non-Node context with no access to `vscode.l10n` at all. Solved by
+  using `@vscode/l10n` (MIT — the same underlying library `vscode.l10n`
+  itself is built on, published standalone specifically for exactly this
+  browser-side use case) inside each webview bundle
+  (`src/webview/l10n.ts`), configured at startup with a bundle the
+  extension host injects as `window.__L10N_BUNDLE__` (a new
+  `__L10N_BUNDLE_JSON__` template placeholder, the same mechanism
+  `__CSP__`/`__NONCE__`/`__SCRIPT_URI__` already used) — read from
+  whichever `l10n/bundle.l10n.<lang>.json` matches `vscode.env.language`
+  (falling back from e.g. `ja-JP` to `ja`, then to `{}` if there's no
+  match for that language at all). One consequence: **the extension host
+  and every webview end up sharing the exact same
+  `l10n/bundle.l10n.ja.json`** — adding a language is one bundle file
+  (plus one `package.nls.<lang>.json` for the manifest) covering
+  everything, host and webview alike, matching the "just drop in a
+  resource file" requirement exactly.
+- **Static HTML text** (toolbar labels, table headers, dialog labels — as
+  opposed to JS-generated status messages and context-menu items, which
+  call `t(...)` directly) uses a `data-i18n="<source string>"` /
+  `data-i18n-placeholder="<source string>"` attribute convention plus a
+  generic `applyLocalization(root)` helper (also in `l10n.ts`) that walks
+  every such element on startup and sets `textContent`/`placeholder`
+  accordingly. A label wrapping both text and a real form control (e.g.
+  `<label><input type="checkbox"/> Some text</label>`) needed its text
+  wrapped in its own `<span data-i18n="...">` first — setting
+  `textContent` directly on the `<label>` would have deleted the
+  `<input>`.
+- Deliberately **left untranslated**: pure git/technical terms
+  (`HEAD`, `detached HEAD`) and any string that's 100% interpolated data
+  plus universal punctuation with no literal words of its own (e.g.
+  `"{0} ({1} ↔ {2})"`, the diff-editor tab title) — nothing to translate,
+  and `t()` already returns those unchanged when no bundle entry exists
+  for them.
+- ~85 keys total, covering the extension host, all three webview panels
+  (main graph, "Changed Files", "Switch / Checkout"), and every
+  `package.json`-contributed string. Verified with a throwaway script
+  that every `t(...)` call site and `data-i18n(-placeholder)` attribute
+  in the source has a matching bundle entry, and vice versa (no orphaned
+  translations) — not kept in the repo, just a one-off sanity check.
