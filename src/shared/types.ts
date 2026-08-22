@@ -1,7 +1,7 @@
 // Types shared between the extension host and the webview. Keep this file
 // free of node/vscode/DOM specific APIs so it can be imported from either side.
 
-export type RefType = 'head' | 'local-branch' | 'remote-branch' | 'tag' | 'stash' | 'other';
+export type RefType = 'head' | 'current-branch' | 'local-branch' | 'remote-branch' | 'tag' | 'stash' | 'other';
 
 export interface RefInfo {
   name: string;

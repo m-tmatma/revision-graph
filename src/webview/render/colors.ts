@@ -5,7 +5,8 @@
 import type { RefType } from '../../shared/types';
 
 export const REF_COLORS: Record<RefType, string> = {
-  head: '#f14c4c',
+  head: '#ff0000',
+  'current-branch': '#ff0000',
   'local-branch': '#3794ff',
   'remote-branch': '#4ec9b0',
   tag: '#d7ba7d',

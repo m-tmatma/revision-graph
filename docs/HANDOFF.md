@@ -243,9 +243,28 @@ subtle to eyeball.
 `src/webview/panel.html`, `src/webview/render/graphRenderer.ts`), push a
 branch, open a PR against `master`, update this section once merged.
 
-## Milestones after M2 (per DESIGN.md, each its own sequential PR)
+## M3 status: in progress
 
-- **M3** (next): pan/zoom, 2-node selection for compare, context menu
-  (checkout, delete ref, copy hash, compare), tooltips.
-- **M4**: minimap, SVG/PNG export, automatic refresh on repo change (via the
+Two M3 slices landed ahead of the rest (small, self-contained, shipped as
+their own PR rather than blocking on pan/zoom/selection/context menu):
+
+- **Scroll to current branch**: on every (re)render, `main.ts`'s
+  `scrollToHead` finds the node carrying a `head` or `current-branch` ref
+  and scrolls `#graph-scroll` to center it, so HEAD is never lost off-screen
+  in a large graph.
+- **Current-branch highlighting**: `logReader.ts`'s `fetchRefs` now resolves
+  the checked-out branch name (`git symbolic-ref --short -q HEAD`) and
+  labels that branch's own ref `current-branch` (pure red, `#ff0000` in
+  `colors.ts`) instead of adding a separate literal "HEAD" chip next to it —
+  matches TortoiseGit's own convention (the user pointed at a real
+  TortoiseGit screenshot showing the checked-out branch itself in red, not a
+  separate HEAD label). The literal `head`/"HEAD" ref type still exists as a
+  fallback for detached-HEAD state, where there's no branch to highlight.
+
+**Remaining M3 scope**: pan/zoom, 2-node selection for compare, context menu
+(checkout, delete ref, copy hash, compare), tooltips.
+
+## M4 (after M3)
+
+- Minimap, SVG/PNG export, automatic refresh on repo change (via the
   `vscode.git` extension API's `Repository.state.onDidChange`).
