@@ -9,8 +9,14 @@ Japanese is included today.
 
 ## Installation
 
-This extension isn't published to the Marketplace yet. Install it from a
-`.vsix` file instead:
+Install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=tmatma.vscode-git-revision-graph) —
+search for **"Git Revision Graph"** in VSCode's Extensions view, or run:
+
+```sh
+code --install-extension tmatma.vscode-git-revision-graph
+```
+
+Alternatively, install from a `.vsix` file:
 
 1. Get a `.vsix`: download the `vsix-v<version>-build<N>` artifact from a
    [CI run](../../actions) on GitHub (it's a zip; unzip it to get the
