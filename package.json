@@ -23,8 +23,7 @@
     "commit graph",
     "tortoisegit",
     "history",
-    "branches",
-    "dag"
+    "branches"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
