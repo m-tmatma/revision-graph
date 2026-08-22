@@ -1,0 +1,35 @@
+# Changelog
+
+All notable changes to the "Git Revision Graph" extension are documented
+here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
+
+## 0.0.1
+
+Initial feature set.
+
+### Added
+
+- Visualize a repository's commit history as an interactive SVG graph —
+  branches, merges, and tags — inspired by TortoiseGit's Revision Graph.
+- Filtering by scope (all branches / local branches / current branch /
+  a From..To range), with straight-line commit runs collapsed by default
+  ("Show branches and merges" toggle controls whether git prunes merges
+  unreachable from any ref, matching TortoiseGit's own default).
+- Pan, zoom, and a minimap for navigating large graphs.
+- Node tooltips (full hash, author, date, commit message) and a
+  right-click context menu: checkout, copy ref name(s)/full hash,
+  compare two selected commits or against the repo's default branch,
+  and delete a local branch (matches TortoiseGit's own handling of an
+  unmerged branch — warns, then force-deletes on confirmation).
+- A "Switch / Checkout" panel (create branch, track, force, merge,
+  update submodules) and a separate toolbar **Checkout…** picker for a
+  fast plain checkout.
+- A "Changed Files" comparison panel with per-file added/deleted line
+  counts, opening the native VS Code diff editor per file.
+- Export the graph as SVG or PNG.
+- Automatic refresh when the repository changes outside the extension
+  (a checkout, commit, or pull from a terminal or another tool).
+- An Activity Bar entry point alongside the existing Command Palette
+  command and Source Control title-bar button.
+- Localization support, with Japanese included — adding another
+  language only requires new resource files, no code changes.
