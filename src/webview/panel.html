@@ -78,6 +78,19 @@
       position: absolute;
       inset: 0;
     }
+    #minimap {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      width: 260px;
+      height: 200px;
+      background: var(--vscode-editorWidget-background, #252526);
+      border: 1px solid var(--vscode-panel-border, #454545);
+      border-radius: 4px;
+      overflow: hidden;
+      cursor: pointer;
+      touch-action: none;
+    }
     .visually-hidden {
       position: absolute;
       width: 1px;
@@ -123,6 +136,7 @@
     <div id="graph-scroll">
       <div id="graph-status">Loading revision graph…</div>
       <div id="graph-root"></div>
+      <div id="minimap"></div>
     </div>
   </main>
   <script nonce="__NONCE__">
