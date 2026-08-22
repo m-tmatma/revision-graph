@@ -133,7 +133,7 @@ Web Worker内で実行し、`postMessage`でメインスレッドに結果(`Laid
 
 - ズーム/パン: SVGの`viewBox`操作 + pointer events(ライブラリ非依存で実装。必要なら`d3-zoom`のみ導入)
 - 現在ブランチ(HEAD)への自動スクロール: 初期表示時・フィルタ変更後の再描画時に、`refs`に`head`タイプを持つノードへ確実にスクロールし、大きいグラフでもHEADを探す手間なく見つけられるようにする
-- 選択: クリックで1点目選択、Ctrl+クリックで2点目選択(比較用)。選択状態はWebview内のstateで管理。
+- 選択: クリックで1点目選択、Ctrl+クリックで2点目選択(比較用)。選択状態はWebview内のstateで管理。ネイティブの`click`イベントには頼らず、pointerdown/pointerupの座標差が4px未満の場合のみ「クリック」として扱う(パン操作のドラッグと区別するため)。
 - ツールチップ: ノードの`<g>`の最初の子としてネイティブ`<title>`要素を追加し、ブラウザ標準のホバー表示に任せる(追加のJS/CSS不要)。内容はTortoiseGit本家のツールチップに合わせ、フルハッシュ→`{author} <{email}> {date}`(`YYYY-MM-DD HH:mm`)→空行→コミットメッセージ全文(subjectだけでなくbody込み)の順。
 - 右クリックメニュー: VSCodeのwebview内では独自HTML/CSSでコンテキストメニューを実装(ネイティブメニューAPIはwebview内で使えないため)。メニュー項目(ブランチチェックアウト、ref削除、hashコピー、比較)はExtension Hostにアクション名+hashをpostMessageし、Extension Host側でVSCode Git拡張のAPIまたはgit CLIで実行。
 - ミニマップ: 縮小した別SVGをオーバーレイ表示し、ビューポート矩形をドラッグ可能にする。
