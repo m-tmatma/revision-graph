@@ -45,6 +45,14 @@ the Remote Extension Host". Instead, either:
      Remote-SSH-connected window itself** (not a separate terminal) — that
      always targets the extension host you're actually connected to.
 
+   Note that "Install in SSH: \<host\>" installs the **exact same version
+   already installed locally** (whatever `.vsix` you sideloaded, or
+   whichever Marketplace version you have) — it doesn't fetch a different
+   or newer one. If you install/uninstall on one side, the other side's
+   copy is unaffected until you explicitly repeat the action there too;
+   the two are entirely independent installs that happen to share a
+   version number.
+
 ## Usage
 
 1. Open a folder that's a Git repository.
