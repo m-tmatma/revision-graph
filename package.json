@@ -9,6 +9,10 @@
     "type": "git",
     "url": "https://github.com/m-tmatma/vscode-git-revision-graph.git"
   },
+  "bugs": {
+    "url": "https://github.com/m-tmatma/vscode-git-revision-graph/issues"
+  },
+  "homepage": "https://github.com/m-tmatma/vscode-git-revision-graph#readme",
   "engines": {
     "vscode": "^1.85.0"
   },
