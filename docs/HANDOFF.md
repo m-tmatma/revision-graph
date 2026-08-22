@@ -511,4 +511,39 @@ M4 items are landing one at a time, same as M3.
   extension (a terminal, TortoiseGit, another VSCode window) while the
   graph panel is open refreshes it automatically.
 
-**Remaining M4 scope**: minimap, SVG/PNG export.
+- **SVG/PNG export** (done, `exportSvg`/`exportPng` in `src/webview/main.ts`,
+  `exportSvg`/`exportPng` message handling + `exportToFile` in
+  `src/extension.ts`): both buttons clone the currently-rendered `<svg>`,
+  override its `width`/`height`/`viewBox` to the full graph's logical
+  bounds (the live element's viewBox only covers the current pan/zoom
+  window), and serialize it with `XMLSerializer`. SVG export just posts
+  that markup to the extension host, which writes it via
+  `vscode.window.showSaveDialog` + `vscode.workspace.fs.writeFile`. PNG
+  export additionally rasterizes: load the serialized markup as a
+  `data:image/svg+xml` `<img>`, draw it onto a `<canvas>` (background
+  filled first with the page's live `--vscode-editor-background` so the
+  PNG isn't transparent), then `canvas.toDataURL('image/png')` and post
+  the base64 payload over to be decoded and written the same way.
+
+  Two non-obvious failure modes found while building this, both now
+  guarded against with a clear `setStatus` error instead of a silent bad
+  file:
+  - The isolated `<img>` document has no CSP and no connection to the
+    live theme, so every fill/stroke is written as
+    `var(--vscode-x, <fallback>)` — the fallback color, not the theme
+    color, is what actually renders. Acceptable (not theme-matched, but
+    visible) for a portable export.
+  - **Large repos can produce a graph taller than the browser's 2D canvas
+    can allocate** (Chromium's limit is roughly 16384px per side / ~268M
+    px total area — hit in practice against a real ~10k-commit history,
+    where the laid-out graph came out to `5051 x 112174`). Past that
+    limit, `canvas.toDataURL()` does not throw — it silently returns the
+    degenerate string `"data:,"`, which looked like a real but
+    corrupt/tiny PNG once decoded and written to disk, and took a long
+    debugging session (ruling out CSP, `blob:` vs `data:` URL taint, and
+    `<marker>`-caused canvas tainting first) to trace back to the canvas
+    size itself. `exportPng` now checks `graph.width`/`graph.height`
+    against a `16384` / `16384²` limit up front and fails with a message
+    pointing at Export SVG instead (unaffected, since it stays vector).
+
+**Remaining M4 scope**: minimap.

@@ -44,6 +44,8 @@ const toolbar = {
   collapseToggle: document.getElementById('collapse-toggle') as HTMLInputElement | null,
   showTagsToggle: document.getElementById('show-tags-toggle') as HTMLInputElement | null,
   refreshButton: document.getElementById('refresh-button') as HTMLButtonElement | null,
+  exportSvgButton: document.getElementById('export-svg-button') as HTMLButtonElement | null,
+  exportPngButton: document.getElementById('export-png-button') as HTMLButtonElement | null,
 };
 
 if (
@@ -55,7 +57,9 @@ if (
   !toolbar.rangeTo ||
   !toolbar.collapseToggle ||
   !toolbar.showTagsToggle ||
-  !toolbar.refreshButton
+  !toolbar.refreshButton ||
+  !toolbar.exportSvgButton ||
+  !toolbar.exportPngButton
 ) {
   throw new Error('Git Revision Graph: webview markup is missing expected elements');
 }
@@ -113,9 +117,11 @@ for (const input of [toolbar.rangeFrom, toolbar.rangeTo]) {
 // commit in the current view carries HEAD/current-branch.
 let panZoomController: PanZoomController | null = null;
 let selectionController: SelectionController | null = null;
+let lastRenderedGraph: LaidOutGraph | null = null;
 
 function renderAndFocus(graph: LaidOutGraph): void {
   closeContextMenu();
+  lastRenderedGraph = graph;
   const svg = renderGraph(rootEl!, graph);
 
   selectionController?.destroy();
@@ -138,6 +144,116 @@ function renderAndFocus(graph: LaidOutGraph): void {
     controller.centerOn(graph.width / 2, graph.height / 2);
   }
 }
+
+// The live SVG's viewBox reflects the current pan/zoom, not the full
+// graph — export should capture everything, so a clone gets its
+// width/height/viewBox reset to the graph's full logical bounds before
+// serializing. Node/edge positions don't depend on pan/zoom (only the
+// viewBox attribute does), so cloning the already-rendered SVG is enough;
+// no need to re-render from scratch.
+function buildExportSvgMarkup(graph: LaidOutGraph): string {
+  const liveSvg = rootEl!.querySelector('svg');
+  if (!liveSvg) throw new Error('no graph rendered yet');
+
+  const clone = liveSvg.cloneNode(true) as SVGSVGElement;
+  clone.setAttribute('width', String(graph.width));
+  clone.setAttribute('height', String(graph.height));
+  clone.setAttribute('viewBox', `0 0 ${graph.width} ${graph.height}`);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  return new XMLSerializer().serializeToString(clone);
+}
+
+function exportSvg(): void {
+  if (!lastRenderedGraph) return;
+  const message: WebviewToHostMessage = { type: 'exportSvg', svg: buildExportSvgMarkup(lastRenderedGraph) };
+  vscode.postMessage(message);
+}
+
+// Rasterizes by loading the SVG as an <img> onto a <canvas>: the SVG's
+// `var(--vscode-x, fallback)` colors only resolve against this page's live
+// theme while connected to this document, so an isolated <img> falls back
+// to the literal fallback colors already baked into every fill/stroke —
+// a reasonable, if not theme-matched, result for a portable export. The
+// canvas background is filled with the page's *actual* current background
+// color first (read from this live document, so it isn't subject to that
+// same isolation), so the PNG isn't transparent.
+//
+// A large repo's graph can be taller than the browser's 2D canvas can
+// allocate (Chromium's limit is roughly 16384px per side / ~268M px total
+// area) — past that, canvas.toDataURL() doesn't throw, it silently returns
+// the degenerate string "data:,", which otherwise looks like a real but
+// tiny/corrupt PNG once written to disk. Bail out early with a clear
+// message instead (SVG export has no such limit, since it stays vector).
+const MAX_CANVAS_DIMENSION = 16_384;
+const MAX_CANVAS_AREA = MAX_CANVAS_DIMENSION * MAX_CANVAS_DIMENSION;
+
+async function exportPng(graph: LaidOutGraph): Promise<void> {
+  if (
+    graph.width > MAX_CANVAS_DIMENSION ||
+    graph.height > MAX_CANVAS_DIMENSION ||
+    graph.width * graph.height > MAX_CANVAS_AREA
+  ) {
+    throw new Error(
+      `graph is too large to export as PNG (${Math.round(graph.width)}x${Math.round(graph.height)} exceeds the browser's canvas size limit) — use Export SVG instead`,
+    );
+  }
+
+  const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(buildExportSvgMarkup(graph))}`;
+
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    // A blocked (e.g. by CSP) load doesn't reliably fire onerror in every
+    // environment, so this would otherwise hang forever with no visible
+    // error at all — a timeout guarantees some reaction either way.
+    const timeoutId = setTimeout(() => reject(new Error('timed out rasterizing the SVG')), 10_000);
+    const img = new Image();
+    img.onload = () => {
+      clearTimeout(timeoutId);
+      resolve(img);
+    };
+    img.onerror = () => {
+      clearTimeout(timeoutId);
+      reject(new Error('failed to rasterize the SVG'));
+    };
+    img.src = svgDataUrl;
+  });
+
+  // The SVG can fire `load` while still decoding to a 0x0 image (seen when
+  // the SVG fails to parse but doesn't error out outright) — drawing that
+  // onto the canvas silently produces a near-empty PNG instead of a visible
+  // failure, so catch it here instead.
+  if (image.naturalWidth === 0 || image.naturalHeight === 0) {
+    throw new Error('rasterized SVG has no dimensions (naturalWidth/naturalHeight is 0)');
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = graph.width;
+  canvas.height = graph.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('canvas 2D context unavailable');
+  ctx.fillStyle = getComputedStyle(document.body).backgroundColor || '#1e1e1e';
+  ctx.fillRect(0, 0, graph.width, graph.height);
+  ctx.drawImage(image, 0, 0, graph.width, graph.height);
+
+  const dataUrl = canvas.toDataURL('image/png');
+  // toDataURL() can return the degenerate "data:," instead of throwing
+  // when the canvas is unusable (e.g. a tainted source) in some Electron/
+  // Chromium builds — that string would otherwise slip through to the
+  // extension host and get written out as a handful of garbage bytes.
+  if (!dataUrl.startsWith('data:image/png;base64,')) {
+    throw new Error(`canvas produced no PNG data (got "${dataUrl.slice(0, 32)}")`);
+  }
+
+  const message: WebviewToHostMessage = { type: 'exportPng', dataUrl };
+  vscode.postMessage(message);
+}
+
+toolbar.exportSvgButton.addEventListener('click', exportSvg);
+toolbar.exportPngButton.addEventListener('click', () => {
+  if (!lastRenderedGraph) return;
+  exportPng(lastRenderedGraph).catch((err: unknown) => {
+    setStatus(`Export failed: ${(err as Error).message}`);
+  });
+});
 
 // Right-click a node while exactly two are selected to compare them.
 // Deliberately requires the clicked node to be one of the two selected —

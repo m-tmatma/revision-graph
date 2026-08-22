@@ -50,7 +50,9 @@ export type WebviewToHostMessage =
   | { type: 'setFilter'; scope: LogScopeOptions; reduce: ReduceOptions }
   | { type: 'compare'; from: string; to: string }
   | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string }
-  | { type: 'deleteRef'; refType: RefType; refName: string };
+  | { type: 'deleteRef'; refType: RefType; refName: string }
+  | { type: 'exportSvg'; svg: string }
+  | { type: 'exportPng'; dataUrl: string };
 
 /** Node shape handed to the layout engine, after size measurement. */
 export interface GraphNode {

@@ -14,9 +14,10 @@ Early development. Implemented so far:
   node selection, tooltips, and the full context menu (checkout, copy
   hash, copy ref name(s), compare, delete ref) (Milestones 2 and 3)
 - Automatic refresh when the repo changes outside the extension — a
-  checkout, commit, or pull from a terminal or another tool (Milestone 4)
+  checkout, commit, or pull from a terminal or another tool, and SVG/PNG
+  export (Milestone 4)
 
-A minimap and SVG/PNG export are planned but not yet built — see
+A minimap is planned but not yet built — see
 [docs/DESIGN.md](docs/DESIGN.md) for the full roadmap.
 
 ## Installation
@@ -65,6 +66,11 @@ This produces `vscode-git-revision-graph-<version>.vsix` in the project root.
   collapsed by the toggle above; when on, every tagged commit is kept.
 - **Refresh**: re-applies the current settings (mainly useful after typing
   into From/To, which otherwise apply on blur/Enter).
+- **Export SVG** / **Export PNG**: save the full graph (not just the
+  currently visible/zoomed area) to a file. PNG export rasterizes in the
+  browser and isn't theme-matched (colors fall back to their default
+  values); it also has a size ceiling from the browser's canvas limits —
+  on a very large repo, use Export SVG instead (vector, no size limit).
 
 **Navigating the graph**:
 

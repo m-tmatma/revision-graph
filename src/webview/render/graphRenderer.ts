@@ -23,14 +23,12 @@ export function renderGraph(container: HTMLElement, graph: LaidOutGraph): SVGSVG
   svg.setAttribute('height', '100%');
   // panZoom.ts sets the viewBox once it attaches to this element.
 
-  const defs = createSvgElement('defs');
-  defs.appendChild(buildArrowMarker());
-  svg.appendChild(defs);
-
   const edgesGroup = createSvgElement('g');
   edgesGroup.setAttribute('fill', 'none');
   for (const edge of graph.edges) {
     edgesGroup.appendChild(buildEdge(edge));
+    const arrowhead = buildArrowhead(edge);
+    if (arrowhead) edgesGroup.appendChild(arrowhead);
   }
   svg.appendChild(edgesGroup);
 
@@ -44,31 +42,47 @@ export function renderGraph(container: HTMLElement, graph: LaidOutGraph): SVGSVG
   return svg;
 }
 
-function buildArrowMarker(): SVGMarkerElement {
-  const marker = createSvgElement('marker');
-  marker.setAttribute('id', 'revision-graph-arrowhead');
-  marker.setAttribute('markerWidth', String(ARROW_SIZE));
-  marker.setAttribute('markerHeight', String(ARROW_SIZE));
-  marker.setAttribute('refX', String(ARROW_SIZE - 1));
-  marker.setAttribute('refY', String(ARROW_SIZE / 2));
-  marker.setAttribute('orient', 'auto');
-  marker.setAttribute('markerUnits', 'userSpaceOnUse');
-
-  const path = createSvgElement('path');
-  path.setAttribute('d', `M0,0 L${ARROW_SIZE},${ARROW_SIZE / 2} L0,${ARROW_SIZE} Z`);
-  path.setAttribute('fill', 'var(--vscode-editorLineNumber-foreground, #888888)');
-  marker.appendChild(path);
-  return marker;
-}
-
 function buildEdge(edge: LaidOutEdge): SVGPolylineElement {
   const points = edge.bendPoints.map((p) => `${p.x},${p.y}`).join(' ');
   const polyline = createSvgElement('polyline');
   polyline.setAttribute('points', points);
   polyline.setAttribute('stroke', 'var(--vscode-editorLineNumber-foreground, #888888)');
   polyline.setAttribute('stroke-width', '1.5');
-  polyline.setAttribute('marker-end', 'url(#revision-graph-arrowhead)');
   return polyline;
+}
+
+// Drawn as a plain triangle rather than an SVG <marker> referenced via
+// marker-end="url(#...)": Chromium taints an <img>-rasterized SVG's canvas
+// readback (canvas.toDataURL() silently returns "data:," instead of real
+// pixel data) when the SVG uses a <marker>, even one referencing a purely
+// local same-document fragment id — this broke PNG export.
+function buildArrowhead(edge: LaidOutEdge): SVGPolygonElement | null {
+  const points = edge.bendPoints;
+  if (points.length < 2) return null;
+  const tip = points[points.length - 1];
+  const prev = points[points.length - 2];
+  const dx = tip.x - prev.x;
+  const dy = tip.y - prev.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const ux = dx / length;
+  const uy = dy / length;
+  const px = -uy;
+  const py = ux;
+  const backX = tip.x - ux * ARROW_SIZE;
+  const backY = tip.y - uy * ARROW_SIZE;
+  const halfWidth = ARROW_SIZE / 2;
+
+  const polygon = createSvgElement('polygon');
+  polygon.setAttribute(
+    'points',
+    [
+      `${tip.x},${tip.y}`,
+      `${backX + px * halfWidth},${backY + py * halfWidth}`,
+      `${backX - px * halfWidth},${backY - py * halfWidth}`,
+    ].join(' '),
+  );
+  polygon.setAttribute('fill', 'var(--vscode-editorLineNumber-foreground, #888888)');
+  return polygon;
 }
 
 function buildNode(node: LaidOutNode): SVGGElement {

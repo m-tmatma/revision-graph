@@ -128,8 +128,29 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       );
     } else if (message.type === 'deleteRef') {
       await handleDeleteRef(cwd, message.refType, message.refName, refresh);
+    } else if (message.type === 'exportSvg') {
+      await exportToFile('revision-graph.svg', { 'SVG Image': ['svg'] }, Buffer.from(message.svg, 'utf-8'));
+    } else if (message.type === 'exportPng') {
+      const base64 = message.dataUrl.replace(/^data:image\/png;base64,/, '');
+      await exportToFile('revision-graph.png', { 'PNG Image': ['png'] }, Buffer.from(base64, 'base64'));
     }
   });
+}
+
+async function exportToFile(
+  defaultFileName: string,
+  filters: Record<string, string[]>,
+  content: Buffer,
+): Promise<void> {
+  const uri = await vscode.window.showSaveDialog({ filters, defaultUri: vscode.Uri.file(defaultFileName) });
+  if (!uri) return;
+
+  try {
+    await vscode.workspace.fs.writeFile(uri, content);
+    vscode.window.showInformationMessage(`Git Revision Graph: exported to ${uri.fsPath}`);
+  } catch (err) {
+    vscode.window.showErrorMessage(`Git Revision Graph: export failed (${(err as Error).message})`);
+  }
 }
 
 async function showCompareChanges(
@@ -278,7 +299,10 @@ async function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri)
 
   const csp = [
     `default-src 'none'`,
-    `img-src ${webview.cspSource}`,
+    // data: is needed for the PNG export path, which rasterizes the graph
+    // by loading a data: SVG into an <img> before drawing it to a <canvas>
+    // (a blob: source taints the canvas for readback in this webview host).
+    `img-src ${webview.cspSource} data:`,
     `style-src ${webview.cspSource} 'unsafe-inline'`,
     `script-src 'nonce-${nonce}'`,
     // Worker scripts are loaded via fetch() + a blob: URL (see main.ts),
