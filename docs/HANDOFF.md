@@ -437,6 +437,19 @@ the whole milestone, per the user's explicit request ("M3 は要素ずつ PR 分
     failure shouldn't read as "checkout failed"), and the graph still
     refreshes either way. Confirmed working against D:\sakura2.
 
+- **Context menu — "Copy ref name(s)"**: copies every ref on the
+  right-clicked node at once (its full `refs/heads/...`/`refs/remotes/...`/
+  `refs/tags/...` path, one per line), rather than requiring a click on
+  each ref chip individually — raised because a node commonly carries both
+  a local and a remote branch pointing at the same commit (per a
+  TortoiseGit screenshot the user provided showing its own "ref名をコピー"
+  item, plus a follow-up clarifying they wanted *all* of a node's refs
+  copied together as full paths, not just one display name at a time).
+  `main.ts`'s new `fullRefName` reconstructs the full path — `GraphCommit
+  .refs` only carries the already-stripped display name
+  (`logReader.ts`'s `displayRefName`), so this is that function's inverse.
+  Omitted entirely if the node has no refs.
+
 **Remaining M3 scope**: "delete ref" (the last context-menu item).
 
 ## M4 (after M3)

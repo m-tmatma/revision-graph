@@ -11,6 +11,7 @@ import type {
   LaidOutNode,
   LogScopeOptions,
   ReduceOptions,
+  RefInfo,
   WebviewToHostMessage,
 } from '../shared/types';
 import { computeLayout } from './computeLayout';
@@ -142,6 +143,27 @@ function renderAndFocus(graph: LaidOutGraph): void {
 // right-clicking an unrelated third node wouldn't have an obvious meaning
 // yet (there's no other menu item until the rest of M3's context-menu
 // scope is built out).
+// Reconstructs the full `refs/heads/...` path GraphCommit.refs doesn't
+// carry (logReader.ts only sends the already-stripped display name) — the
+// inverse of logReader.ts's displayRefName/classifyRef.
+function fullRefName(ref: RefInfo): string {
+  switch (ref.type) {
+    case 'local-branch':
+    case 'current-branch':
+      return `refs/heads/${ref.name}`;
+    case 'remote-branch':
+      return `refs/remotes/${ref.name}`;
+    case 'tag':
+      return `refs/tags/${ref.name}`;
+    case 'stash':
+      return 'refs/stash';
+    case 'head':
+      return 'HEAD';
+    default:
+      return ref.name;
+  }
+}
+
 // Checkout targets the right-clicked node's own local branch if it has
 // one, otherwise the bare commit hash (a detached-HEAD checkout). Omitted
 // entirely if the node IS the current branch already — nothing to do.
@@ -196,6 +218,20 @@ function attachContextMenu(
 
     const checkoutItem = checkoutMenuItem(nodesById.get(commitId), commitId);
     if (checkoutItem) items.push(checkoutItem);
+
+    // Copies every ref on the node at once (its full `refs/heads/...` path,
+    // one per line) rather than requiring a click on each ref chip
+    // individually — a node commonly carries both a local and a remote
+    // branch pointing at the same commit.
+    const nodeRefs = nodesById.get(commitId)?.refs ?? [];
+    if (nodeRefs.length > 0) {
+      items.push({
+        label: nodeRefs.length === 1 ? 'Copy ref name' : `Copy ref names (${nodeRefs.length})`,
+        onClick: () => {
+          void navigator.clipboard.writeText(nodeRefs.map(fullRefName).join('\n'));
+        },
+      });
+    }
 
     items.push({
       label: 'Copy full hash',
