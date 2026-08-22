@@ -74,6 +74,9 @@ function buildEdge(edge: LaidOutEdge): SVGPolylineElement {
 function buildNode(node: LaidOutNode): SVGGElement {
   const group = createSvgElement('g');
   group.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+  // A <title> as the first child gives every part of the node group a
+  // native browser tooltip on hover, with no extra JS/CSS needed.
+  group.appendChild(buildTooltip(node));
 
   const rect = createSvgElement('rect');
   rect.setAttribute('width', String(node.width));
@@ -90,6 +93,19 @@ function buildNode(node: LaidOutNode): SVGGElement {
   }
 
   return group;
+}
+
+function buildTooltip(node: LaidOutNode): SVGTitleElement {
+  const title = createSvgElement('title');
+  const dateLine = `${node.authorName} <${node.authorEmail}> ${formatDate(node.authorDate)}`;
+  title.textContent = `${node.id}\n${dateLine}\n\n${node.body}`;
+  return title;
+}
+
+function formatDate(unixSeconds: number): string {
+  const date = new Date(unixSeconds * 1000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
 function buildRefRow(ref: RefInfo, nodeWidth: number, index: number): SVGGElement {

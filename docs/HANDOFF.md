@@ -288,8 +288,32 @@ the whole milestone, per the user's explicit request ("M3 は要素ずつ PR 分
     leaving a full set of window-level listeners behind, fighting over an
     SVG no longer even in the DOM.
 
+- **Tooltips**: an SVG `<title>` as the first child of each node's `<g>`
+  group gives every part of it a native browser tooltip on hover — no extra
+  JS/CSS needed. Text matches TortoiseGit's own tooltip layout, per a
+  screenshot the user provided: full hash, then `{authorName}
+  <{authorEmail}> {date}` (`YYYY-MM-DD HH:mm`, not locale-dependent
+  `toLocaleString()`), a blank line, then the full commit message (not just
+  the subject).
+
+  Showing the full message required a real parsing change: `GraphCommit`
+  gained a `body` field (git's `%B` — subject plus body), and since a
+  commit message can contain embedded newlines, `logReader.ts` could no
+  longer parse `git log` one line at a time. `fetchCommits` now buffers the
+  whole `git log` output (a new `runGitBuffered`, alongside the
+  line-streaming `runGitLines` still used for `for-each-ref`/`rev-parse`/
+  `symbolic-ref`, none of which have multi-line values) and splits records
+  on `\x1e` (RECORD_SEP) instead of `\n` — `%B` is the last field in the
+  format string specifically so embedded newlines in the body can't be
+  mistaken for a record boundary. `parseLogLine` was renamed `parseLogRecord`
+  to match. This is a deliberate step back from DESIGN.md's original
+  "stream so large repos don't need one big buffer" goal, traded for
+  correctness; revisit if a large repo's memory use becomes a real problem.
+  Verified against real multi-paragraph merge commit messages in the
+  TortoiseGit repo itself, not just synthetic test data.
+
 **Remaining M3 scope**: 2-node selection for compare, context menu
-(checkout, delete ref, copy hash, compare), tooltips.
+(checkout, delete ref, copy hash, compare).
 
 ## M4 (after M3)
 

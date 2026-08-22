@@ -102,7 +102,7 @@ TortoiseGitの`CLogCache`(hash→メタデータ)、`MAP_HASH_NAME`(hash→ref�
 - From-Toレンジ: `git log <to> ^<from> --parents ...`
 - ref情報は`git for-each-ref --format="%(objectname) %(refname)"`で別途取得し、hashごとにマージ
 
-区切り文字は`\x1f`(Unit Separator)を使い、subjectに含まれる可能性のある文字と衝突しないようにする。stdoutをストリームで受け取り行単位でパースする(大規模リポジトリでの一括バッファ確保を避ける)。
+区切り文字は`\x1f`(Unit Separator、フィールド区切り)を使い、subjectに含まれる可能性のある文字と衝突しないようにする。当初はstdoutをストリームで受け取り行単位でパースする設計だったが(大規模リポジトリでの一括バッファ確保を避ける狙い)、ツールチップ用にコミット本文全体(`%B`)を取得するようになったため、本文に改行が含まれ得る以上「1行=1コミット」というパース方式が成立しなくなった。そのためレコード区切りとして`\x1e`(Record Separator)を各コミットの末尾に付与し、`git log`の出力全体をバッファしてから`\x1e`で分割する方式に変更した(`for-each-ref`/`rev-parse`/`symbolic-ref`など複数行値を持たない呼び出しは引き続き行ストリーミング)。大規模リポジトリでのメモリ使用量が問題になった場合は再検討する。
 
 ## DAG構築 と 直線区間の間引き
 
@@ -134,7 +134,7 @@ Web Worker内で実行し、`postMessage`でメインスレッドに結果(`Laid
 - ズーム/パン: SVGの`viewBox`操作 + pointer events(ライブラリ非依存で実装。必要なら`d3-zoom`のみ導入)
 - 現在ブランチ(HEAD)への自動スクロール: 初期表示時・フィルタ変更後の再描画時に、`refs`に`head`タイプを持つノードへ確実にスクロールし、大きいグラフでもHEADを探す手間なく見つけられるようにする
 - 選択: クリックで1点目選択、Ctrl+クリックで2点目選択(比較用)。選択状態はWebview内のstateで管理。
-- ツールチップ: ネイティブ`<title>`要素、またはホバー時にカスタムHTMLオーバーレイ(author/date/subjectをリッチ表示)
+- ツールチップ: ノードの`<g>`の最初の子としてネイティブ`<title>`要素を追加し、ブラウザ標準のホバー表示に任せる(追加のJS/CSS不要)。内容はTortoiseGit本家のツールチップに合わせ、フルハッシュ→`{author} <{email}> {date}`(`YYYY-MM-DD HH:mm`)→空行→コミットメッセージ全文(subjectだけでなくbody込み)の順。
 - 右クリックメニュー: VSCodeのwebview内では独自HTML/CSSでコンテキストメニューを実装(ネイティブメニューAPIはwebview内で使えないため)。メニュー項目(ブランチチェックアウト、ref削除、hashコピー、比較)はExtension Hostにアクション名+hashをpostMessageし、Extension Host側でVSCode Git拡張のAPIまたはgit CLIで実行。
 - ミニマップ: 縮小した別SVGをオーバーレイ表示し、ビューポート矩形をドラッグ可能にする。
 

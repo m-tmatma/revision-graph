@@ -8,6 +8,10 @@ import type { GraphCommit, LogScopeOptions, RefInfo, RefType } from '../shared/t
 // Unit Separator: safe to use as a field delimiter since it cannot appear in
 // commit subjects/author names in practice.
 const FIELD_SEP = '\x1f';
+// Record Separator: marks the end of each commit's formatted output. Needed
+// because the last field (the full commit message, %B) can itself contain
+// newlines, so records can no longer be split one-per-line.
+const RECORD_SEP = '\x1e';
 
 function runGitLines(cwd: string, args: string[], onLine: (line: string) => void): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -31,8 +35,33 @@ function runGitLines(cwd: string, args: string[], onLine: (line: string) => void
   });
 }
 
+// Unlike runGitLines, buffers the whole output before returning it — needed
+// for `git log` once the format includes the full (possibly multi-line)
+// commit message, since that can no longer be parsed one line at a time.
+function runGitBuffered(cwd: string, args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = spawn('git', args, { cwd });
+    const stdoutChunks: Buffer[] = [];
+    child.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
+
+    let stderr = '';
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve(Buffer.concat(stdoutChunks).toString('utf-8'));
+      } else {
+        reject(new Error(`git ${args.join(' ')} failed (exit ${code}): ${stderr.trim()}`));
+      }
+    });
+  });
+}
+
 export function buildLogArgs(options: LogScopeOptions): string[] {
-  const format = ['%H', '%P', '%s', '%an', '%ae', '%at'].join(FIELD_SEP);
+  const format = ['%H', '%P', '%s', '%an', '%ae', '%at', '%B'].join(FIELD_SEP) + RECORD_SEP;
   const args = ['log', `--pretty=format:${format}`, '--no-color'];
 
   switch (options.scope) {
@@ -131,11 +160,16 @@ async function fetchRefs(cwd: string): Promise<Map<string, RefInfo[]>> {
   return refsByHash;
 }
 
-/** Parses one `git log --pretty=format:...` line (see FIELD_SEP layout above). */
-export function parseLogLine(line: string, refsByHash: Map<string, RefInfo[]>): GraphCommit | undefined {
-  if (!line) return undefined;
-  const [hash, parentsRaw, subject, authorName, authorEmail, authorDateRaw] = line.split(FIELD_SEP);
+/** Parses one `git log` record (see FIELD_SEP/RECORD_SEP layout above). */
+export function parseLogRecord(record: string, refsByHash: Map<string, RefInfo[]>): GraphCommit | undefined {
+  if (!record) return undefined;
+  const [hash, parentsRaw, subject, authorName, authorEmail, authorDateRaw, ...bodyParts] = record.split(FIELD_SEP);
   if (!hash) return undefined;
+
+  // %B ends with its own trailing newline; the body field is everything
+  // after the 6th separator, rejoined in case the message itself contains
+  // the field separator character (vanishingly unlikely, but cheap to handle).
+  const body = bodyParts.join(FIELD_SEP).replace(/\n+$/, '');
 
   return {
     hash,
@@ -144,18 +178,19 @@ export function parseLogLine(line: string, refsByHash: Map<string, RefInfo[]>): 
     authorName: authorName ?? '',
     authorEmail: authorEmail ?? '',
     authorDate: Number(authorDateRaw) || 0,
+    body,
     refs: refsByHash.get(hash) ?? [],
   };
 }
 
 export async function fetchCommits(cwd: string, options: LogScopeOptions): Promise<GraphCommit[]> {
   const refsByHash = await fetchRefs(cwd);
+  const output = await runGitBuffered(cwd, buildLogArgs(options));
+
   const commits: GraphCommit[] = [];
-
-  await runGitLines(cwd, buildLogArgs(options), (line) => {
-    const commit = parseLogLine(line, refsByHash);
+  for (const record of output.split(RECORD_SEP)) {
+    const commit = parseLogRecord(record.replace(/^\n/, ''), refsByHash);
     if (commit) commits.push(commit);
-  });
-
+  }
   return commits;
 }

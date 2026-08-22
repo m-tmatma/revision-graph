@@ -7,6 +7,7 @@ function commit(hash: string, parents: string[], refs: RefInfo[] = []): GraphCom
     hash,
     parents,
     subject: hash,
+    body: hash,
     authorName: 'Test Author',
     authorEmail: 'test@example.com',
     authorDate: 0,
