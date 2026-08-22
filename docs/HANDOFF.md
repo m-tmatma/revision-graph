@@ -426,11 +426,16 @@ the whole milestone, per the user's explicit request ("M3 は要素ずつ PR 分
     immediately.
   - New shared types: `CheckoutTarget`, `CheckoutOptions`,
     `CheckoutHostToWebviewMessage`, `CheckoutWebviewToHostMessage`.
-  - **Known follow-up, not yet built**: an option to run `git submodule
-    update --init` after a successful checkout (raised after testing
-    against D:\sakura2, which has submodules — e.g. `externals/ctags`ーand
-    a checkout alone doesn't update them, only changes what the submodule
-    pointer is expected to be).
+  - **Update submodules** option (`CheckoutOptions.updateSubmodules`): a
+    checkbox that runs `git submodule update --init --recursive`
+    (`gitActions.ts`'s `updateSubmodules`) right after a successful
+    checkout — raised after testing against D:\sakura2, which has
+    submodules (e.g. `externals/ctags`), where a checkout alone doesn't
+    update them, only changes what the submodule pointer is expected to be.
+    Reported as a separate success/failure from the checkout itself (the
+    checkout has already succeeded by the time this runs, so a submodule
+    failure shouldn't read as "checkout failed"), and the graph still
+    refreshes either way. Confirmed working against D:\sakura2.
 
 **Remaining M3 scope**: "delete ref" (the last context-menu item).
 

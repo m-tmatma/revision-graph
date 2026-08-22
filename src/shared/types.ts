@@ -130,6 +130,8 @@ export interface CheckoutOptions {
   overwriteExisting: boolean;
   force: boolean;
   merge: boolean;
+  /** Run `git submodule update --init --recursive` after a successful checkout. */
+  updateSubmodules: boolean;
 }
 
 export type CheckoutHostToWebviewMessage = { type: 'checkoutTarget'; target: CheckoutTarget };

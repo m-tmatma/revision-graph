@@ -108,3 +108,7 @@ export async function checkoutRef(cwd: string, ref: string, options: CheckoutOpt
   args.push(ref);
   await runGitCapture(cwd, args);
 }
+
+export async function updateSubmodules(cwd: string): Promise<void> {
+  await runGitCapture(cwd, ['submodule', 'update', '--init', '--recursive']);
+}

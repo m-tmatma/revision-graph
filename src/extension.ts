@@ -6,7 +6,7 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as vscode from 'vscode';
 import { reduceDag } from './git/dagReducer';
-import { checkoutRef, diffFileChanges, getCommitSummary, readFileAtRevision } from './git/gitActions';
+import { checkoutRef, diffFileChanges, getCommitSummary, readFileAtRevision, updateSubmodules } from './git/gitActions';
 import { fetchCommits } from './git/logReader';
 import type {
   CheckoutHostToWebviewMessage,
@@ -194,10 +194,23 @@ function showCheckoutDialog(
         await checkoutRef(cwd, target.ref, message.options);
         panel.dispose();
         vscode.window.showInformationMessage(`Git Revision Graph: checked out ${target.label}`);
-        await refreshGraph();
       } catch (err) {
         vscode.window.showErrorMessage(`Git Revision Graph: checkout failed (${(err as Error).message})`);
+        return;
       }
+
+      // Checkout already succeeded at this point, so a submodule-update
+      // failure is reported separately rather than as a checkout failure --
+      // and the graph still refreshes either way.
+      if (message.options.updateSubmodules) {
+        try {
+          await updateSubmodules(cwd);
+        } catch (err) {
+          vscode.window.showErrorMessage(`Git Revision Graph: submodule update failed (${(err as Error).message})`);
+        }
+      }
+
+      await refreshGraph();
     }
   });
 }
