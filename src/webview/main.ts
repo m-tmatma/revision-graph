@@ -377,26 +377,6 @@ function attachContextMenu(
       });
     }
 
-    // Only offered when the click landed on a specific ref chip (unlike
-    // "Copy ref name(s)" above, deleting is inherently ref-specific — you
-    // wouldn't want deleting one ref on a node to also delete the others).
-    const refRow = target.closest?.('[data-ref-name]') as SVGGElement | null;
-    const clickedRefName = refRow?.getAttribute('data-ref-name');
-    const clickedRefType = refRow?.getAttribute('data-ref-type') as RefType | null;
-    if (clickedRefName && clickedRefType && isDeletableRefType(clickedRefType)) {
-      items.push({
-        label: `Delete ${fullRefName({ name: clickedRefName, type: clickedRefType })}`,
-        onClick: () => {
-          const message: WebviewToHostMessage = {
-            type: 'deleteRef',
-            refType: clickedRefType,
-            refName: clickedRefName,
-          };
-          vscode.postMessage(message);
-        },
-      });
-    }
-
     items.push({
       label: 'Copy full hash',
       onClick: () => {
@@ -413,6 +393,27 @@ function attachContextMenu(
         label: `Compare ${first.slice(0, 7)} with ${second.slice(0, 7)}`,
         onClick: () => {
           const message: WebviewToHostMessage = { type: 'compare', from: first, to: second };
+          vscode.postMessage(message);
+        },
+      });
+    }
+
+    // Only offered when the click landed on a specific ref chip (unlike
+    // "Copy ref name(s)" above, deleting is inherently ref-specific — you
+    // wouldn't want deleting one ref on a node to also delete the others).
+    // Kept last in the menu: it's the only destructive item here.
+    const refRow = target.closest?.('[data-ref-name]') as SVGGElement | null;
+    const clickedRefName = refRow?.getAttribute('data-ref-name');
+    const clickedRefType = refRow?.getAttribute('data-ref-type') as RefType | null;
+    if (clickedRefName && clickedRefType && isDeletableRefType(clickedRefType)) {
+      items.push({
+        label: `Delete ${fullRefName({ name: clickedRefName, type: clickedRefType })}`,
+        onClick: () => {
+          const message: WebviewToHostMessage = {
+            type: 'deleteRef',
+            refType: clickedRefType,
+            refName: clickedRefName,
+          };
           vscode.postMessage(message);
         },
       });
