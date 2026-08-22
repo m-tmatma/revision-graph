@@ -16,7 +16,7 @@ import { computeLayout } from './computeLayout';
 import { renderGraph } from './render/graphRenderer';
 import { NODE_MIN_WIDTH, NODE_PADDING_X, NODE_PADDING_Y, NODE_ROW_HEIGHT } from './render/layoutConstants';
 import { PanZoomController } from './render/panZoom';
-import { closeContextMenu, showContextMenu } from './render/contextMenu';
+import { closeContextMenu, showContextMenu, type ContextMenuItem } from './render/contextMenu';
 import { SelectionController } from './render/selection';
 
 declare function acquireVsCodeApi(): { postMessage(message: WebviewToHostMessage): void };
@@ -145,21 +145,33 @@ function attachContextMenu(svg: SVGSVGElement, controller: SelectionController):
     event.preventDefault();
     const target = event.target as Element;
     const group = target.closest?.('[data-commit-id]') as SVGGElement | null;
-    if (!group) return;
-    const commitId = group.getAttribute('data-commit-id');
+    const commitId = group?.getAttribute('data-commit-id');
+    if (!commitId) return;
 
-    const { first, second } = controller.getState();
-    if (!first || !second || (commitId !== first && commitId !== second)) return;
-
-    showContextMenu(event.clientX, event.clientY, [
+    const items: ContextMenuItem[] = [
       {
+        label: 'Copy full hash',
+        onClick: () => {
+          void navigator.clipboard.writeText(commitId);
+        },
+      },
+    ];
+
+    // "Compare" only makes sense once two nodes are selected, and only on
+    // one of those two (right-clicking an unrelated third node wouldn't
+    // have an obvious meaning).
+    const { first, second } = controller.getState();
+    if (first && second && (commitId === first || commitId === second)) {
+      items.push({
         label: `Compare ${first.slice(0, 7)} with ${second.slice(0, 7)}`,
         onClick: () => {
           const message: WebviewToHostMessage = { type: 'compare', from: first, to: second };
           vscode.postMessage(message);
         },
-      },
-    ]);
+      });
+    }
+
+    showContextMenu(event.clientX, event.clientY, items);
   });
 }
 

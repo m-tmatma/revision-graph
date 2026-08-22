@@ -385,8 +385,16 @@ the whole milestone, per the user's explicit request ("M3 は要素ずつ PR 分
   `git show rev:path` doesn't return normal blob content for a submodule
   gitlink entry.
 
-**Remaining M3 scope**: the rest of the context menu (checkout, delete ref,
-copy hash).
+- **Context menu — "Copy full hash"**: right-clicking *any* node now
+  always shows a menu (previously the menu only appeared when the
+  right-clicked node was one of exactly two selected nodes, since
+  "Compare" was the only item). Copies via `navigator.clipboard.writeText`
+  directly in the webview — no extension-host round trip needed, unlike
+  "Compare". "Compare" itself still only appears as a second item when
+  applicable (two selected, and the right-clicked node is one of them).
+
+**Remaining M3 scope**: the rest of the context menu (checkout, delete
+ref).
 
 ## M4 (after M3)
 
