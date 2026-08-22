@@ -23,11 +23,25 @@
       width: max-content;
       min-width: 100%;
     }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
   </style>
 </head>
 <body>
-  <div id="graph-status">Loading revision graph…</div>
-  <div id="graph-root"></div>
+  <h1 class="visually-hidden">Git Revision Graph</h1>
+  <main>
+    <div id="graph-status">Loading revision graph…</div>
+    <div id="graph-root"></div>
+  </main>
   <script nonce="__NONCE__">
     window.__LAYOUT_WORKER_URI__ = "__WORKER_URI__";
   </script>
