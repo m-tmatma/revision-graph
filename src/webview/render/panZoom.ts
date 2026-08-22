@@ -27,6 +27,12 @@ export class PanZoomController {
   // Lets the minimap keep its viewport rectangle in sync without polling —
   // notified on every `apply()`, which every pan/zoom/centerOn goes through.
   private changeListeners: Array<() => void> = [];
+  // Retries a `whenSized` call once the container has a real (non-zero)
+  // size. Needed because `centerOn` can run right after a re-render before
+  // the container has been laid out yet -- normally fast enough to not
+  // matter, but a slow extension-host round trip (e.g. filter changes over
+  // Remote-SSH) makes the race far more likely to lose.
+  private sizeRetryRafHandle: number | null = null;
 
   constructor(
     private readonly container: HTMLElement,
@@ -47,12 +53,35 @@ export class PanZoomController {
 
   /** Resets zoom to 1:1 and centers the viewport on a logical point. */
   centerOn(logicalX: number, logicalY: number): void {
-    this.view = {
-      scale: 1,
-      x: logicalX - this.container.clientWidth / 2,
-      y: logicalY - this.container.clientHeight / 2,
-    };
-    this.apply();
+    this.whenSized(() => {
+      this.view = {
+        scale: 1,
+        x: logicalX - this.container.clientWidth / 2,
+        y: logicalY - this.container.clientHeight / 2,
+      };
+      this.apply();
+    });
+  }
+
+  /**
+   * Runs `fn` once the container has a real size, retrying on the next
+   * animation frame otherwise. Without this, reading a zero clientWidth/
+   * clientHeight (container not laid out yet) bakes a wrong, off-center
+   * view into `this.view` that a later resize never corrects on its own.
+   */
+  private whenSized(fn: () => void): void {
+    if (this.sizeRetryRafHandle !== null) {
+      cancelAnimationFrame(this.sizeRetryRafHandle);
+      this.sizeRetryRafHandle = null;
+    }
+    if (this.container.clientWidth > 0 && this.container.clientHeight > 0) {
+      fn();
+      return;
+    }
+    this.sizeRetryRafHandle = requestAnimationFrame(() => {
+      this.sizeRetryRafHandle = null;
+      this.whenSized(fn);
+    });
   }
 
   /** Centers the viewport on a logical point without changing zoom — used by the minimap. */
@@ -93,8 +122,12 @@ export class PanZoomController {
   }
 
   private apply(): void {
-    const width = this.container.clientWidth / this.view.scale;
-    const height = this.container.clientHeight / this.view.scale;
+    const { clientWidth, clientHeight } = this.container;
+    // A zero-size container (not laid out yet) would otherwise bake a
+    // degenerate 0x0 viewBox into the SVG, rendering nothing at all.
+    if (clientWidth === 0 || clientHeight === 0) return;
+    const width = clientWidth / this.view.scale;
+    const height = clientHeight / this.view.scale;
     this.svg.setAttribute('viewBox', `${this.view.x} ${this.view.y} ${width} ${height}`);
     for (const listener of this.changeListeners) listener();
   }
@@ -191,6 +224,9 @@ export class PanZoomController {
     window.removeEventListener('pointercancel', this.onPointerUp);
     if (this.dragRafHandle !== null) {
       cancelAnimationFrame(this.dragRafHandle);
+    }
+    if (this.sizeRetryRafHandle !== null) {
+      cancelAnimationFrame(this.sizeRetryRafHandle);
     }
     this.changeListeners = [];
   }
