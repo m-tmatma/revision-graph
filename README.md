@@ -61,10 +61,12 @@ This produces `vscode-git-revision-graph-<version>.vsix` in the project root.
 - **Scope**: All branches / Local branches / Current branch / From..To
   range. For a range, leave **To** blank for `HEAD`, and **From** blank to
   go from the very start of history.
-- **Collapse straight runs**: hides commits that are neither a branch/merge
-  point nor referenced by any branch/tag (on by default).
-- **Show all tags**: when off, a tag alone doesn't stop a commit from being
-  collapsed by the toggle above; when on, every tagged commit is kept.
+- **Show branches and merges**: off by default, matching TortoiseGit —
+  hides commits that are neither a branch/merge point nor referenced by
+  any branch/tag. Turn it on to show every commit.
+- **Show all tags**: when off, a tag alone doesn't stop a commit from
+  being hidden by the collapsing above; when on, every tagged commit is
+  kept regardless.
 - **Refresh**: re-applies the current settings (mainly useful after typing
   into From/To, which otherwise apply on blur/Enter).
 - **Checkout…**: opens a QuickPick listing every local and remote branch —

@@ -170,8 +170,11 @@ build/vsix-package on every push and PR, PR #2) and a root `README.md`
 - `src/webview/panel.html` — the template described above. Also holds the M2
   filter toolbar: a `#scope-select` (`all-branches`/`local-branches`/
   `current-branch`/`range`), `#range-inputs` (From/To text fields, hidden
-  unless scope is `range`), `#collapse-toggle`/`#show-tags-toggle`
-  checkboxes, and a `#refresh-button`. `<main>` is a column flexbox so the
+  unless scope is `range`), `#show-branches-merges-toggle`/`#show-tags-toggle`
+  checkboxes (the former renamed post-M4 from `#collapse-toggle`, with
+  inverted checked-state semantics, to match TortoiseGit's own "Show
+  branches and merges" wording/default), and a `#refresh-button`. `<main>`
+  is a column flexbox so the
   toolbar stays fixed while `#graph-scroll` (wrapping status+root) scrolls
   independently.
 - `src/webview/main.ts` — on load, posts `{type:'ready'}`. The toolbar
