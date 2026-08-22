@@ -107,13 +107,16 @@ function applyFilter(): void {
 // Whether the *next* `graphData` message should re-center the viewport on
 // the current branch, rather than keeping wherever the user last panned/
 // zoomed to. True initially (so the very first render focuses HEAD) and
-// after an explicit Refresh click; false for every other trigger —
-// scope/checkbox/range changes, and repo-watcher's own automatic refresh
-// on external changes (a checkout, commit, or pull from outside the
+// after an explicit Refresh click; false for every other client-triggered
+// request — scope/checkbox/range changes, and repo-watcher's own automatic
+// refresh on external changes (a checkout, commit, or pull from outside the
 // extension), which used to yank the view back to HEAD without the user
 // asking for that. Consumed (read, then reset to false) by the next
 // handleGraphData call, so it only ever applies to the one render it was
-// set for.
+// set for. Separately, the host can also request a focus on a specific
+// graphData message (see `focusOnHead` on HostToWebviewMessage) — used
+// after a checkout we performed ourselves, since that's a case where
+// jumping to the (new) current branch is exactly what the user wants.
 let focusOnHeadForNextGraphData = true;
 
 toolbar.scopeSelect.addEventListener('change', () => {
@@ -143,12 +146,13 @@ for (const input of [toolbar.rangeFrom, toolbar.rangeTo]) {
 // otherwise keep fighting over an SVG that's no longer in the DOM).
 //
 // `focusOnHead` controls whether this also (re-)centers the viewport on
-// the current branch: only true for the very first render and an explicit
-// Refresh click (see `focusOnHeadForNextGraphData`'s own comment) — every
-// other re-render (a filter/checkbox change, or an automatic refresh from
-// repo-watcher noticing an external change) instead carries over the
-// previous controller's exact pan/zoom state, so the view doesn't jump
-// out from under the user without them asking for that.
+// the current branch: true for the very first render, an explicit Refresh
+// click, and a checkout we performed ourselves (see
+// `focusOnHeadForNextGraphData`'s own comment) — every other re-render (a
+// filter/checkbox change, or an automatic refresh from repo-watcher
+// noticing an external change) instead carries over the previous
+// controller's exact pan/zoom state, so the view doesn't jump out from
+// under the user without them asking for that.
 let panZoomController: PanZoomController | null = null;
 let selectionController: SelectionController | null = null;
 let minimapController: Minimap | null = null;
@@ -525,12 +529,14 @@ async function createLayoutWorker(): Promise<Worker> {
   return new Worker(blobUrl);
 }
 
-async function handleGraphData(commits: GraphCommit[]): Promise<void> {
+async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boolean): Promise<void> {
   // Consumed once per graphData message, regardless of which of the two
   // render paths below (worker success vs. main-thread fallback) ends up
   // handling it — both are the same logical render, just two possible
-  // outcomes of computing its layout.
-  const focusOnHead = focusOnHeadForNextGraphData;
+  // outcomes of computing its layout. Either the client-side flag (Refresh
+  // click, or the very first render) or the host explicitly asking for it
+  // (e.g. after a checkout we performed) triggers a focus.
+  const focusOnHead = focusOnHeadForNextGraphData || hostRequestedFocus;
   focusOnHeadForNextGraphData = false;
 
   if (commits.length === 0) {
@@ -584,7 +590,7 @@ async function handleGraphData(commits: GraphCommit[]): Promise<void> {
 
 window.addEventListener('message', (event: MessageEvent<HostToWebviewMessage>) => {
   if (event.data.type === 'graphData') {
-    void handleGraphData(event.data.commits);
+    void handleGraphData(event.data.commits, event.data.focusOnHead === true);
   } else if (event.data.type === 'error') {
     rootEl!.replaceChildren();
     setStatus(t('Error: {0}', event.data.message));

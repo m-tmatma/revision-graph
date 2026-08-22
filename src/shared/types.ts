@@ -49,7 +49,7 @@ export interface ReduceOptions {
 
 /** Message sent from the extension host to the webview. */
 export type HostToWebviewMessage =
-  | { type: 'graphData'; commits: GraphCommit[] }
+  | { type: 'graphData'; commits: GraphCommit[]; focusOnHead?: boolean }
   | { type: 'error'; message: string };
 
 /** Message sent from the webview back to the extension host. */
