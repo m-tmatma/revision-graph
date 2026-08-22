@@ -77,11 +77,24 @@ export function displayRefName(refname: string): string {
     .replace(/^refs\/stash$/, 'stash');
 }
 
+/** The branch HEAD currently points to, or null if HEAD is detached. */
+async function getCurrentBranchName(cwd: string): Promise<string | null> {
+  let output = '';
+  try {
+    await runGitLines(cwd, ['symbolic-ref', '--short', '-q', 'HEAD'], (line) => {
+      output += line;
+    });
+  } catch {
+    return null;
+  }
+  return output.trim() || null;
+}
+
 async function fetchRefs(cwd: string): Promise<Map<string, RefInfo[]>> {
   const refsByHash = new Map<string, RefInfo[]>();
 
-  const addRef = (hash: string, refname: string) => {
-    const info: RefInfo = { name: displayRefName(refname), type: classifyRef(refname) };
+  const addRef = (hash: string, refname: string, typeOverride?: RefType) => {
+    const info: RefInfo = { name: displayRefName(refname), type: typeOverride ?? classifyRef(refname) };
     const existing = refsByHash.get(hash);
     if (existing) {
       existing.push(info);
@@ -90,21 +103,30 @@ async function fetchRefs(cwd: string): Promise<Map<string, RefInfo[]>> {
     }
   };
 
+  const currentBranchName = await getCurrentBranchName(cwd);
+
   await runGitLines(
     cwd,
     ['for-each-ref', '--format=%(objectname)%1f%(refname)', 'refs/heads', 'refs/remotes', 'refs/tags', 'refs/stash'],
     (line) => {
       if (!line) return;
       const [hash, refname] = line.split('\x1f');
-      if (hash && refname) addRef(hash, refname);
+      if (!hash || !refname) return;
+      // Highlight the checked-out branch itself, rather than a separate
+      // "HEAD" label alongside it (matches TortoiseGit's own convention).
+      const isCurrentBranch = currentBranchName !== null && refname === `refs/heads/${currentBranchName}`;
+      addRef(hash, refname, isCurrentBranch ? 'current-branch' : undefined);
     },
   );
 
-  // HEAD isn't covered by for-each-ref against refs/*, resolve it separately.
-  await runGitLines(cwd, ['rev-parse', 'HEAD'], (line) => {
-    const hash = line.trim();
-    if (hash) addRef(hash, 'HEAD');
-  });
+  if (currentBranchName === null) {
+    // Detached HEAD: there's no branch ref to highlight, so fall back to
+    // labeling the commit "HEAD" directly.
+    await runGitLines(cwd, ['rev-parse', 'HEAD'], (line) => {
+      const hash = line.trim();
+      if (hash) addRef(hash, 'HEAD', 'head');
+    });
+  }
 
   return refsByHash;
 }

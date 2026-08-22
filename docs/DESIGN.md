@@ -132,6 +132,7 @@ Web Worker内で実行し、`postMessage`でメインスレッドに結果(`Laid
 ## インタラクション
 
 - ズーム/パン: SVGの`viewBox`操作 + pointer events(ライブラリ非依存で実装。必要なら`d3-zoom`のみ導入)
+- 現在ブランチ(HEAD)への自動スクロール: 初期表示時・フィルタ変更後の再描画時に、`refs`に`head`タイプを持つノードへ確実にスクロールし、大きいグラフでもHEADを探す手間なく見つけられるようにする
 - 選択: クリックで1点目選択、Ctrl+クリックで2点目選択(比較用)。選択状態はWebview内のstateで管理。
 - ツールチップ: ネイティブ`<title>`要素、またはホバー時にカスタムHTMLオーバーレイ(author/date/subjectをリッチ表示)
 - 右クリックメニュー: VSCodeのwebview内では独自HTML/CSSでコンテキストメニューを実装(ネイティブメニューAPIはwebview内で使えないため)。メニュー項目(ブランチチェックアウト、ref削除、hashコピー、比較)はExtension Hostにアクション名+hashをpostMessageし、Extension Host側でVSCode Git拡張のAPIまたはgit CLIで実行。

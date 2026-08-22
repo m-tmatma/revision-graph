@@ -27,6 +27,7 @@ type LayoutWorkerMessage = { type: 'result'; graph: LaidOutGraph } | { type: 'er
 const vscode = acquireVsCodeApi();
 const statusEl = document.getElementById('graph-status');
 const rootEl = document.getElementById('graph-root');
+const graphScrollEl = document.getElementById('graph-scroll');
 
 const toolbar = {
   scopeSelect: document.getElementById('scope-select') as HTMLSelectElement | null,
@@ -95,6 +96,21 @@ for (const input of [toolbar.rangeFrom, toolbar.rangeTo]) {
   });
 }
 
+// Ensures the current branch is findable at a glance even in a graph large
+// enough that HEAD isn't already in view (e.g. it's off the initial scroll
+// position, or a filter change moved it). Runs after every (re)render.
+function scrollToHead(graph: LaidOutGraph): void {
+  if (!graphScrollEl) return;
+  const headNode = graph.nodes.find((node) =>
+    node.refs.some((ref) => ref.type === 'head' || ref.type === 'current-branch'),
+  );
+  if (!headNode) return;
+
+  const targetLeft = headNode.x + headNode.width / 2 - graphScrollEl.clientWidth / 2;
+  const targetTop = headNode.y + headNode.height / 2 - graphScrollEl.clientHeight / 2;
+  graphScrollEl.scrollTo({ left: Math.max(0, targetLeft), top: Math.max(0, targetTop), behavior: 'instant' });
+}
+
 function buildGraphNodes(commits: GraphCommit[]): GraphNode[] {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d')!;
@@ -146,7 +162,9 @@ async function handleGraphData(commits: GraphCommit[]): Promise<void> {
     console.warn(`Git Revision Graph: layout worker failed (${reason}), retrying on the main thread`);
     setStatus('Computing layout (fallback)…');
     try {
-      renderGraph(rootEl!, computeLayout(nodes));
+      const graph = computeLayout(nodes);
+      renderGraph(rootEl!, graph);
+      scrollToHead(graph);
       setStatus(null);
     } catch (err) {
       setStatus(`Layout failed: ${(err as Error).message}`);
@@ -166,6 +184,7 @@ async function handleGraphData(commits: GraphCommit[]): Promise<void> {
       if (event.data.type === 'result') {
         setStatus(null);
         renderGraph(rootEl!, event.data.graph);
+        scrollToHead(event.data.graph);
       } else {
         fallbackToMainThread(event.data.message);
       }
