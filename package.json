@@ -16,6 +16,16 @@
     "SCM Providers",
     "Visualization"
   ],
+  "keywords": [
+    "git",
+    "graph",
+    "revision graph",
+    "commit graph",
+    "tortoisegit",
+    "history",
+    "branches",
+    "dag"
+  ],
   "activationEvents": [],
   "main": "./dist/extension.js",
   "l10n": "./l10n",
