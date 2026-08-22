@@ -41,6 +41,9 @@ import type {
 // HEAD` at build time, not activation time — a packaged extension's
 // installed files aren't a git checkout, so this can't be read at runtime).
 declare const __BUILD_COMMIT__: string;
+// Also injected by esbuild.js's `define` — GITHUB_RUN_NUMBER at build time,
+// so only non-empty for a CI-built package (see .github/workflows/ci.yml).
+declare const __BUILD_NUMBER__: string;
 
 const DEFAULT_SCOPE: LogScopeOptions = { scope: 'all-branches' };
 const DEFAULT_REDUCE_OPTIONS: ReduceOptions = { showAllTags: false, simplifyByDecoration: false };
@@ -90,11 +93,14 @@ function createWelcomeViewProvider(context: vscode.ExtensionContext): vscode.Web
         localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview')],
       };
 
-      const versionText = vscode.l10n.t(
-        'Version {0} ({1})',
-        context.extension.packageJSON.version,
-        __BUILD_COMMIT__,
-      );
+      const versionText = __BUILD_NUMBER__
+        ? vscode.l10n.t(
+            'Version {0} ({1}, build {2})',
+            context.extension.packageJSON.version,
+            __BUILD_COMMIT__,
+            __BUILD_NUMBER__,
+          )
+        : vscode.l10n.t('Version {0} ({1})', context.extension.packageJSON.version, __BUILD_COMMIT__);
       void getWelcomeViewHtml(webviewView.webview, context.extensionUri, versionText).then((html) => {
         webviewView.webview.html = html;
       });

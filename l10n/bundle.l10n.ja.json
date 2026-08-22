@@ -30,6 +30,7 @@
   "Visualize this repository's commit history as a graph.": "このリポジトリのコミット履歴をグラフとして可視化します。",
   "Show Revision Graph": "リビジョングラフを表示",
   "Version {0} ({1})": "バージョン {0} ({1})",
+  "Version {0} ({1}, build {2})": "バージョン {0} ({1}、ビルド {2})",
   "Copy version info": "バージョン情報をコピー",
   "Copied": "コピーしました",
   "Minimap error: {0}": "ミニマップエラー: {0}",

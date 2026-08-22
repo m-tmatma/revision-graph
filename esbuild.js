@@ -30,6 +30,13 @@ function getCommitHash() {
   }
 }
 
+// GITHUB_RUN_NUMBER is only set when this build runs inside a GitHub Actions
+// workflow (see .github/workflows/ci.yml, which already names its vsix
+// artifact `...-build${{ github.run_number }}`) — empty for every local
+// build (F5, npm run build/package), so the welcome view only shows a build
+// number when one's actually meaningful.
+const buildNumber = process.env.GITHUB_RUN_NUMBER ?? '';
+
 /** @type {import('esbuild').BuildOptions} */
 const extensionConfig = {
   entryPoints: ['src/extension.ts'],
@@ -41,7 +48,10 @@ const extensionConfig = {
   external: ['vscode'],
   sourcemap: !production,
   minify: production,
-  define: { __BUILD_COMMIT__: JSON.stringify(getCommitHash()) },
+  define: {
+    __BUILD_COMMIT__: JSON.stringify(getCommitHash()),
+    __BUILD_NUMBER__: JSON.stringify(buildNumber),
+  },
 };
 
 /** @type {import('esbuild').BuildOptions} */
