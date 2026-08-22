@@ -72,7 +72,9 @@ This produces `revision-graph-<version>.vsix` in the project root.
 - Hover a node for its full hash, author, date, and commit message.
 - Click a node to select it; Ctrl (Cmd on macOS) + click a second node to
   select it too.
-- Right-click a node for **Copy full hash**, and, unless it's already the
+- Right-click a node for **Copy full hash**; if it has any refs, also
+  **Copy ref name(s)** (every ref on the node, as full `refs/heads/...`
+  paths, one per line). And, unless it's already the
   current branch, **Checkout** — opens a "Switch / Checkout" panel (target
   branch/tag/commit is fixed to whatever you clicked; create a new branch,
   track, force, merge local changes, or update submodules,
