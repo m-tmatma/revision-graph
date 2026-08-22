@@ -69,6 +69,7 @@ This produces `revision-graph-<version>.vsix` in the project root.
 - Drag to pan.
 - Mouse wheel to pan, Ctrl (Cmd on macOS) + wheel to zoom, centered on the
   cursor.
+- Hover a node for its full hash, author, date, and commit message.
 
 ## Development
 
