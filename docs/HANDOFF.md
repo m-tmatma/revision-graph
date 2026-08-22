@@ -487,9 +487,9 @@ context menu (checkout, copy hash, copy ref name(s), compare, delete ref).
 Next up per DESIGN.md: **M4** (minimap, SVG/PNG export, automatic refresh
 on repo change).
 
-## M4 status: in progress
+## M4 status: done
 
-M4 items are landing one at a time, same as M3.
+M4 items landed one at a time, same as M3.
 
 - **Automatic refresh on repo change** (done, `src/git/repoWatcher.ts`):
   `watchRepositoryChanges(cwd, onChange)` gets the built-in `vscode.git`
@@ -546,4 +546,41 @@ M4 items are landing one at a time, same as M3.
     against a `16384` / `16384²` limit up front and fails with a message
     pointing at Export SVG instead (unaffected, since it stays vector).
 
-**Remaining M4 scope**: minimap.
+- **Minimap** (done, `src/webview/render/minimap.ts`): a small overlay in
+  the bottom-right of the graph panel showing the whole graph scaled down,
+  as plain unlabeled node rects (no refs/text/tooltips — illegible at that
+  scale, and skipping them keeps rebuilding it on every render cheap even
+  for a large history), with a rectangle tracking the main view's visible
+  region. Dragging anywhere on it pans the main view there (via a new
+  `PanZoomController.panTo(x, y)`, which keeps the current zoom level
+  unlike `centerOn`, which resets it); the rectangle stays in sync with
+  the main view's own pan/zoom through a new `PanZoomController.onChange`
+  subscription (fired once, from inside `apply()`, so it covers every way
+  the view can change — wheel, drag, `centerOn`, `panTo` — from one place).
+  Rebuilt alongside the main graph on every re-render, same lifecycle as
+  `PanZoomController`/`SelectionController` (`destroy()` the old instance
+  before creating the new one).
+
+  The container's own box size took three iterations to get right, found
+  by testing against real repos of very different shapes:
+  1. First, a fixed 200x150 box with the SVG fit inside via the default
+     `preserveAspectRatio="xMidYMid meet"`. Our graphs are typically much
+     taller than wide (commits flow top-to-bottom), and a real repo's
+     history can be dramatically more so — one real test case laid out to
+     `5051 x 112174`. At that ratio, "meet" scaling shrank the fitted
+     content to a ~7px-wide sliver in the middle of the box, with the rest
+     empty — easy to mistake for the minimap not having rendered at all
+     (and initially was mistaken for exactly that).
+  2. Tried stretching the SVG to fill a fixed box exactly instead
+     (`preserveAspectRatio="none"`, no aspect ratio preservation at all).
+     Fixed the sliver, but made an *ordinary*, moderately-tall repo's
+     minimap needlessly wide — proportions matter for a graph shaped
+     close to the box already.
+  3. Landed on: keep proportions (default `meet`), but size the
+     *container* itself to the graph's aspect ratio within bounds that
+     scale with the panel's own size (so a bigger editor pane gets a
+     bigger minimap) up to a hard cap, and clamp the computed width up to
+     a `MIN_WIDTH` floor for the extreme case — letterboxing only kicks in
+     when that floor overrides the "true" scaled width.
+
+**Remaining M4 scope**: none — M4 is done.

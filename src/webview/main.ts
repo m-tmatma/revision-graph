@@ -21,6 +21,7 @@ import { NODE_MIN_WIDTH, NODE_PADDING_X, NODE_PADDING_Y, NODE_ROW_HEIGHT } from 
 import { PanZoomController } from './render/panZoom';
 import { closeContextMenu, showContextMenu, type ContextMenuItem } from './render/contextMenu';
 import { SelectionController } from './render/selection';
+import { Minimap } from './render/minimap';
 
 declare function acquireVsCodeApi(): { postMessage(message: WebviewToHostMessage): void };
 declare global {
@@ -35,6 +36,7 @@ const vscode = acquireVsCodeApi();
 const statusEl = document.getElementById('graph-status');
 const rootEl = document.getElementById('graph-root');
 const graphScrollEl = document.getElementById('graph-scroll');
+const minimapEl = document.getElementById('minimap');
 
 const toolbar = {
   scopeSelect: document.getElementById('scope-select') as HTMLSelectElement | null,
@@ -117,6 +119,7 @@ for (const input of [toolbar.rangeFrom, toolbar.rangeTo]) {
 // commit in the current view carries HEAD/current-branch.
 let panZoomController: PanZoomController | null = null;
 let selectionController: SelectionController | null = null;
+let minimapController: Minimap | null = null;
 let lastRenderedGraph: LaidOutGraph | null = null;
 
 function renderAndFocus(graph: LaidOutGraph): void {
@@ -142,6 +145,16 @@ function renderAndFocus(graph: LaidOutGraph): void {
     controller.centerOn(headNode.x + headNode.width / 2, headNode.y + headNode.height / 2);
   } else {
     controller.centerOn(graph.width / 2, graph.height / 2);
+  }
+
+  if (minimapEl) {
+    minimapController?.destroy();
+    try {
+      minimapController = new Minimap(minimapEl, graph, controller);
+    } catch (err) {
+      minimapController = null;
+      minimapEl.textContent = `Minimap error: ${(err as Error).message}`;
+    }
   }
 }
 

@@ -14,11 +14,12 @@ Early development. Implemented so far:
   node selection, tooltips, and the full context menu (checkout, copy
   hash, copy ref name(s), compare, delete ref) (Milestones 2 and 3)
 - Automatic refresh when the repo changes outside the extension — a
-  checkout, commit, or pull from a terminal or another tool, and SVG/PNG
-  export (Milestone 4)
+  checkout, commit, or pull from a terminal or another tool — SVG/PNG
+  export, and a minimap (Milestone 4)
 
-A minimap is planned but not yet built — see
-[docs/DESIGN.md](docs/DESIGN.md) for the full roadmap.
+All planned milestones are now implemented — see
+[docs/DESIGN.md](docs/DESIGN.md) for design details and
+[docs/HANDOFF.md](docs/HANDOFF.md) for implementation notes.
 
 ## Installation
 
@@ -77,6 +78,9 @@ This produces `vscode-git-revision-graph-<version>.vsix` in the project root.
 - Drag to pan.
 - Mouse wheel to pan, Ctrl (Cmd on macOS) + wheel to zoom, centered on the
   cursor.
+- A minimap in the bottom-right corner shows the whole graph with a
+  rectangle marking the current view — click or drag anywhere on it to
+  jump there (zoom level is kept).
 - Hover a node for its full hash, author, date, and commit message.
 - Click a node to select it; Ctrl (Cmd on macOS) + click a second node to
   select it too.

@@ -24,6 +24,9 @@ export class PanZoomController {
   private pendingPointerX: number | null = null;
   private pendingPointerY: number | null = null;
   private dragRafHandle: number | null = null;
+  // Lets the minimap keep its viewport rectangle in sync without polling —
+  // notified on every `apply()`, which every pan/zoom/centerOn goes through.
+  private changeListeners: Array<() => void> = [];
 
   constructor(
     private readonly container: HTMLElement,
@@ -52,10 +55,37 @@ export class PanZoomController {
     this.apply();
   }
 
+  /** Centers the viewport on a logical point without changing zoom — used by the minimap. */
+  panTo(logicalX: number, logicalY: number): void {
+    const width = this.container.clientWidth / this.view.scale;
+    const height = this.container.clientHeight / this.view.scale;
+    this.view = { ...this.view, x: logicalX - width / 2, y: logicalY - height / 2 };
+    this.apply();
+  }
+
+  /** The currently visible region, in the graph's logical coordinate space. */
+  getViewBox(): { x: number; y: number; width: number; height: number } {
+    return {
+      x: this.view.x,
+      y: this.view.y,
+      width: this.container.clientWidth / this.view.scale,
+      height: this.container.clientHeight / this.view.scale,
+    };
+  }
+
+  /** Fires after every pan/zoom change. Returns a function to unsubscribe. */
+  onChange(listener: () => void): () => void {
+    this.changeListeners.push(listener);
+    return () => {
+      this.changeListeners = this.changeListeners.filter((l) => l !== listener);
+    };
+  }
+
   private apply(): void {
     const width = this.container.clientWidth / this.view.scale;
     const height = this.container.clientHeight / this.view.scale;
     this.svg.setAttribute('viewBox', `${this.view.x} ${this.view.y} ${width} ${height}`);
+    for (const listener of this.changeListeners) listener();
   }
 
   private readonly onWheel = (event: WheelEvent): void => {
@@ -151,5 +181,6 @@ export class PanZoomController {
     if (this.dragRafHandle !== null) {
       cancelAnimationFrame(this.dragRafHandle);
     }
+    this.changeListeners = [];
   }
 }
