@@ -176,9 +176,36 @@ export async function updateSubmodules(cwd: string): Promise<void> {
   await runGitCapture(cwd, ['submodule', 'update', '--init', '--recursive']);
 }
 
-/** `git branch -d` (safe delete — refuses if not fully merged). */
-export async function deleteLocalBranch(cwd: string, name: string): Promise<void> {
-  await runGitCapture(cwd, ['branch', '-d', name]);
+/** `git branch -d` (safe delete), or `-D` (force) when `force` is true. */
+export async function deleteLocalBranch(cwd: string, name: string, force = false): Promise<void> {
+  await runGitCapture(cwd, ['branch', force ? '-D' : '-d', name]);
+}
+
+/**
+ * Whether `ref` is fully merged into `into` (default `HEAD`) — i.e.
+ * whether `git branch -d` would succeed on it. Mirrors TortoiseGit's own
+ * `CGit::IsFastForward` check ahead of its branch-delete confirmation:
+ * rather than attempting a safe delete and reacting to git's refusal,
+ * TortoiseGit checks first and folds an extra warning into the same
+ * confirmation dialog when the branch isn't merged — this lets our own
+ * delete flow do the same instead of a try/catch-and-retry.
+ */
+export async function isBranchMerged(cwd: string, ref: string, into = 'HEAD'): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    const child = spawn('git', ['merge-base', '--is-ancestor', ref, into], { cwd });
+    let stderr = '';
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      // Exit code 1 is `--is-ancestor`'s normal, expected way of saying
+      // "no" — not a failure. Anything else (e.g. an invalid ref) is.
+      if (code === 0) resolve(true);
+      else if (code === 1) resolve(false);
+      else reject(new Error(vscode.l10n.t('git {0} failed (exit {1}): {2}', 'merge-base --is-ancestor', String(code), stderr.trim())));
+    });
+  });
 }
 
 export async function deleteTag(cwd: string, name: string): Promise<void> {
