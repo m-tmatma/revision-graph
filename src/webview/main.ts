@@ -8,6 +8,7 @@ import type {
   GraphNode,
   HostToWebviewMessage,
   LaidOutGraph,
+  LaidOutNode,
   LogScopeOptions,
   ReduceOptions,
   WebviewToHostMessage,
@@ -118,7 +119,8 @@ function renderAndFocus(graph: LaidOutGraph): void {
   selectionController?.destroy();
   const newSelectionController = new SelectionController(svg);
   selectionController = newSelectionController;
-  attachContextMenu(svg, newSelectionController);
+  const nodesById = new Map(graph.nodes.map((node) => [node.id, node]));
+  attachContextMenu(svg, newSelectionController, nodesById);
 
   if (!graphScrollEl) return;
 
@@ -140,7 +142,49 @@ function renderAndFocus(graph: LaidOutGraph): void {
 // right-clicking an unrelated third node wouldn't have an obvious meaning
 // yet (there's no other menu item until the rest of M3's context-menu
 // scope is built out).
-function attachContextMenu(svg: SVGSVGElement, controller: SelectionController): void {
+// Checkout targets the right-clicked node's own local branch if it has
+// one, otherwise the bare commit hash (a detached-HEAD checkout). Omitted
+// entirely if the node IS the current branch already — nothing to do.
+function checkoutMenuItem(node: LaidOutNode | undefined, commitId: string): ContextMenuItem | null {
+  const refs = node?.refs ?? [];
+  if (refs.some((ref) => ref.type === 'current-branch')) return null;
+
+  const localBranch = refs.find((ref) => ref.type === 'local-branch');
+  const remoteBranch = refs.find((ref) => ref.type === 'remote-branch');
+
+  let ref: string;
+  let label: string;
+  let suggestedBranchName: string | undefined;
+
+  if (localBranch) {
+    ref = localBranch.name;
+    label = localBranch.name;
+  } else if (remoteBranch) {
+    // No local branch tracks this remote one yet — checking it out means
+    // creating a new local branch, so suggest a name (the remote branch's
+    // own name with its "<remote>/" prefix stripped).
+    ref = remoteBranch.name;
+    label = remoteBranch.name;
+    suggestedBranchName = remoteBranch.name.replace(/^[^/]+\//, '');
+  } else {
+    ref = commitId;
+    label = `${commitId.slice(0, 7)} (detached HEAD)`;
+  }
+
+  return {
+    label: `Checkout ${label}`,
+    onClick: () => {
+      const message: WebviewToHostMessage = { type: 'openCheckoutDialog', ref, label, suggestedBranchName };
+      vscode.postMessage(message);
+    },
+  };
+}
+
+function attachContextMenu(
+  svg: SVGSVGElement,
+  controller: SelectionController,
+  nodesById: Map<string, LaidOutNode>,
+): void {
   svg.addEventListener('contextmenu', (event) => {
     event.preventDefault();
     const target = event.target as Element;
@@ -148,14 +192,17 @@ function attachContextMenu(svg: SVGSVGElement, controller: SelectionController):
     const commitId = group?.getAttribute('data-commit-id');
     if (!commitId) return;
 
-    const items: ContextMenuItem[] = [
-      {
-        label: 'Copy full hash',
-        onClick: () => {
-          void navigator.clipboard.writeText(commitId);
-        },
+    const items: ContextMenuItem[] = [];
+
+    const checkoutItem = checkoutMenuItem(nodesById.get(commitId), commitId);
+    if (checkoutItem) items.push(checkoutItem);
+
+    items.push({
+      label: 'Copy full hash',
+      onClick: () => {
+        void navigator.clipboard.writeText(commitId);
       },
-    ];
+    });
 
     // "Compare" only makes sense once two nodes are selected, and only on
     // one of those two (right-clicking an unrelated third node wouldn't

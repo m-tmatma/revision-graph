@@ -393,8 +393,46 @@ the whole milestone, per the user's explicit request ("M3 は要素ずつ PR 分
   "Compare". "Compare" itself still only appears as a second item when
   applicable (two selected, and the right-clicked node is one of them).
 
-**Remaining M3 scope**: the rest of the context menu (checkout, delete
-ref).
+- **Context menu — "Checkout"** (a full custom-Webview dialog, not a
+  one-click action — the user asked for something closer to TortoiseGit's
+  own "Switch/Checkout" dialog, screenshot provided as reference):
+  - `checkoutMenuItem` (`main.ts`) decides the checkout target from the
+    right-clicked node's refs: its own `local-branch` ref if it has one;
+    otherwise its `remote-branch` ref, with a suggested local branch name
+    (the remote name's `<remote>/` prefix stripped, e.g. `origin/foo` ->
+    `foo`) passed along for the dialog to pre-fill; otherwise the bare
+    commit hash (detached HEAD). Omitted entirely if the node already **is**
+    the current branch.
+  - Unlike TortoiseGit's general-purpose dialog (invoked independent of any
+    selection, with its own Branch/Tag/Commit target picker), this one's
+    target is fixed to whatever node was right-clicked — no target picker,
+    since the whole point of driving it from the graph is that the target
+    is already chosen. Only the **options** section is reproduced:
+    "Create new branch" (+ name field), "Track", "Overwrite existing branch
+    if present" (`-B` vs `-b`), "Force" (discard uncommitted changes) and
+    "Merge" (`git checkout --merge`, three-way-merges uncommitted changes
+    into the target instead of discarding them — confirmed working against
+    a real uncommitted file in an external repo, D:\sakura2, provided by
+    the user for testing: the file survived the merge-checkout).
+  - New `src/git/gitActions.ts` function `checkoutRef(cwd, ref, options)`
+    builds `git checkout [--force] [--merge] [-b|-B <name> [--track]] <ref>`.
+  - New third `WebviewPanel` (`'revisionGraphCheckout'`, title
+    "Switch / Checkout") + `webview/checkoutDialog.ts`/`.html` (new esbuild
+    entry point). On submit, `extension.ts`'s `showCheckoutDialog` runs
+    `checkoutRef`, shows a success/error message, disposes the dialog panel,
+    and — since this was a checkout WE just performed, not an external
+    change to watch for (that's M4 scope) — calls the main graph panel's
+    `refresh()` so the current-branch highlight/position updates
+    immediately.
+  - New shared types: `CheckoutTarget`, `CheckoutOptions`,
+    `CheckoutHostToWebviewMessage`, `CheckoutWebviewToHostMessage`.
+  - **Known follow-up, not yet built**: an option to run `git submodule
+    update --init` after a successful checkout (raised after testing
+    against D:\sakura2, which has submodules — e.g. `externals/ctags`ーand
+    a checkout alone doesn't update them, only changes what the submodule
+    pointer is expected to be).
+
+**Remaining M3 scope**: "delete ref" (the last context-menu item).
 
 ## M4 (after M3)
 

@@ -6,9 +6,12 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as vscode from 'vscode';
 import { reduceDag } from './git/dagReducer';
-import { diffFileChanges, getCommitSummary, readFileAtRevision } from './git/gitActions';
+import { checkoutRef, diffFileChanges, getCommitSummary, readFileAtRevision } from './git/gitActions';
 import { fetchCommits } from './git/logReader';
 import type {
+  CheckoutHostToWebviewMessage,
+  CheckoutTarget,
+  CheckoutWebviewToHostMessage,
   CompareData,
   CompareHostToWebviewMessage,
   CompareWebviewToHostMessage,
@@ -99,6 +102,13 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       vscode.window.showErrorMessage(`Git Revision Graph: ${message.message}`);
     } else if (message.type === 'compare') {
       await showCompareChanges(context, cwd, message.from, message.to);
+    } else if (message.type === 'openCheckoutDialog') {
+      showCheckoutDialog(
+        context,
+        cwd,
+        { ref: message.ref, label: message.label, suggestedBranchName: message.suggestedBranchName },
+        refresh,
+      );
     }
   });
 }
@@ -153,6 +163,45 @@ async function openFileDiff(from: string, to: string, path: string): Promise<voi
   await vscode.commands.executeCommand('vscode.diff', fromUri, toUri, title);
 }
 
+function showCheckoutDialog(
+  context: vscode.ExtensionContext,
+  cwd: string,
+  target: CheckoutTarget,
+  refreshGraph: () => Promise<void>,
+): void {
+  const panel = vscode.window.createWebviewPanel(
+    'revisionGraphCheckout',
+    'Switch / Checkout',
+    vscode.ViewColumn.Beside,
+    {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview')],
+    },
+  );
+
+  getCheckoutDialogHtml(panel.webview, context.extensionUri).then((html) => {
+    panel.webview.html = html;
+  });
+
+  panel.webview.onDidReceiveMessage(async (message: CheckoutWebviewToHostMessage) => {
+    if (message.type === 'ready') {
+      const hostMessage: CheckoutHostToWebviewMessage = { type: 'checkoutTarget', target };
+      await panel.webview.postMessage(hostMessage);
+    } else if (message.type === 'cancel') {
+      panel.dispose();
+    } else if (message.type === 'submit') {
+      try {
+        await checkoutRef(cwd, target.ref, message.options);
+        panel.dispose();
+        vscode.window.showInformationMessage(`Git Revision Graph: checked out ${target.label}`);
+        await refreshGraph();
+      } catch (err) {
+        vscode.window.showErrorMessage(`Git Revision Graph: checkout failed (${(err as Error).message})`);
+      }
+    }
+  });
+}
+
 function getNonce(): string {
   return crypto.randomBytes(16).toString('base64');
 }
@@ -184,9 +233,17 @@ async function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri)
     .replaceAll('__WORKER_URI__', workerUri.toString());
 }
 
-async function getComparePanelHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {
+// Shared by the compare and checkout-dialog panels: neither needs a Web
+// Worker, so their CSP/templating is simpler than the main graph panel's
+// getWebviewHtml.
+async function getSimplePanelHtml(
+  webview: vscode.Webview,
+  extensionUri: vscode.Uri,
+  scriptName: string,
+  templateName: string,
+): Promise<string> {
   const webviewDir = vscode.Uri.joinPath(extensionUri, 'dist', 'webview');
-  const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(webviewDir, 'compare.js'));
+  const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(webviewDir, scriptName));
   const nonce = getNonce();
 
   const csp = [
@@ -195,8 +252,16 @@ async function getComparePanelHtml(webview: vscode.Webview, extensionUri: vscode
     `script-src 'nonce-${nonce}'`,
   ].join('; ');
 
-  const templatePath = vscode.Uri.joinPath(webviewDir, 'comparePanel.html').fsPath;
+  const templatePath = vscode.Uri.joinPath(webviewDir, templateName).fsPath;
   const template = await fs.readFile(templatePath, 'utf-8');
 
   return template.replaceAll('__CSP__', csp).replaceAll('__NONCE__', nonce).replaceAll('__SCRIPT_URI__', scriptUri.toString());
+}
+
+function getComparePanelHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {
+  return getSimplePanelHtml(webview, extensionUri, 'compare.js', 'comparePanel.html');
+}
+
+function getCheckoutDialogHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {
+  return getSimplePanelHtml(webview, extensionUri, 'checkoutDialog.js', 'checkoutDialog.html');
 }
