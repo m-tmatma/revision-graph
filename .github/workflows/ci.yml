@@ -19,7 +19,9 @@ jobs:
       - run: npm test
       - run: npm run package
       - run: npm run vsix
+      - id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v7
         with:
-          name: vsix-build${{ github.run_number }}
+          name: vsix-v${{ steps.version.outputs.version }}-build${{ github.run_number }}
           path: '*.vsix'
