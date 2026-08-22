@@ -1,12 +1,12 @@
 {
-  "name": "revision-graph",
+  "name": "vscode-git-revision-graph",
   "displayName": "Git Revision Graph",
   "description": "Visualize the commit DAG (branches, merges, tags) for a Git repository, inspired by TortoiseGit's Revision Graph.",
   "version": "0.0.1",
   "publisher": "m-tmatma",
   "repository": {
     "type": "git",
-    "url": "https://github.com/m-tmatma/revision-graph.git"
+    "url": "https://github.com/m-tmatma/vscode-git-revision-graph.git"
   },
   "engines": {
     "vscode": "^1.85.0"

@@ -11,8 +11,12 @@ merges, tags), modeled on TortoiseGit's "Revision Graph" feature.
 
 - **New project**: `D:\gitwork\revision-graph` — a standalone git repo, independent
   from the TortoiseGit source tree.
-- **GitHub remote**: `https://github.com/m-tmatma/revision-graph.git` (`origin`),
-  `master` branch pushed.
+- **GitHub remote**: `https://github.com/m-tmatma/vscode-git-revision-graph.git`
+  (`origin`), `master` branch pushed. Repo (and the `package.json` name) was
+  originally `revision-graph`, renamed to `vscode-git-revision-graph` later
+  (a plain "git-revision-graph" was already taken by an unrelated Python
+  project) — the local folder `D:\gitwork\revision-graph` was intentionally
+  left as-is, so it no longer matches the repo name.
 - **Design doc**: [docs/DESIGN.md](./DESIGN.md) — the full approved design (see
   summary below). Committed on `master` (commit `5af0b58`).
 - **Current work branch**: `feature/m1-core-graph`, branched from `master`, **not
