@@ -13,6 +13,7 @@ import {
   deleteTag,
   diffFileChanges,
   getCommitSummary,
+  listCheckoutCandidates,
   readFileAtRevision,
   updateSubmodules,
 } from './git/gitActions';
@@ -20,6 +21,7 @@ import { fetchCommits } from './git/logReader';
 import { watchRepositoryChanges } from './git/repoWatcher';
 import type {
   CheckoutHostToWebviewMessage,
+  CheckoutOptions,
   CheckoutTarget,
   CheckoutWebviewToHostMessage,
   CompareData,
@@ -34,6 +36,19 @@ import type {
 
 const DEFAULT_SCOPE: LogScopeOptions = { scope: 'all-branches' };
 const DEFAULT_REDUCE_OPTIONS: ReduceOptions = { showAllTags: false, collapseStraightRuns: true };
+// No force/merge/create-branch/submodule-update — the incremental-checkout
+// picker is meant as a fast, no-questions-asked branch switch, same as
+// typing `git checkout <name>` yourself. The right-click "Checkout" item
+// on a specific node is where those options live.
+const SIMPLE_CHECKOUT_OPTIONS: CheckoutOptions = {
+  createBranch: false,
+  newBranchName: '',
+  track: false,
+  overwriteExisting: false,
+  force: false,
+  merge: false,
+  updateSubmodules: false,
+};
 
 // Custom scheme for reading a file's content as of a given revision, so the
 // "Compare" panel can open a per-file diff via the native `vscode.diff`
@@ -133,8 +148,32 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
     } else if (message.type === 'exportPng') {
       const base64 = message.dataUrl.replace(/^data:image\/png;base64,/, '');
       await exportToFile('revision-graph.png', { 'PNG Image': ['png'] }, Buffer.from(base64, 'base64'));
+    } else if (message.type === 'incrementalCheckout') {
+      await showIncrementalCheckout(cwd, refresh);
     }
   });
+}
+
+async function showIncrementalCheckout(cwd: string, refresh: () => Promise<void>): Promise<void> {
+  const candidates = await listCheckoutCandidates(cwd);
+  const items = candidates.map((candidate) => ({
+    label: candidate.label,
+    description: candidate.isCurrent ? 'current branch' : candidate.target !== candidate.label ? 'remote' : undefined,
+    target: candidate.target,
+  }));
+
+  const picked = await vscode.window.showQuickPick(items, {
+    placeHolder: 'Type to filter branches, then select one to check out',
+    matchOnDescription: false,
+  });
+  if (!picked) return;
+
+  try {
+    await checkoutRef(cwd, picked.target, SIMPLE_CHECKOUT_OPTIONS);
+    await refresh();
+  } catch (err) {
+    vscode.window.showErrorMessage(`Git Revision Graph: checkout failed (${(err as Error).message})`);
+  }
 }
 
 async function exportToFile(

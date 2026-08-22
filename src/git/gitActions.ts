@@ -109,6 +109,46 @@ export async function checkoutRef(cwd: string, ref: string, options: CheckoutOpt
   await runGitCapture(cwd, args);
 }
 
+export interface CheckoutCandidate {
+  /** Shown in the QuickPick — the full `<remote>/...` name for a remote branch, so it's unambiguous. */
+  label: string;
+  /**
+   * What to pass to `git checkout`. For a remote branch this is the
+   * remote-prefix-stripped short name, not the full `<remote>/...` name —
+   * checking out that directly would leave HEAD detached, whereas the
+   * short name triggers git's own "DWIM" behavior (create/use a local
+   * branch tracking it), matching what typing the name by hand would do.
+   */
+  target: string;
+  isCurrent: boolean;
+}
+
+/** Local and remote-tracking branches, for the incremental-checkout picker. */
+export async function listCheckoutCandidates(cwd: string): Promise<CheckoutCandidate[]> {
+  const [localOutput, remoteOutput, currentBranchOutput] = await Promise.all([
+    runGitCapture(cwd, ['for-each-ref', '--format=%(refname:short)', 'refs/heads/']),
+    runGitCapture(cwd, ['for-each-ref', '--format=%(refname:short)', 'refs/remotes/']),
+    // Empty (not an error) in detached HEAD — nothing then matches as current.
+    runGitCapture(cwd, ['symbolic-ref', '--short', '-q', 'HEAD']).catch(() => ''),
+  ]);
+  const currentBranch = currentBranchOutput.trim();
+
+  const local = localOutput
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((ref) => ({ label: ref, target: ref, isCurrent: ref === currentBranch }));
+
+  const remote = remoteOutput
+    .split('\n')
+    .map((line) => line.trim())
+    // <remote>/HEAD is a symbolic ref to the remote's default branch, not a branch itself.
+    .filter((ref) => ref && !ref.endsWith('/HEAD'))
+    .map((ref) => ({ label: ref, target: ref.slice(ref.indexOf('/') + 1), isCurrent: false }));
+
+  return [...local, ...remote];
+}
+
 export async function updateSubmodules(cwd: string): Promise<void> {
   await runGitCapture(cwd, ['submodule', 'update', '--init', '--recursive']);
 }

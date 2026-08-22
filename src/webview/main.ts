@@ -46,6 +46,7 @@ const toolbar = {
   collapseToggle: document.getElementById('collapse-toggle') as HTMLInputElement | null,
   showTagsToggle: document.getElementById('show-tags-toggle') as HTMLInputElement | null,
   refreshButton: document.getElementById('refresh-button') as HTMLButtonElement | null,
+  checkoutButton: document.getElementById('checkout-button') as HTMLButtonElement | null,
   exportSvgButton: document.getElementById('export-svg-button') as HTMLButtonElement | null,
   exportPngButton: document.getElementById('export-png-button') as HTMLButtonElement | null,
 };
@@ -60,6 +61,7 @@ if (
   !toolbar.collapseToggle ||
   !toolbar.showTagsToggle ||
   !toolbar.refreshButton ||
+  !toolbar.checkoutButton ||
   !toolbar.exportSvgButton ||
   !toolbar.exportPngButton
 ) {
@@ -102,6 +104,10 @@ toolbar.scopeSelect.addEventListener('change', () => {
 toolbar.collapseToggle.addEventListener('change', applyFilter);
 toolbar.showTagsToggle.addEventListener('change', applyFilter);
 toolbar.refreshButton.addEventListener('click', applyFilter);
+toolbar.checkoutButton.addEventListener('click', () => {
+  const message: WebviewToHostMessage = { type: 'incrementalCheckout' };
+  vscode.postMessage(message);
+});
 for (const input of [toolbar.rangeFrom, toolbar.rangeTo]) {
   input.addEventListener('blur', applyFilter);
   input.addEventListener('keydown', (event) => {

@@ -584,3 +584,31 @@ M4 items landed one at a time, same as M3.
      when that floor overrides the "true" scaled width.
 
 **Remaining M4 scope**: none — M4 is done.
+
+## Post-M4: incremental checkout
+
+Not part of the original DESIGN.md milestone plan — added after M4 wrapped,
+on request. A **Checkout…** toolbar button opens a native
+`vscode.window.showQuickPick` listing every local and remote-tracking
+branch: type to fuzzy-filter, arrow keys to move the highlight, Enter to
+check out the selected one. No custom webview UI — QuickPick already is
+exactly the "edit box + incremental filter + arrow keys + Enter" picker
+that was asked for.
+
+- `gitActions.ts`'s new `listCheckoutCandidates(cwd)` runs
+  `git for-each-ref --format=%(refname:short) refs/heads/` and the same
+  against `refs/remotes/` (dropping `<remote>/HEAD`, which is a symbolic
+  ref to the remote's default branch, not a branch), plus
+  `git symbolic-ref --short -q HEAD` to mark the current branch.
+- Deliberately simple: always a plain `git checkout <target>` (via the
+  existing `checkoutRef`, called with every `CheckoutOptions` flag off) —
+  no force/merge/create-branch/submodule-update. Those live on the
+  right-click "Checkout" item on a specific node, which opens the full
+  "Switch / Checkout" options panel instead; this one is meant purely as a
+  fast, no-questions-asked branch switch.
+- For a remote branch, the QuickPick target isn't the full
+  `<remote>/<name>` — it's `<name>` with the remote prefix stripped.
+  Checking out the full remote ref directly leaves HEAD detached; the
+  short name instead triggers git's own "DWIM" behavior (create, or reuse,
+  a local branch tracking it), matching what typing the branch name by
+  hand would do.
