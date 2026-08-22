@@ -482,6 +482,18 @@ the whole milestone, per the user's explicit request ("M3 は要素ずつ PR 分
   - New `gitActions.ts` functions: `deleteLocalBranch`, `deleteTag`,
     `deleteRemoteTrackingRef`.
 
+  **Update, post-M4**: `isDeletableRefType` now only allows
+  `local-branch` — `remote-branch` and `tag` were dropped. A local branch
+  and the remote-tracking branch it tracks commonly stack as separate,
+  closely-spaced ref chips on the same node (e.g. "master" right above
+  "origin/master"), and a right-click meant for the local one landing on
+  the remote-tracking one instead turned out to be an easy mistake in
+  practice — harmless and `git fetch`-recoverable, but confusing to hit
+  by accident. `deleteTag`/`deleteRemoteTrackingRef` and
+  `handleDeleteRef`'s handling of those ref types are left in place in
+  `extension.ts`/`gitActions.ts`; only the webview's menu no longer offers
+  them.
+
 **M3 is now fully done**: pan/zoom, node selection, tooltips, and the full
 context menu (checkout, copy hash, copy ref name(s), compare, delete ref).
 Next up per DESIGN.md: **M4** (minimap, SVG/PNG export, automatic refresh
