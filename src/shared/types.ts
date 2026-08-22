@@ -32,10 +32,19 @@ export interface LogScopeOptions {
   toRef?: string;
 }
 
-/** Options controlling the straight-line elision pass. */
+/**
+ * Options controlling how much of the history is shown. `showAllTags`
+ * governs dagReducer.ts's always-on straight-line elision (a tag alone
+ * protects a commit from being elided only when this is true).
+ * `simplifyByDecoration` is passed straight through to `git log` as
+ * `--simplify-by-decoration` (see logReader.ts's buildLogArgs) — whether
+ * git itself prunes commits, including whole merges, that aren't
+ * reachable from any ref and aren't needed to preserve ancestry between
+ * ones that are, before dagReducer.ts's own elision even runs.
+ */
 export interface ReduceOptions {
   showAllTags: boolean;
-  collapseStraightRuns: boolean;
+  simplifyByDecoration: boolean;
 }
 
 /** Message sent from the extension host to the webview. */

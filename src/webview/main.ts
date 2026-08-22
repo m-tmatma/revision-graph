@@ -87,10 +87,12 @@ function currentScope(): LogScopeOptions {
 
 function currentReduceOptions(): ReduceOptions {
   return {
-    // Checked = show every commit (TortoiseGit's "Show branches and
-    // merges", unchecked by default there too) — inverted from the
-    // underlying collapseStraightRuns flag, which defaults to true.
-    collapseStraightRuns: !toolbar.showBranchesMergesToggle!.checked,
+    // Checked = show every branch/merge, including ones git would
+    // otherwise consider irrelevant to any ref (TortoiseGit's own "Show
+    // branches and merges", unchecked by default there too) — inverted
+    // from simplifyByDecoration, which defaults to true (matching git log
+    // *without* --simplify-by-decoration only once this is unchecked).
+    simplifyByDecoration: !toolbar.showBranchesMergesToggle!.checked,
     showAllTags: toolbar.showTagsToggle!.checked,
   };
 }
@@ -510,7 +512,7 @@ async function handleGraphData(commits: GraphCommit[]): Promise<void> {
       renderAndFocus(computeLayout(nodes));
       setStatus(null);
     } catch (err) {
-      setStatus(`Layout failed: ${(err as Error).message}`);
+      setStatus(`Layout failed: ${(err as Error).message} (reduced nodes: ${nodes.length})`);
     }
   };
 

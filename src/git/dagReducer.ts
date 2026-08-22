@@ -3,6 +3,16 @@
 // on a non-branching, non-merging run (exactly one parent, exactly one
 // child) is spliced out, rewiring its child straight to its parent.
 // Runs in the extension host, on the GraphCommit[] returned by logReader.
+//
+// This always runs, regardless of the "Show branches and merges" toggle —
+// confirmed against real TortoiseGit that it behaves the same way: a
+// straight run is never shown expanded there either, checkbox or not. What
+// the toggle actually controls is a `--simplify-by-decoration` flag on the
+// `git log` call itself (see logReader.ts's buildLogArgs) — whether git
+// prunes commits, including whole merges, that aren't reachable from any
+// ref and aren't needed to preserve ancestry between ones that are. This
+// module's own elision runs on top of whatever that fetch already
+// returned, and is unrelated to it.
 
 import type { GraphCommit, ReduceOptions } from '../shared/types';
 
@@ -10,11 +20,7 @@ function hasProtectingRef(commit: GraphCommit, showAllTags: boolean): boolean {
   return commit.refs.some((ref) => showAllTags || ref.type !== 'tag');
 }
 
-export function reduceDag(commits: GraphCommit[], options: ReduceOptions): GraphCommit[] {
-  if (!options.collapseStraightRuns) {
-    return commits;
-  }
-
+export function reduceDag(commits: GraphCommit[], options: Pick<ReduceOptions, 'showAllTags'>): GraphCommit[] {
   const commitByHash = new Map(commits.map((commit) => [commit.hash, commit]));
 
   const childCount = new Map<string, number>();
@@ -34,6 +40,10 @@ export function reduceDag(commits: GraphCommit[], options: ReduceOptions): Graph
 
   // Resolve a (possibly skipped) hash to the nearest kept ancestor by
   // walking the chain of single-parent/single-child skipped commits.
+  // Iterative, not recursive: a skip chain can be as long as the repo's
+  // history, and this is exactly the kind of unbounded recursion that
+  // overflowed the layout engine when an earlier version of this feature
+  // tried to preserve and re-display every individual elided commit.
   const resolveCache = new Map<string, string>();
   function resolveParent(hash: string): string {
     const cached = resolveCache.get(hash);
