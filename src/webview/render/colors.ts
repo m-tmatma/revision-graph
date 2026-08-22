@@ -1,17 +1,21 @@
-// Fixed ref-type color palette (mirrors TortoiseGit's revision graph) plus a
-// WCAG relative-luminance based contrast text color, so labels stay legible
-// against any of the palette colors in both light and dark VSCode themes.
-
+// Fixed ref-type color palette plus a WCAG relative-luminance based
+// contrast text color, so labels stay legible against any of the palette
+// colors in both light and dark VSCode themes.
+//
+// Values match TortoiseGit's own defaults (src/TortoiseProc/Colors.cpp:
+// CurrentBranch/LocalBranch/RemoteBranch/Tag/Stash/OtherRef), not VSCode's
+// theme colors, so a node looks the same regardless of which theme is
+// active — matching the reference product exactly was an explicit ask.
 import type { RefType } from '../../shared/types';
 
 export const REF_COLORS: Record<RefType, string> = {
-  head: '#ff0000',
-  'current-branch': '#ff0000',
-  'local-branch': '#3794ff',
-  'remote-branch': '#4ec9b0',
-  tag: '#d7ba7d',
-  stash: '#c586c0',
-  other: '#9cdcfe',
+  head: '#c80000',
+  'current-branch': '#c80000',
+  'local-branch': '#00c300',
+  'remote-branch': '#ffddaa',
+  tag: '#ffff00',
+  stash: '#808080',
+  other: '#e0e0e0',
 };
 
 function hexToRgb(hex: string): [number, number, number] {
