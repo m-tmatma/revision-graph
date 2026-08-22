@@ -26,7 +26,7 @@ All planned milestones are now implemented — see
 This extension isn't published to the Marketplace yet. Install it from a
 `.vsix` file instead:
 
-1. Get a `.vsix`: download the `vsix-build<N>` artifact from a
+1. Get a `.vsix`: download the `vsix-v<version>-build<N>` artifact from a
    [CI run](../../actions) on GitHub (it's a zip; unzip it to get the
    `.vsix` file), or build one yourself (see [Build](#build) below).
 2. Install it — **don't double-click the file** (`.vsix` is also Visual
