@@ -312,8 +312,25 @@ the whole milestone, per the user's explicit request ("M3 は要素ずつ PR 分
   Verified against real multi-paragraph merge commit messages in the
   TortoiseGit repo itself, not just synthetic test data.
 
-**Remaining M3 scope**: 2-node selection for compare, context menu
-(checkout, delete ref, copy hash, compare).
+- **Node selection** (`src/webview/render/selection.ts`, `SelectionController`):
+  click selects a single node (highlighted via its `<rect>`'s `stroke`/
+  `stroke-width`, `var(--vscode-focusBorder)`); Ctrl/Cmd+click adds a
+  second, for the still-unbuilt "compare" context-menu action. State is
+  `{ first: string | null; second: string | null }`, tracked in the
+  controller, not yet surfaced to the extension host (nothing consumes it
+  yet — that's the context menu's job). `graphRenderer.ts`'s `buildNode`
+  tags each node's `<g>` with `data-commit-id` so a click can be resolved
+  back to a commit hash. Deliberately does **not** use the native `click`
+  event: since `panZoom.ts` treats the same pointerdown-to-pointerup
+  gesture as a pan, `selection.ts` independently tracks pointerdown/
+  pointerup positions and only treats it as a selection if the pointer
+  moved less than 4px — otherwise a drag-to-pan would also fire spurious
+  selection changes. Lifecycle matches `PanZoomController`: a new
+  `SelectionController` is created per render in `renderAndFocus`, with the
+  previous one `destroy()`d first.
+
+**Remaining M3 scope**: context menu (checkout, delete ref, copy hash,
+compare — the last of which will consume the selection state above).
 
 ## M4 (after M3)
 

@@ -16,6 +16,7 @@ import { computeLayout } from './computeLayout';
 import { renderGraph } from './render/graphRenderer';
 import { NODE_MIN_WIDTH, NODE_PADDING_X, NODE_PADDING_Y, NODE_ROW_HEIGHT } from './render/layoutConstants';
 import { PanZoomController } from './render/panZoom';
+import { SelectionController } from './render/selection';
 
 declare function acquireVsCodeApi(): { postMessage(message: WebviewToHostMessage): void };
 declare global {
@@ -107,9 +108,14 @@ for (const input of [toolbar.rangeFrom, toolbar.rangeTo]) {
 // a filter change moves it). Falls back to centering the whole graph if no
 // commit in the current view carries HEAD/current-branch.
 let panZoomController: PanZoomController | null = null;
+let selectionController: SelectionController | null = null;
 
 function renderAndFocus(graph: LaidOutGraph): void {
   const svg = renderGraph(rootEl!, graph);
+
+  selectionController?.destroy();
+  selectionController = new SelectionController(svg);
+
   if (!graphScrollEl) return;
 
   panZoomController?.destroy();

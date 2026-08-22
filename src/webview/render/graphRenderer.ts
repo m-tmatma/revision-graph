@@ -74,6 +74,9 @@ function buildEdge(edge: LaidOutEdge): SVGPolylineElement {
 function buildNode(node: LaidOutNode): SVGGElement {
   const group = createSvgElement('g');
   group.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+  // Lets selection.ts find which node a click landed on.
+  group.setAttribute('data-commit-id', node.id);
+  group.style.cursor = 'pointer';
   // A <title> as the first child gives every part of the node group a
   // native browser tooltip on hover, with no extra JS/CSS needed.
   group.appendChild(buildTooltip(node));
