@@ -406,6 +406,18 @@ function attachContextMenu(
       });
     }
 
+    // Unlike "Compare" above, this needs only the right-clicked node — the
+    // extension host resolves "the default branch" itself (origin/HEAD,
+    // falling back to a local main/master) rather than the webview needing
+    // to know it.
+    items.push({
+      label: `Compare ${commitId.slice(0, 7)} with default branch`,
+      onClick: () => {
+        const message: WebviewToHostMessage = { type: 'compareWithDefaultBranch', to: commitId };
+        vscode.postMessage(message);
+      },
+    });
+
     // Only offered when the click landed on a specific ref chip (unlike
     // "Copy ref name(s)" above, deleting is inherently ref-specific — you
     // wouldn't want deleting one ref on a node to also delete the others).

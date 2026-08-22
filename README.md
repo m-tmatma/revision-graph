@@ -100,6 +100,10 @@ This produces `vscode-git-revision-graph-<version>.vsix` in the project root.
     **Compare**, which opens a "Changed Files" panel (added/deleted line
     counts per file); click a file there to view its diff in VSCode's
     native diff editor.
+  - **Compare with default branch** — the same "Changed Files" panel,
+    against whatever the repo's default branch is (`origin/HEAD`, or a
+    local `main`/`master` if that isn't set). Offered on any single node,
+    no second selection needed.
   - Right-click a *specific local branch's ref chip* (not a remote branch
     or tag, and not just anywhere on the node) for **Delete** — asks for
     confirmation first.
