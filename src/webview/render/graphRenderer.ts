@@ -1,6 +1,8 @@
 // SVG rendering for a laid-out graph: rounded-rect nodes with stacked,
 // ref-type-colored labels, and polyline edges with arrowheads. Follows
-// DESIGN.md's "描画 (SVG)" section. No pan/zoom or interaction yet (M3).
+// DESIGN.md's "描画 (SVG)" section. The SVG fills its container and is sized
+// to 100%; panZoom.ts owns the viewBox (which portion of the graph's logical
+// coordinate space is currently visible), not this module.
 
 import type { LaidOutEdge, LaidOutGraph, LaidOutNode, RefInfo } from '../../shared/types';
 import { contrastTextColor, REF_COLORS } from './colors';
@@ -13,17 +15,13 @@ function createSvgElement<K extends keyof SVGElementTagNameMap>(tag: K): SVGElem
   return document.createElementNS(SVG_NS, tag);
 }
 
-export function renderGraph(container: HTMLElement, graph: LaidOutGraph): void {
+export function renderGraph(container: HTMLElement, graph: LaidOutGraph): SVGSVGElement {
   container.replaceChildren();
 
   const svg = createSvgElement('svg');
-  svg.setAttribute('width', String(graph.width));
-  svg.setAttribute('height', String(graph.height));
-  svg.setAttribute('viewBox', `0 0 ${graph.width} ${graph.height}`);
-  // Defense in depth: computeLayout's width/height already cover every node
-  // and edge point, but SVG clips overflow by default, and a clipped edge
-  // silently looks like a rendering bug rather than an error.
-  svg.style.overflow = 'visible';
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', '100%');
+  // panZoom.ts sets the viewBox once it attaches to this element.
 
   const defs = createSvgElement('defs');
   defs.appendChild(buildArrowMarker());
@@ -43,6 +41,7 @@ export function renderGraph(container: HTMLElement, graph: LaidOutGraph): void {
   svg.appendChild(nodesGroup);
 
   container.appendChild(svg);
+  return svg;
 }
 
 function buildArrowMarker(): SVGMarkerElement {
