@@ -1,4 +1,4 @@
-# revision-graph
+# vscode-git-revision-graph
 
 ## License policy
 

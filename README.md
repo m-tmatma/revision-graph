@@ -10,12 +10,12 @@ Early development. Implemented so far:
 
 - Core display: fetch the commit history, collapse non-branching straight
   runs, lay out the DAG, render it as SVG (Milestone 1)
-- Filtering (scope, straight-run collapsing, tag visibility) and pan/zoom
-  (Milestone 2, and part of Milestone 3)
+- Filtering (scope, straight-run collapsing, tag visibility), pan/zoom,
+  node selection, tooltips, and the full context menu (checkout, copy
+  hash, copy ref name(s), compare, delete ref) (Milestones 2 and 3)
 
-Node selection/comparison, a right-click context menu (checkout, delete
-ref, copy hash, compare), tooltips, a minimap, and export are planned but
-not yet built — see [docs/DESIGN.md](docs/DESIGN.md) for the full roadmap.
+A minimap and SVG/PNG export are planned but not yet built — see
+[docs/DESIGN.md](docs/DESIGN.md) for the full roadmap.
 
 ## Installation
 
@@ -28,7 +28,7 @@ This extension isn't published to the Marketplace yet. Install it from a
 2. Install it — **don't double-click the file** (`.vsix` is also Visual
    Studio's extension package extension, so Windows may open it with the
    wrong application). Instead:
-   - From the command line: `code --install-extension revision-graph-<version>.vsix`
+   - From the command line: `code --install-extension vscode-git-revision-graph-<version>.vsix`
    - Or in VSCode: Extensions view → `...` menu → "Install from VSIX..." →
      select the file
 
@@ -40,7 +40,7 @@ npm run package
 npm run vsix
 ```
 
-This produces `revision-graph-<version>.vsix` in the project root.
+This produces `vscode-git-revision-graph-<version>.vsix` in the project root.
 
 ## Usage
 
