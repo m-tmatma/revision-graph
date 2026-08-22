@@ -243,7 +243,7 @@ subtle to eyeball.
 `src/webview/panel.html`, `src/webview/render/graphRenderer.ts`), push a
 branch, open a PR against `master`, update this section once merged.
 
-## M3 status: in progress
+## M3 status: done
 
 M3 slices are landing as separate, self-contained PRs rather than one PR for
 the whole milestone, per the user's explicit request ("M3 は要素ずつ PR 分けて"):
@@ -450,7 +450,38 @@ the whole milestone, per the user's explicit request ("M3 は要素ずつ PR 分
   (`logReader.ts`'s `displayRefName`), so this is that function's inverse.
   Omitted entirely if the node has no refs.
 
-**Remaining M3 scope**: "delete ref" (the last context-menu item).
+- **Context menu — "Delete ref"** (the last M3 item): only offered when
+  the right-click lands on a *specific* ref chip — unlike "Copy ref
+  name(s)", deletion is inherently per-ref, so `graphRenderer.ts`'s
+  `buildRefRow` tags each ref row with `data-ref-name`/`data-ref-type`
+  (brought back after being reverted during "Copy ref name(s)", which
+  turned out not to need per-row targeting after all). `main.ts`'s
+  `isDeletableRefType` excludes `current-branch` (can't delete the branch
+  you're on), `head` (not a real ref), `stash` (needs an index, not a
+  name, to target one entry — a different operation), and `other` (too
+  ambiguous). Before running anything, `extension.ts`'s `handleDeleteRef`
+  shows a native modal confirmation (`vscode.window.showWarningMessage`,
+  "This cannot be undone.") — this is a destructive action, unlike every
+  other context-menu item so far.
+
+  What "delete" means was an explicit product decision, asked of the user
+  given the range of severity across ref types:
+  - `local-branch`: `git branch -d` (safe delete — refuses if not fully
+    merged; no force option offered yet).
+  - `tag`: `git tag -d`.
+  - `remote-branch`: `git update-ref -d refs/remotes/<name>` — **local
+    bookkeeping only**. Does **not** run `git push origin --delete` or
+    otherwise touch the actual branch on the remote server. The user chose
+    this explicitly over the alternative (also deleting on the remote)
+    specifically because that would affect state shared with other
+    people — out of scope for a plain right-click action.
+  - New `gitActions.ts` functions: `deleteLocalBranch`, `deleteTag`,
+    `deleteRemoteTrackingRef`.
+
+**M3 is now fully done**: pan/zoom, node selection, tooltips, and the full
+context menu (checkout, copy hash, copy ref name(s), compare, delete ref).
+Next up per DESIGN.md: **M4** (minimap, SVG/PNG export, automatic refresh
+on repo change).
 
 ## M4 (after M3)
 

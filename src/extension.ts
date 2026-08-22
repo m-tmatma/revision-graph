@@ -6,7 +6,16 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as vscode from 'vscode';
 import { reduceDag } from './git/dagReducer';
-import { checkoutRef, diffFileChanges, getCommitSummary, readFileAtRevision, updateSubmodules } from './git/gitActions';
+import {
+  checkoutRef,
+  deleteLocalBranch,
+  deleteRemoteTrackingRef,
+  deleteTag,
+  diffFileChanges,
+  getCommitSummary,
+  readFileAtRevision,
+  updateSubmodules,
+} from './git/gitActions';
 import { fetchCommits } from './git/logReader';
 import type {
   CheckoutHostToWebviewMessage,
@@ -17,6 +26,7 @@ import type {
   CompareWebviewToHostMessage,
   HostToWebviewMessage,
   LogScopeOptions,
+  RefType,
   ReduceOptions,
   WebviewToHostMessage,
 } from './shared/types';
@@ -109,6 +119,8 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
         { ref: message.ref, label: message.label, suggestedBranchName: message.suggestedBranchName },
         refresh,
       );
+    } else if (message.type === 'deleteRef') {
+      await handleDeleteRef(cwd, message.refType, message.refName, refresh);
     }
   });
 }
@@ -213,6 +225,38 @@ function showCheckoutDialog(
       await refreshGraph();
     }
   });
+}
+
+async function handleDeleteRef(
+  cwd: string,
+  refType: RefType,
+  refName: string,
+  refreshGraph: () => Promise<void>,
+): Promise<void> {
+  const confirmed = await vscode.window.showWarningMessage(
+    `Delete ${refName}? This cannot be undone.`,
+    { modal: true },
+    'Delete',
+  );
+  if (confirmed !== 'Delete') return;
+
+  try {
+    if (refType === 'local-branch' || refType === 'current-branch') {
+      await deleteLocalBranch(cwd, refName);
+    } else if (refType === 'tag') {
+      await deleteTag(cwd, refName);
+    } else if (refType === 'remote-branch') {
+      // Local bookkeeping only -- does not touch the actual branch on the
+      // remote server (see docs/HANDOFF.md for why).
+      await deleteRemoteTrackingRef(cwd, `refs/remotes/${refName}`);
+    } else {
+      return;
+    }
+    vscode.window.showInformationMessage(`Git Revision Graph: deleted ${refName}`);
+    await refreshGraph();
+  } catch (err) {
+    vscode.window.showErrorMessage(`Git Revision Graph: delete failed (${(err as Error).message})`);
+  }
 }
 
 function getNonce(): string {

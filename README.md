@@ -72,16 +72,22 @@ This produces `revision-graph-<version>.vsix` in the project root.
 - Hover a node for its full hash, author, date, and commit message.
 - Click a node to select it; Ctrl (Cmd on macOS) + click a second node to
   select it too.
-- Right-click a node for **Copy full hash**; if it has any refs, also
-  **Copy ref name(s)** (every ref on the node, as full `refs/heads/...`
-  paths, one per line). And, unless it's already the
-  current branch, **Checkout** — opens a "Switch / Checkout" panel (target
-  branch/tag/commit is fixed to whatever you clicked; create a new branch,
-  track, force, merge local changes, or update submodules,
-  TortoiseGit-style). With two nodes
-  selected, right-clicking either of them also offers **Compare**, which
-  opens a "Changed Files" panel (added/deleted line counts per file); click
-  a file there to view its diff in VSCode's native diff editor.
+- Right-click a node for:
+  - **Checkout** (unless it's already the current branch) — opens a
+    "Switch / Checkout" panel (target branch/tag/commit is fixed to
+    whatever you clicked; create a new branch, track, force, merge local
+    changes, or update submodules, TortoiseGit-style).
+  - **Copy ref name(s)**, if it has any refs (every ref on the node, as
+    full `refs/heads/...` paths, one per line).
+  - **Copy full hash**.
+  - With two nodes selected, right-clicking either of them also offers
+    **Compare**, which opens a "Changed Files" panel (added/deleted line
+    counts per file); click a file there to view its diff in VSCode's
+    native diff editor.
+  - Right-click a *specific ref chip* (not just anywhere on the node) for
+    **Delete** — asks for confirmation first. Deleting a remote-tracking
+    branch (e.g. `origin/foo`) only removes the local tracking ref; it
+    does not touch the actual branch on the remote server.
 
 ## Development
 

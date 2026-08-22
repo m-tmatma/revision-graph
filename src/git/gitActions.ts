@@ -112,3 +112,20 @@ export async function checkoutRef(cwd: string, ref: string, options: CheckoutOpt
 export async function updateSubmodules(cwd: string): Promise<void> {
   await runGitCapture(cwd, ['submodule', 'update', '--init', '--recursive']);
 }
+
+/** `git branch -d` (safe delete — refuses if not fully merged). */
+export async function deleteLocalBranch(cwd: string, name: string): Promise<void> {
+  await runGitCapture(cwd, ['branch', '-d', name]);
+}
+
+export async function deleteTag(cwd: string, name: string): Promise<void> {
+  await runGitCapture(cwd, ['tag', '-d', name]);
+}
+
+/**
+ * Deletes only the local remote-tracking ref (e.g. `refs/remotes/origin/foo`)
+ * — does not touch the actual branch on the remote server.
+ */
+export async function deleteRemoteTrackingRef(cwd: string, fullRefPath: string): Promise<void> {
+  await runGitCapture(cwd, ['update-ref', '-d', fullRefPath]);
+}

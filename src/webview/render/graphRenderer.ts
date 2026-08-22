@@ -113,6 +113,11 @@ function formatDate(unixSeconds: number): string {
 
 function buildRefRow(ref: RefInfo, nodeWidth: number, index: number): SVGGElement {
   const rowGroup = createSvgElement('g');
+  // Lets a right-click on this specific ref (rather than elsewhere in the
+  // node) offer a ref-specific "Delete" action — a node can carry several
+  // refs, and deleting one shouldn't require deleting all of them.
+  rowGroup.setAttribute('data-ref-name', ref.name);
+  rowGroup.setAttribute('data-ref-type', ref.type);
   const y = NODE_PADDING_Y + index * NODE_ROW_HEIGHT;
   const chipHeight = NODE_ROW_HEIGHT - 2;
   const color = REF_COLORS[ref.type];
