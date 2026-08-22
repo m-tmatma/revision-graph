@@ -43,7 +43,7 @@ const toolbar = {
   rangeInputs: document.getElementById('range-inputs') as HTMLElement | null,
   rangeFrom: document.getElementById('range-from') as HTMLInputElement | null,
   rangeTo: document.getElementById('range-to') as HTMLInputElement | null,
-  collapseToggle: document.getElementById('collapse-toggle') as HTMLInputElement | null,
+  showBranchesMergesToggle: document.getElementById('show-branches-merges-toggle') as HTMLInputElement | null,
   showTagsToggle: document.getElementById('show-tags-toggle') as HTMLInputElement | null,
   refreshButton: document.getElementById('refresh-button') as HTMLButtonElement | null,
   checkoutButton: document.getElementById('checkout-button') as HTMLButtonElement | null,
@@ -58,7 +58,7 @@ if (
   !toolbar.rangeInputs ||
   !toolbar.rangeFrom ||
   !toolbar.rangeTo ||
-  !toolbar.collapseToggle ||
+  !toolbar.showBranchesMergesToggle ||
   !toolbar.showTagsToggle ||
   !toolbar.refreshButton ||
   !toolbar.checkoutButton ||
@@ -87,7 +87,10 @@ function currentScope(): LogScopeOptions {
 
 function currentReduceOptions(): ReduceOptions {
   return {
-    collapseStraightRuns: toolbar.collapseToggle!.checked,
+    // Checked = show every commit (TortoiseGit's "Show branches and
+    // merges", unchecked by default there too) — inverted from the
+    // underlying collapseStraightRuns flag, which defaults to true.
+    collapseStraightRuns: !toolbar.showBranchesMergesToggle!.checked,
     showAllTags: toolbar.showTagsToggle!.checked,
   };
 }
@@ -101,7 +104,7 @@ toolbar.scopeSelect.addEventListener('change', () => {
   toolbar.rangeInputs!.hidden = toolbar.scopeSelect!.value !== 'range';
   applyFilter();
 });
-toolbar.collapseToggle.addEventListener('change', applyFilter);
+toolbar.showBranchesMergesToggle.addEventListener('change', applyFilter);
 toolbar.showTagsToggle.addEventListener('change', applyFilter);
 toolbar.refreshButton.addEventListener('click', applyFilter);
 toolbar.checkoutButton.addEventListener('click', () => {
