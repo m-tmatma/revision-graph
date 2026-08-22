@@ -51,26 +51,44 @@
     .deleted {
       color: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
     }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
   </style>
 </head>
 <body>
-  <div id="header">
-    <div class="label">Comparing</div>
-    <div class="rev" id="from-rev"></div>
-    <div class="rev" id="to-rev"></div>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th>File</th>
-        <th>Ext</th>
-        <th>Action</th>
-        <th>Added</th>
-        <th>Deleted</th>
-      </tr>
-    </thead>
-    <tbody id="file-list"></tbody>
-  </table>
+  <h1 class="visually-hidden">Changed Files</h1>
+  <main>
+    <div id="header">
+      <div class="label">Comparing</div>
+      <div class="rev" id="from-rev"></div>
+      <div class="rev" id="to-rev"></div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Ext</th>
+          <th>Action</th>
+          <th>Added</th>
+          <th>Deleted</th>
+        </tr>
+      </thead>
+      <tbody id="file-list">
+        <tr>
+          <td colspan="5">Loading…</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
   <script nonce="__NONCE__" src="__SCRIPT_URI__"></script>
 </body>
 </html>
