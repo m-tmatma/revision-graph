@@ -12,7 +12,10 @@ export interface GraphCommit {
   hash: string;
   /** Parent hashes, in the order reported by git (first parent first). */
   parents: string[];
+  /** First line of the commit message. */
   subject: string;
+  /** Full commit message (git's %B) — subject plus body, if any. */
+  body: string;
   authorName: string;
   authorEmail: string;
   /** Unix time in seconds. */
@@ -53,6 +56,12 @@ export interface GraphNode {
   refs: RefInfo[];
   width: number;
   height: number;
+  /** Carried through from GraphCommit for the hover tooltip. */
+  body: string;
+  authorName: string;
+  authorEmail: string;
+  /** Unix time in seconds. */
+  authorDate: number;
 }
 
 export interface LaidOutNode extends GraphNode {

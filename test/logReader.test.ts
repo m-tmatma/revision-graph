@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLogArgs, classifyRef, displayRefName, parseLogLine } from '../src/git/logReader';
+import { buildLogArgs, classifyRef, displayRefName, parseLogRecord } from '../src/git/logReader';
 import type { RefInfo } from '../src/shared/types';
 
 const FIELD_SEP = '\x1f';
@@ -57,21 +57,28 @@ describe('displayRefName', () => {
   });
 });
 
-describe('parseLogLine', () => {
-  const line = ['abc123', 'parent1 parent2', 'Fix the thing', 'Jane Doe', 'jane@example.com', '1700000000'].join(
-    FIELD_SEP,
-  );
+describe('parseLogRecord', () => {
+  const record = [
+    'abc123',
+    'parent1 parent2',
+    'Fix the thing',
+    'Jane Doe',
+    'jane@example.com',
+    '1700000000',
+    'Fix the thing\n',
+  ].join(FIELD_SEP);
 
   it('parses fields and merges in refs by hash', () => {
     const refs: RefInfo[] = [{ name: 'main', type: 'local-branch' }];
     const refsByHash = new Map([['abc123', refs]]);
 
-    const commit = parseLogLine(line, refsByHash);
+    const commit = parseLogRecord(record, refsByHash);
 
     expect(commit).toEqual({
       hash: 'abc123',
       parents: ['parent1', 'parent2'],
       subject: 'Fix the thing',
+      body: 'Fix the thing',
       authorName: 'Jane Doe',
       authorEmail: 'jane@example.com',
       authorDate: 1700000000,
@@ -80,17 +87,36 @@ describe('parseLogLine', () => {
   });
 
   it('defaults to an empty refs array when the hash has no refs', () => {
-    const commit = parseLogLine(line, new Map());
+    const commit = parseLogRecord(record, new Map());
     expect(commit?.refs).toEqual([]);
   });
 
-  it('returns undefined for an empty line', () => {
-    expect(parseLogLine('', new Map())).toBeUndefined();
+  it('returns undefined for an empty record', () => {
+    expect(parseLogRecord('', new Map())).toBeUndefined();
   });
 
   it('parses a root commit with no parents', () => {
-    const rootLine = ['root1', '', 'Initial commit', 'Jane Doe', 'jane@example.com', '1700000000'].join(FIELD_SEP);
-    const commit = parseLogLine(rootLine, new Map());
+    const rootRecord = ['root1', '', 'Initial commit', 'Jane Doe', 'jane@example.com', '1700000000', 'Initial commit\n'].join(
+      FIELD_SEP,
+    );
+    const commit = parseLogRecord(rootRecord, new Map());
     expect(commit?.parents).toEqual([]);
+  });
+
+  it('keeps a multi-line body intact, trimming only the trailing newline(s)', () => {
+    const body = 'Merge pull request #1 from feature/x\n\nDetailed description here.\n';
+    const multilineRecord = [
+      'def456',
+      'parent1',
+      'Merge pull request #1 from feature/x',
+      'Jane Doe',
+      'jane@example.com',
+      '1700000000',
+      body,
+    ].join(FIELD_SEP);
+
+    const commit = parseLogRecord(multilineRecord, new Map());
+
+    expect(commit?.body).toBe('Merge pull request #1 from feature/x\n\nDetailed description here.');
   });
 });

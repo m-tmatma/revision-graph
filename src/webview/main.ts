@@ -136,7 +136,17 @@ function buildGraphNodes(commits: GraphCommit[]): GraphNode[] {
     const maxLabelWidth = Math.max(...labels.map((label) => ctx.measureText(label).width));
     const width = Math.max(NODE_MIN_WIDTH, Math.ceil(maxLabelWidth) + NODE_PADDING_X);
     const height = labels.length * NODE_ROW_HEIGHT + NODE_PADDING_Y * 2;
-    return { id: commit.hash, parents: commit.parents, refs: commit.refs, width, height };
+    return {
+      id: commit.hash,
+      parents: commit.parents,
+      refs: commit.refs,
+      width,
+      height,
+      body: commit.body,
+      authorName: commit.authorName,
+      authorEmail: commit.authorEmail,
+      authorDate: commit.authorDate,
+    };
   });
 }
 
