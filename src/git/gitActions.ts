@@ -3,7 +3,7 @@
 // the webview can't shell out to git itself.
 
 import { spawn } from 'node:child_process';
-import type { FileChange } from '../shared/types';
+import type { CheckoutOptions, FileChange } from '../shared/types';
 
 function runGitCapture(cwd: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -95,4 +95,16 @@ export async function readFileAtRevision(cwd: string, rev: string, path: string)
   } catch {
     return '';
   }
+}
+
+export async function checkoutRef(cwd: string, ref: string, options: CheckoutOptions): Promise<void> {
+  const args = ['checkout'];
+  if (options.force) args.push('--force');
+  if (options.merge) args.push('--merge');
+  if (options.createBranch) {
+    args.push(options.overwriteExisting ? '-B' : '-b', options.newBranchName);
+    if (options.track) args.push('--track');
+  }
+  args.push(ref);
+  await runGitCapture(cwd, args);
 }

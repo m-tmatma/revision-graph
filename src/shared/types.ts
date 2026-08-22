@@ -48,7 +48,8 @@ export type WebviewToHostMessage =
   | { type: 'ready' }
   | { type: 'error'; message: string }
   | { type: 'setFilter'; scope: LogScopeOptions; reduce: ReduceOptions }
-  | { type: 'compare'; from: string; to: string };
+  | { type: 'compare'; from: string; to: string }
+  | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string };
 
 /** Node shape handed to the layout engine, after size measurement. */
 export interface GraphNode {
@@ -103,3 +104,37 @@ export interface CompareData {
 export type CompareHostToWebviewMessage = { type: 'compareData'; data: CompareData };
 
 export type CompareWebviewToHostMessage = { type: 'ready' } | { type: 'openFile'; path: string };
+
+// --- Checkout dialog (a third, separate WebviewPanel opened from the main
+// graph's "Checkout" context-menu item) ---
+
+export interface CheckoutTarget {
+  /** Branch name, tag name, or commit hash — whatever `git checkout` should target. */
+  ref: string;
+  /** Human-readable label for the same target, e.g. "main" or "a1b2c3d (detached HEAD)". */
+  label: string;
+  /**
+   * Pre-fill for "Create new branch" when checking out a remote-tracking
+   * branch with no local branch of its own — the remote branch's name with
+   * its `<remote>/` prefix stripped (e.g. "origin/foo" -> "foo").
+   */
+  suggestedBranchName?: string;
+}
+
+export interface CheckoutOptions {
+  createBranch: boolean;
+  newBranchName: string;
+  /** Only meaningful together with createBranch. */
+  track: boolean;
+  /** Only meaningful together with createBranch: use `-B` instead of `-b`. */
+  overwriteExisting: boolean;
+  force: boolean;
+  merge: boolean;
+}
+
+export type CheckoutHostToWebviewMessage = { type: 'checkoutTarget'; target: CheckoutTarget };
+
+export type CheckoutWebviewToHostMessage =
+  | { type: 'ready' }
+  | { type: 'submit'; options: CheckoutOptions }
+  | { type: 'cancel' };

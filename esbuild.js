@@ -1,6 +1,7 @@
-// Build script for the extension host bundle and the two webview bundles
-// (main UI thread + the layout worker). Kept as a single script since the
-// three targets share the same watch/production flags.
+// Build script for the extension host bundle and the webview bundles (main
+// graph UI, its layout worker, the compare panel, the checkout dialog).
+// Kept as a single script since all targets share the same watch/production
+// flags.
 const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
@@ -10,7 +11,7 @@ const watch = process.argv.includes('--watch');
 
 function copyHtmlTemplates() {
   fs.mkdirSync(path.join(__dirname, 'dist', 'webview'), { recursive: true });
-  for (const name of ['panel.html', 'comparePanel.html']) {
+  for (const name of ['panel.html', 'comparePanel.html', 'checkoutDialog.html']) {
     fs.copyFileSync(path.join(__dirname, 'src', 'webview', name), path.join(__dirname, 'dist', 'webview', name));
   }
 }
@@ -64,8 +65,20 @@ const compareConfig = {
   minify: production,
 };
 
+/** @type {import('esbuild').BuildOptions} */
+const checkoutDialogConfig = {
+  entryPoints: ['src/webview/checkoutDialog.ts'],
+  bundle: true,
+  outfile: 'dist/webview/checkoutDialog.js',
+  platform: 'browser',
+  format: 'iife',
+  target: 'es2022',
+  sourcemap: !production,
+  minify: production,
+};
+
 async function main() {
-  const configs = [extensionConfig, webviewMainConfig, layoutWorkerConfig, compareConfig];
+  const configs = [extensionConfig, webviewMainConfig, layoutWorkerConfig, compareConfig, checkoutDialogConfig];
   copyHtmlTemplates();
 
   if (watch) {
