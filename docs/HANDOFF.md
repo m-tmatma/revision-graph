@@ -624,3 +624,21 @@ that was asked for.
   short name instead triggers git's own "DWIM" behavior (create, or reuse,
   a local branch tracking it), matching what typing the branch name by
   hand would do.
+
+## Post-M4: compare with default branch
+
+Also on request. Right-clicking any single node now offers "Compare
+`<hash>` with default branch", alongside the existing two-node-selection
+"Compare" — this one needs only the one node.
+
+- `gitActions.ts`'s new `getDefaultBranchRef(cwd)` resolves "the default
+  branch" as `git symbolic-ref --short -q refs/remotes/origin/HEAD` (i.e.
+  whatever the remote host — GitHub, etc. — has configured as the repo's
+  default branch), falling back to a local `main` or `master` (whichever
+  exists) when `origin/HEAD` isn't set (a shallow clone, or a repo with no
+  remote at all). Throws if neither is found.
+- The webview doesn't resolve or even know the default branch's name —
+  it just sends `{ type: 'compareWithDefaultBranch', to: commitId }`, and
+  `extension.ts` resolves it and calls the same `showCompareChanges` the
+  regular two-node "Compare" already uses, so it's the identical
+  "Changed Files" panel either way.

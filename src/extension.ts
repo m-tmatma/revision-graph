@@ -13,6 +13,7 @@ import {
   deleteTag,
   diffFileChanges,
   getCommitSummary,
+  getDefaultBranchRef,
   listCheckoutCandidates,
   readFileAtRevision,
   updateSubmodules,
@@ -134,6 +135,13 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       vscode.window.showErrorMessage(`Git Revision Graph: ${message.message}`);
     } else if (message.type === 'compare') {
       await showCompareChanges(context, cwd, message.from, message.to);
+    } else if (message.type === 'compareWithDefaultBranch') {
+      try {
+        const defaultBranch = await getDefaultBranchRef(cwd);
+        await showCompareChanges(context, cwd, defaultBranch, message.to);
+      } catch (err) {
+        vscode.window.showErrorMessage(`Git Revision Graph: ${(err as Error).message}`);
+      }
     } else if (message.type === 'openCheckoutDialog') {
       showCheckoutDialog(
         context,

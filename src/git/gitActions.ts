@@ -38,6 +38,28 @@ export async function getCommitSummary(cwd: string, rev: string): Promise<Commit
   return { hash: hash ?? rev, subject: subject ?? '' };
 }
 
+/**
+ * The repo's default branch — what `origin/HEAD` points at (i.e. GitHub's
+ * or another host's configured "Default branch" for the repo), or `main`/
+ * `master` (whichever exists) if `origin/HEAD` isn't set, e.g. in a shallow
+ * clone or a repo with no remote at all.
+ */
+export async function getDefaultBranchRef(cwd: string): Promise<string> {
+  const originHead = await runGitCapture(cwd, ['symbolic-ref', '--short', '-q', 'refs/remotes/origin/HEAD']).catch(
+    () => '',
+  );
+  if (originHead.trim()) return originHead.trim();
+
+  for (const candidate of ['main', 'master']) {
+    const exists = await runGitCapture(cwd, ['show-ref', '--verify', '--quiet', `refs/heads/${candidate}`])
+      .then(() => true)
+      .catch(() => false);
+    if (exists) return candidate;
+  }
+
+  throw new Error("couldn't determine the default branch (no origin/HEAD, and no local main or master)");
+}
+
 function statusFromLetter(letter: string): FileChange['status'] {
   switch (letter[0]) {
     case 'A':
