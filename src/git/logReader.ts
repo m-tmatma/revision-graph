@@ -60,9 +60,21 @@ function runGitBuffered(cwd: string, args: string[]): Promise<string> {
   });
 }
 
-export function buildLogArgs(options: LogScopeOptions): string[] {
+export function buildLogArgs(options: LogScopeOptions, simplifyByDecoration: boolean): string[] {
   const format = ['%H', '%P', '%s', '%an', '%ae', '%at', '%B'].join(FIELD_SEP) + RECORD_SEP;
   const args = ['log', `--pretty=format:${format}`, '--no-color'];
+
+  // Matches TortoiseGit's own "Show branches and merges" toggle: rather
+  // than reimplementing git's own history-simplification algorithm
+  // ourselves, just ask git to do it (or not) via this flag. When on
+  // (the default), git rewrites away any commit — including a merge —
+  // that isn't reachable from a ref and isn't needed to preserve the
+  // ancestry relationships between commits that are, before we ever see
+  // the output; dagReducer.ts's own straight-run elision still runs
+  // afterwards regardless, on whatever git returns.
+  if (simplifyByDecoration) {
+    args.push('--simplify-by-decoration');
+  }
 
   switch (options.scope) {
     case 'current-branch':
@@ -183,9 +195,13 @@ export function parseLogRecord(record: string, refsByHash: Map<string, RefInfo[]
   };
 }
 
-export async function fetchCommits(cwd: string, options: LogScopeOptions): Promise<GraphCommit[]> {
+export async function fetchCommits(
+  cwd: string,
+  options: LogScopeOptions,
+  simplifyByDecoration: boolean,
+): Promise<GraphCommit[]> {
   const refsByHash = await fetchRefs(cwd);
-  const output = await runGitBuffered(cwd, buildLogArgs(options));
+  const output = await runGitBuffered(cwd, buildLogArgs(options, simplifyByDecoration));
 
   const commits: GraphCommit[] = [];
   for (const record of output.split(RECORD_SEP)) {

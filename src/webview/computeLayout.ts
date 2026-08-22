@@ -7,6 +7,11 @@
 // dedicated Worker's stack is smaller than the main thread's, so a very
 // deep history (e.g. TortoiseGit's own 12k+ commit, 15-year history) can
 // overflow the worker even though the same graph lays out fine elsewhere.
+//
+// `nodes` is always the *reduced* graph (dagReducer.ts's always-on
+// elision — a straight run is never shown expanded, matching real
+// TortoiseGit), so its longest chain — and this recursion — is bounded
+// regardless of how large the underlying repo's full history is.
 
 import dagre from '@dagrejs/dagre';
 import type { GraphNode, LaidOutEdge, LaidOutGraph, LaidOutNode } from '../shared/types';

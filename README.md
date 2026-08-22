@@ -61,9 +61,13 @@ This produces `vscode-git-revision-graph-<version>.vsix` in the project root.
 - **Scope**: All branches / Local branches / Current branch / From..To
   range. For a range, leave **To** blank for `HEAD`, and **From** blank to
   go from the very start of history.
-- **Show branches and merges**: off by default, matching TortoiseGit —
-  hides commits that are neither a branch/merge point nor referenced by
-  any branch/tag. Turn it on to show every commit.
+- **Show branches and merges**: on by default. A commit that's neither a
+  branch/merge point nor referenced by any branch/tag is never shown as
+  its own node either way — only where the DAG actually branches or
+  merges is ever drawn. What this toggles is whether a merge unreachable
+  from any branch/tag, and not needed to connect ones that are, gets
+  pruned too: off shows only merges relevant to something you can see;
+  on shows every merge, matching TortoiseGit's own default.
 - **Show all tags**: when off, a tag alone doesn't stop a commit from
   being hidden by the collapsing above; when on, every tagged commit is
   kept regardless.

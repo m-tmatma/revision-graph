@@ -645,3 +645,70 @@ Also on request. Right-clicking any single node now offers "Compare
   `extension.ts` resolves it and calls the same `showCompareChanges` the
   regular two-node "Compare" already uses, so it's the identical
   "Changed Files" panel either way.
+
+## Post-M4: fixing a real-repo layout crash, and what "Show branches and merges" actually does
+
+Testing against a real, very large external repo surfaced
+`RangeError: Maximum call stack size exceeded` — both the layout Worker
+*and* its main-thread fallback failed, specifically with "Show branches
+and merges" checked (at the time: "show every individual commit,
+including ones dagReducer.ts would otherwise elide"). Getting this right
+took several wrong turns, worth recording so they aren't retried:
+
+1. **First**: fed dagReducer.ts's *full, unreduced* commit list to the
+   layout engine whenever the toggle wanted every commit shown (the
+   toggle used to gate whether elision ran at all). dagre's ranking pass
+   recurses to a depth tracking the graph's longest chain — for a large
+   real repo's full history, that's unbounded, and both the Worker and
+   its larger-stack main-thread fallback overflowed.
+2. **Then**: made dagReducer.ts's elision unconditional (bounding what
+   the layout engine ever sees), and had it separately report each
+   elided chain (`{from, to, commits}`) so the webview could splice those
+   commits back in as extra nodes, purely for display, only when the
+   toggle wanted every commit shown. To give an elided chain proportional
+   room, its edge got a longer dagre `minlen` (one rank per elided
+   commit). This backfired identically: dagre's own normalization turns a
+   long-`minlen` edge into a chain of dummy nodes internally, one per
+   intermediate rank, handing the exact same unbounded-recursion problem
+   right back for any one very long straight run.
+3. **Then**: dropped `minlen` entirely — interpolated the spliced-in
+   commits within whatever short span dagre's *default* (minlen 1) layout
+   already gave the edge. No more crash, but a long chain's spliced-in
+   commits all landed in that same short span and rendered stacked on top
+   of each other.
+4. **Then**: instead of asking dagre for room, inserted it after the
+   fact — sorted each elided chain's needed extra space by where its edge
+   fell in the already-laid-out graph, and shifted every node/edge point
+   below each insertion point down by the (cumulative) amount needed, via
+   a single sort + binary-search pass (`buildOffsetLookup`), nothing
+   recursive. This actually worked (no crash, no overlap) — but at that
+   point, direct comparison against real TortoiseGit showed all of this
+   was solving the wrong problem.
+
+**What TortoiseGit actually does** (confirmed by reading
+`RevisionGraphDlgFunc.cpp` and `Git.cpp`, not just observing the UI): a
+straight run is *never* shown as individual nodes, checkbox or not —
+`m_bShowBranchingsMerges` doesn't gate that at all. What it actually
+gates is a `--sparse` flag on the `git log` call itself
+(`LOG_INFO_SIMPILFY_BY_DECORATION | (m_bShowBranchingsMerges ? LOG_INFO_SPARSE : 0)`
+→ `--simplify-by-decoration [--sparse]`). Unchecked (TortoiseGit's
+default), `--simplify-by-decoration` alone lets git itself prune commits
+— including whole merges — that aren't reachable from any ref and aren't
+needed to preserve ancestry between ones that are, before TortoiseGit
+ever sees them. Checked adds `--sparse`, which disables that pruning, so
+every merge comes back from git; TortoiseGit's own straight-run elision
+(the same kind of pass as our dagReducer.ts) then runs on top of *that*,
+same as when unchecked.
+
+**Final design**, matching this exactly: everything from attempts 1–4
+above (`expandElidedChains.ts`, `ElidedChain`, the `minlen`/offset-lookup
+machinery, the `elidedChains` field on the `graphData` message) was
+deleted. `dagReducer.ts`'s elision is unconditional, full stop — the
+layout engine only ever sees a bounded graph, always. "Show branches and
+merges" now drives `ReduceOptions.simplifyByDecoration`, which
+`logReader.ts`'s `buildLogArgs` turns into a `--simplify-by-decoration`
+flag on `git log` itself (added when the toggle is *off* — checked, the
+default, omits it, matching TortoiseGit's own `--sparse` behavior of
+showing every merge). No custom "which merges are relevant" algorithm to
+build or maintain — git already has one, TortoiseGit already delegates to
+it, so we do too.

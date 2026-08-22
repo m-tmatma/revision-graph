@@ -6,30 +6,35 @@ const FIELD_SEP = '\x1f';
 
 describe('buildLogArgs', () => {
   it('uses --all for the all-branches scope', () => {
-    expect(buildLogArgs({ scope: 'all-branches' })).toContain('--all');
+    expect(buildLogArgs({ scope: 'all-branches' }, false)).toContain('--all');
   });
 
   it('targets HEAD for the current-branch scope', () => {
-    expect(buildLogArgs({ scope: 'current-branch' })).toContain('HEAD');
+    expect(buildLogArgs({ scope: 'current-branch' }, false)).toContain('HEAD');
   });
 
   it('uses --branches for the local-branches scope', () => {
-    expect(buildLogArgs({ scope: 'local-branches' })).toContain('--branches');
+    expect(buildLogArgs({ scope: 'local-branches' }, false)).toContain('--branches');
   });
 
   it('builds a `to ^from` range', () => {
-    const args = buildLogArgs({ scope: 'range', fromRef: 'v1.0', toRef: 'main' });
+    const args = buildLogArgs({ scope: 'range', fromRef: 'v1.0', toRef: 'main' }, false);
     expect(args).toEqual(expect.arrayContaining(['main', '^v1.0']));
   });
 
   it('omits the exclusion when fromRef is absent', () => {
-    const args = buildLogArgs({ scope: 'range', toRef: 'main' });
+    const args = buildLogArgs({ scope: 'range', toRef: 'main' }, false);
     expect(args).toContain('main');
     expect(args.some((a) => a.startsWith('^'))).toBe(false);
   });
 
   it('throws when range scope is missing toRef', () => {
-    expect(() => buildLogArgs({ scope: 'range' })).toThrow();
+    expect(() => buildLogArgs({ scope: 'range' }, false)).toThrow();
+  });
+
+  it('adds --simplify-by-decoration only when requested', () => {
+    expect(buildLogArgs({ scope: 'all-branches' }, true)).toContain('--simplify-by-decoration');
+    expect(buildLogArgs({ scope: 'all-branches' }, false)).not.toContain('--simplify-by-decoration');
   });
 });
 
