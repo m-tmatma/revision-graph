@@ -84,6 +84,20 @@ export class PanZoomController {
     });
   }
 
+  /**
+   * Resets zoom to 1:1, horizontally centers on a logical point, and aligns
+   * the viewport's top edge with `topY` instead of vertically centering.
+   * Used when the focused node has no history above it (e.g. the current
+   * branch is already up to date) — vertically centering it would leave a
+   * band of empty space above the top of the graph, which looks broken.
+   */
+  centerOnTop(logicalX: number, topY: number): void {
+    this.whenSized(() => {
+      this.view = { scale: 1, x: logicalX - this.container.clientWidth / 2, y: topY };
+      this.apply();
+    });
+  }
+
   /** Centers the viewport on a logical point without changing zoom — used by the minimap. */
   panTo(logicalX: number, logicalY: number): void {
     const width = this.container.clientWidth / this.view.scale;

@@ -33,6 +33,10 @@ declare global {
 
 type LayoutWorkerMessage = { type: 'result'; graph: LaidOutGraph } | { type: 'error'; message: string };
 
+// Space left above the current-branch node when it's topmost (see
+// `renderAndFocus`), so it doesn't render flush against the viewport edge.
+const TOP_FOCUS_MARGIN = 24;
+
 const vscode = acquireVsCodeApi();
 applyLocalization(document);
 const statusEl = document.getElementById('graph-status');
@@ -194,7 +198,17 @@ function renderAndFocus(graph: LaidOutGraph, focusOnHead: boolean): void {
       node.refs.some((ref) => ref.type === 'head' || ref.type === 'current-branch'),
     );
     if (headNode) {
-      controller.centerOn(headNode.x + headNode.width / 2, headNode.y + headNode.height / 2);
+      // Nothing renders above the current branch (e.g. it's up to date with
+      // its remote) when no other node's top edge sits above its own —
+      // vertically centering it there would leave an empty band above the
+      // top of the graph, so align the viewport's top edge with the
+      // graph's instead, with a little breathing room.
+      const isTopmost = graph.nodes.every((node) => node.y >= headNode.y);
+      if (isTopmost) {
+        controller.centerOnTop(headNode.x + headNode.width / 2, headNode.y - TOP_FOCUS_MARGIN);
+      } else {
+        controller.centerOn(headNode.x + headNode.width / 2, headNode.y + headNode.height / 2);
+      }
     } else {
       controller.centerOn(graph.width / 2, graph.height / 2);
     }
