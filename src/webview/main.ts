@@ -104,13 +104,28 @@ function applyFilter(): void {
   vscode.postMessage(message);
 }
 
+// Whether the *next* `graphData` message should re-center the viewport on
+// the current branch, rather than keeping wherever the user last panned/
+// zoomed to. True initially (so the very first render focuses HEAD) and
+// after an explicit Refresh click; false for every other trigger —
+// scope/checkbox/range changes, and repo-watcher's own automatic refresh
+// on external changes (a checkout, commit, or pull from outside the
+// extension), which used to yank the view back to HEAD without the user
+// asking for that. Consumed (read, then reset to false) by the next
+// handleGraphData call, so it only ever applies to the one render it was
+// set for.
+let focusOnHeadForNextGraphData = true;
+
 toolbar.scopeSelect.addEventListener('change', () => {
   toolbar.rangeInputs!.hidden = toolbar.scopeSelect!.value !== 'range';
   applyFilter();
 });
 toolbar.showBranchesMergesToggle.addEventListener('change', applyFilter);
 toolbar.showTagsToggle.addEventListener('change', applyFilter);
-toolbar.refreshButton.addEventListener('click', applyFilter);
+toolbar.refreshButton.addEventListener('click', () => {
+  focusOnHeadForNextGraphData = true;
+  applyFilter();
+});
 toolbar.checkoutButton.addEventListener('click', () => {
   const message: WebviewToHostMessage = { type: 'incrementalCheckout' };
   vscode.postMessage(message);
@@ -125,17 +140,21 @@ for (const input of [toolbar.rangeFrom, toolbar.rangeTo]) {
 // Renders the graph, attaches pan/zoom to the freshly created SVG (each
 // render replaces it, so the controller can't be reused across renders —
 // the old one is destroyed first, since its window-level listeners would
-// otherwise keep fighting over an SVG that's no longer in the DOM), and
-// centers the viewport on the current branch — findable at a glance even in
-// a graph large enough that HEAD wouldn't otherwise be in view (e.g. after
-// a filter change moves it). Falls back to centering the whole graph if no
-// commit in the current view carries HEAD/current-branch.
+// otherwise keep fighting over an SVG that's no longer in the DOM).
+//
+// `focusOnHead` controls whether this also (re-)centers the viewport on
+// the current branch: only true for the very first render and an explicit
+// Refresh click (see `focusOnHeadForNextGraphData`'s own comment) — every
+// other re-render (a filter/checkbox change, or an automatic refresh from
+// repo-watcher noticing an external change) instead carries over the
+// previous controller's exact pan/zoom state, so the view doesn't jump
+// out from under the user without them asking for that.
 let panZoomController: PanZoomController | null = null;
 let selectionController: SelectionController | null = null;
 let minimapController: Minimap | null = null;
 let lastRenderedGraph: LaidOutGraph | null = null;
 
-function renderAndFocus(graph: LaidOutGraph): void {
+function renderAndFocus(graph: LaidOutGraph, focusOnHead: boolean): void {
   closeContextMenu();
   lastRenderedGraph = graph;
   const svg = renderGraph(rootEl!, graph);
@@ -148,16 +167,26 @@ function renderAndFocus(graph: LaidOutGraph): void {
 
   if (!graphScrollEl) return;
 
+  const previousView = panZoomController?.getView();
   panZoomController?.destroy();
   const controller = new PanZoomController(graphScrollEl, svg);
   panZoomController = controller;
-  const headNode = graph.nodes.find((node) =>
-    node.refs.some((ref) => ref.type === 'head' || ref.type === 'current-branch'),
-  );
-  if (headNode) {
-    controller.centerOn(headNode.x + headNode.width / 2, headNode.y + headNode.height / 2);
+
+  if (!focusOnHead && previousView) {
+    controller.setView(previousView);
   } else {
-    controller.centerOn(graph.width / 2, graph.height / 2);
+    // Falls back to centering the whole graph if no commit in the current
+    // view carries HEAD/current-branch (or there's no previous view to
+    // carry over — the very first render, by construction, always wants
+    // focusOnHead anyway).
+    const headNode = graph.nodes.find((node) =>
+      node.refs.some((ref) => ref.type === 'head' || ref.type === 'current-branch'),
+    );
+    if (headNode) {
+      controller.centerOn(headNode.x + headNode.width / 2, headNode.y + headNode.height / 2);
+    } else {
+      controller.centerOn(graph.width / 2, graph.height / 2);
+    }
   }
 
   if (minimapEl) {
@@ -497,6 +526,13 @@ async function createLayoutWorker(): Promise<Worker> {
 }
 
 async function handleGraphData(commits: GraphCommit[]): Promise<void> {
+  // Consumed once per graphData message, regardless of which of the two
+  // render paths below (worker success vs. main-thread fallback) ends up
+  // handling it — both are the same logical render, just two possible
+  // outcomes of computing its layout.
+  const focusOnHead = focusOnHeadForNextGraphData;
+  focusOnHeadForNextGraphData = false;
+
   if (commits.length === 0) {
     rootEl!.replaceChildren();
     setStatus(t('No commits found.'));
@@ -515,7 +551,7 @@ async function handleGraphData(commits: GraphCommit[]): Promise<void> {
     console.warn(`Git Revision Graph: layout worker failed (${reason}), retrying on the main thread`);
     setStatus(t('Computing layout (fallback)…'));
     try {
-      renderAndFocus(computeLayout(nodes));
+      renderAndFocus(computeLayout(nodes), focusOnHead);
       setStatus(null);
     } catch (err) {
       setStatus(t('Layout failed: {0} (reduced nodes: {1})', (err as Error).message, String(nodes.length)));
@@ -534,7 +570,7 @@ async function handleGraphData(commits: GraphCommit[]): Promise<void> {
       worker.terminate();
       if (event.data.type === 'result') {
         setStatus(null);
-        renderAndFocus(event.data.graph);
+        renderAndFocus(event.data.graph, focusOnHead);
       } else {
         fallbackToMainThread(event.data.message);
       }

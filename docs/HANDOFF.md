@@ -807,3 +807,32 @@ mechanisms rather than anything homegrown:
   that every `t(...)` call site and `data-i18n(-placeholder)` attribute
   in the source has a matching bundle entry, and vice versa (no orphaned
   translations) — not kept in the repo, just a one-off sanity check.
+
+## Post-M4: stop auto-focusing HEAD on every re-render
+
+Originally *every* re-render — a filter/checkbox change, and especially
+repo-watcher's automatic refresh on an external change (a checkout,
+commit, or pull from outside the extension) — re-centered the viewport on
+the current branch. Reported as the graph "jumping to the current branch
+on its own": panning/zooming somewhere to look at something, then having
+an unrelated external change yank the view back to HEAD without asking.
+
+Narrowed to exactly two triggers, per request: the very first render, and
+an explicit Refresh click. `main.ts` tracks this with a single module-level
+`focusOnHeadForNextGraphData` flag — true initially, set true by the
+Refresh button's own click handler (not shared with the other toolbar
+controls' plain `applyFilter`), and read-then-reset-to-false by
+`handleGraphData` on every `graphData` message it handles (both the
+worker-success and main-thread-fallback paths count as the same trigger,
+so the flag is captured once at the top of `handleGraphData`, not
+re-read in each path). This works because the webview can't otherwise
+tell *why* a given `graphData` message arrived — a `setFilter` response
+and repo-watcher's unprompted push look identical on the wire, so the
+"was this explicitly requested" state has to live client-side.
+
+When the flag is false, `renderAndFocus` needs somewhere to put the
+viewport instead of HEAD: `PanZoomController` gained `getView()`/
+`setView(view)` (exact `{x, y, scale}`, no clamping/recentering) so the
+outgoing controller's view can be captured just before it's destroyed and
+handed straight to the replacement one, carrying the exact pan/zoom state
+across a re-render's inherent "new SVG, new controller" reset.
