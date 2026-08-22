@@ -24,17 +24,23 @@ instead of collapsing them into one.
 AccessLint runs on every PR and has flagged issues on webview HTML files
 more than once. Before opening (or updating) a PR that adds or changes a
 webview HTML file (`*.html` under `src/webview/`), run the same check
-locally instead of waiting for CI to catch it:
+locally instead of waiting for CI to catch it. `accesslint scan` only
+takes one file at a time and silently ignores extra positional args, so
+don't pass a glob (`scan src/webview/*.html`) or `find -exec {} +` —
+either one scans only the first match and skips the rest without
+erroring. Use `-exec ... {} \;` instead, one invocation per file, with
+each file's name echoed first so a violation can be attributed back to
+its file:
 
 ```sh
-npx -y @accesslint/cli scan src/webview/panel.html
-npx -y @accesslint/cli scan src/webview/comparePanel.html
-npx -y @accesslint/cli scan src/webview/checkoutDialog.html
+find src/webview -name '*.html' -exec sh -c 'echo "== $1 =="; npx -y @accesslint/cli scan "$1"' _ {} \;
 ```
 
-Fix everything it reports (exit code 0 = clean) before opening the PR. Add
-a `scan` line for any new webview HTML file. Issues found this way so far,
-as a reference for what tends to slip through:
+This automatically covers any new webview HTML file dropped into
+`src/webview/` — no need to update this list when one is added. Fix
+everything it reports (each file's block should end with "No
+accessibility violations found.") before opening the PR. Issues found
+this way so far, as a reference for what tends to slip through:
 
 - A page needs exactly one `<main>` landmark wrapping its primary content,
   and exactly one level-one heading (`<h1>`) — visually-hidden via a
