@@ -146,7 +146,7 @@ Web Worker内で実行し、`postMessage`でメインスレッドに結果(`Laid
 - `package.json`の`contributes.commands`に`gitRevisionGraph.show`を追加し、コマンドパレット/SCMビューのタイトルアイコンから起動
 - `vscode.window.createWebviewPanel`で表示、`retainContextWhenHidden: true`でタブ切り替え時も状態保持
 - Content Security Policyを`nonce`ベースで設定し、インラインスクリプトを許可
-- リポジトリ変更検知: `vscode.git`拡張のExtension APIから`Repository.state.onDidChange`を購読し、`.git/refs`やHEAD変更時に自動リフレッシュ(またはユーザーが手動リフレッシュボタン)
+- リポジトリ変更検知: `vscode.git`拡張のExtension APIから`Repository.state.onDidChange`を購読し、`.git/refs`やHEAD変更時に自動リフレッシュ(またはユーザーが手動リフレッシュボタン)。`state.onDidChange`はref/HEAD以外(ワークツリーの変更等)でも発火し、1回の操作で連続発火することもあるため500msデバウンスしてから再取得する。対象リポジトリは`git.onDidOpenRepository`も購読して後から見つかるケースに対応する。
 - マルチルートワークスペース対応: アクティブなリポジトリをVSCode Git拡張のAPIから取得
 
 ## プロジェクト構成(新規フォルダ: D:\gitwork\revision-graph)
