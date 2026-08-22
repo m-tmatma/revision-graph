@@ -712,3 +712,17 @@ default, omits it, matching TortoiseGit's own `--sparse` behavior of
 showing every merge). No custom "which merges are relevant" algorithm to
 build or maintain — git already has one, TortoiseGit already delegates to
 it, so we do too.
+
+## Post-M4: Activity Bar entry point
+
+`package.json`'s `contributes.viewsContainers.activitybar` registers a
+new Activity Bar container (`resources/activity-bar-icon.svg` — a plain
+diamond of four nodes/edges, standing in for a small branch+merge graph;
+VS Code re-colors it to match the theme, so the SVG's own fill color
+doesn't matter). Its one view (`revisionGraph.welcomeView`) never has any
+real content — `extension.ts` registers a `TreeDataProvider` for it whose
+`getChildren` always returns `[]`, purely so VS Code treats the view as
+"empty" and falls back to the `viewsWelcome` contribution: a single
+"Show Revision Graph" button (`command:revisionGraph.show`) that opens
+the graph the same way the existing Command Palette entry and SCM
+title-bar button already do.

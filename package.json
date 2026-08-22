@@ -34,7 +34,30 @@
           "group": "navigation"
         }
       ]
-    }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "revisionGraph",
+          "title": "Git Revision Graph",
+          "icon": "resources/activity-bar-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "revisionGraph": [
+        {
+          "id": "revisionGraph.welcomeView",
+          "name": "Git Revision Graph"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "revisionGraph.welcomeView",
+        "contents": "Visualize this repository's commit history as a graph.\n[Show Revision Graph](command:revisionGraph.show)"
+      }
+    ]
   },
   "scripts": {
     "build": "node esbuild.js",
