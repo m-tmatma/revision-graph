@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="__CSP__" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Git Revision Graph</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--vscode-editor-background);
+      color: var(--vscode-editor-foreground);
+      font-family: var(--vscode-font-family, sans-serif);
+      overflow: auto;
+    }
+    #graph-status {
+      padding: 12px;
+      opacity: 0.7;
+    }
+    #graph-root {
+      width: max-content;
+      min-width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="graph-status">Loading revision graph…</div>
+  <div id="graph-root"></div>
+  <script nonce="__NONCE__">
+    window.__LAYOUT_WORKER_URI__ = "__WORKER_URI__";
+  </script>
+  <script nonce="__NONCE__" src="__SCRIPT_URI__"></script>
+</body>
+</html>
