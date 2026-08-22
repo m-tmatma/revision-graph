@@ -5,29 +5,31 @@
 // VSCode's native diff editor.
 
 import type { CompareData, CompareHostToWebviewMessage, CompareWebviewToHostMessage, FileChange } from '../shared/types';
+import { applyLocalization, t } from './l10n';
 
 declare function acquireVsCodeApi(): { postMessage(message: CompareWebviewToHostMessage): void };
 
 const vscode = acquireVsCodeApi();
+applyLocalization(document);
 
 const fromRevEl = document.getElementById('from-rev');
 const toRevEl = document.getElementById('to-rev');
 const fileListEl = document.getElementById('file-list');
 
 if (!fromRevEl || !toRevEl || !fileListEl) {
-  throw new Error('Git Revision Graph: compare panel markup is missing expected elements');
+  throw new Error(t('Git Revision Graph: compare panel markup is missing expected elements'));
 }
 
 function statusLabel(status: FileChange['status']): string {
   switch (status) {
     case 'added':
-      return 'Added';
+      return t('Added');
     case 'deleted':
-      return 'Deleted';
+      return t('Deleted');
     case 'modified':
-      return 'Modified';
+      return t('Modified');
     default:
-      return 'Other';
+      return t('Other');
   }
 }
 
@@ -70,8 +72,8 @@ function buildRow(file: FileChange): HTMLTableRowElement {
 }
 
 function render(data: CompareData): void {
-  fromRevEl!.textContent = `${data.from.hash.slice(0, 7)}: ${data.from.subject}`;
-  toRevEl!.textContent = `${data.to.hash.slice(0, 7)}: ${data.to.subject}`;
+  fromRevEl!.textContent = t('{0}: {1}', data.from.hash.slice(0, 7), data.from.subject);
+  toRevEl!.textContent = t('{0}: {1}', data.to.hash.slice(0, 7), data.to.subject);
   fileListEl!.replaceChildren(...data.files.map(buildRow));
 }
 

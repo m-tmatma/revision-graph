@@ -96,44 +96,47 @@
 </head>
 <body>
   <main>
-    <h1 class="visually-hidden">Switch / Checkout</h1>
+    <h1 class="visually-hidden" data-i18n="Switch / Checkout">Switch / Checkout</h1>
     <div id="target-section">
-      <div class="label">Switch to</div>
+      <div class="label" data-i18n="Switch to">Switch to</div>
       <div id="target-label"></div>
     </div>
     <fieldset>
-      <legend>Options</legend>
+      <legend data-i18n="Options">Options</legend>
       <label>
         <input type="checkbox" id="create-branch" />
-        Create new branch
-        <input type="text" id="new-branch-name" placeholder="branch name" disabled />
+        <span data-i18n="Create new branch">Create new branch</span>
+        <input type="text" id="new-branch-name" placeholder="branch name" data-i18n-placeholder="branch name" disabled />
       </label>
       <label class="indent">
         <input type="checkbox" id="track" disabled />
-        Track
+        <span data-i18n="Track">Track</span>
       </label>
       <label class="indent">
         <input type="checkbox" id="overwrite-existing" disabled />
-        Overwrite existing branch if present
+        <span data-i18n="Overwrite existing branch if present">Overwrite existing branch if present</span>
       </label>
       <label>
         <input type="checkbox" id="force" />
-        Force (overwrite local changes)
+        <span data-i18n="Force (overwrite local changes)">Force (overwrite local changes)</span>
       </label>
       <label>
         <input type="checkbox" id="merge" />
-        Merge local changes
+        <span data-i18n="Merge local changes">Merge local changes</span>
       </label>
       <label>
         <input type="checkbox" id="update-submodules" />
-        Update submodules (init + update --recursive)
+        <span data-i18n="Update submodules (init + update --recursive)">Update submodules (init + update --recursive)</span>
       </label>
     </fieldset>
     <div id="actions">
-      <button id="cancel-button" type="button">Cancel</button>
-      <button id="ok-button" type="button">OK</button>
+      <button id="cancel-button" type="button" data-i18n="Cancel">Cancel</button>
+      <button id="ok-button" type="button" data-i18n="OK">OK</button>
     </div>
   </main>
+  <script nonce="__NONCE__">
+    window.__L10N_BUNDLE__ = __L10N_BUNDLE_JSON__;
+  </script>
   <script nonce="__NONCE__" src="__SCRIPT_URI__"></script>
 </body>
 </html>

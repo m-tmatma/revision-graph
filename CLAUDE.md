@@ -29,6 +29,7 @@ locally instead of waiting for CI to catch it:
 ```sh
 npx -y @accesslint/cli scan src/webview/panel.html
 npx -y @accesslint/cli scan src/webview/comparePanel.html
+npx -y @accesslint/cli scan src/webview/checkoutDialog.html
 ```
 
 Fix everything it reports (exit code 0 = clean) before opening the PR. Add

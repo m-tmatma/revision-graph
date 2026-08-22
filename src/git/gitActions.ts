@@ -3,6 +3,7 @@
 // the webview can't shell out to git itself.
 
 import { spawn } from 'node:child_process';
+import * as vscode from 'vscode';
 import type { CheckoutOptions, FileChange } from '../shared/types';
 
 function runGitCapture(cwd: string, args: string[]): Promise<string> {
@@ -21,7 +22,7 @@ function runGitCapture(cwd: string, args: string[]): Promise<string> {
       if (code === 0) {
         resolve(Buffer.concat(stdoutChunks).toString('utf-8'));
       } else {
-        reject(new Error(`git ${args.join(' ')} failed (exit ${code}): ${stderr.trim()}`));
+        reject(new Error(vscode.l10n.t('git {0} failed (exit {1}): {2}', args.join(' '), String(code), stderr.trim())));
       }
     });
   });
@@ -57,7 +58,7 @@ export async function getDefaultBranchRef(cwd: string): Promise<string> {
     if (exists) return candidate;
   }
 
-  throw new Error("couldn't determine the default branch (no origin/HEAD, and no local main or master)");
+  throw new Error(vscode.l10n.t("couldn't determine the default branch (no origin/HEAD, and no local main or master)"));
 }
 
 function statusFromLetter(letter: string): FileChange['status'] {

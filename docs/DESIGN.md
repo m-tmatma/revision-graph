@@ -157,6 +157,16 @@ Web Worker内で実行し、`postMessage`でメインスレッドに結果(`Laid
 - リポジトリ変更検知: `vscode.git`拡張のExtension APIから`Repository.state.onDidChange`を購読し、`.git/refs`やHEAD変更時に自動リフレッシュ(またはユーザーが手動リフレッシュボタン)。`state.onDidChange`はref/HEAD以外(ワークツリーの変更等)でも発火し、1回の操作で連続発火することもあるため500msデバウンスしてから再取得する。対象リポジトリは`git.onDidOpenRepository`も購読して後から見つかるケースに対応する。
 - マルチルートワークスペース対応: アクティブなリポジトリをVSCode Git拡張のAPIから取得
 
+## 多言語対応(M4完了後に追加、まず日本語)
+
+「言語リソースを追加するだけで新しい言語に対応できる」ことを要件として、VSCode標準の仕組みだけで完結させた:
+
+- `package.json`のcontributes文字列(コマンド名・説明文・ウェルカムビュー)は標準の`package.nls.json`/`package.nls.<lang>.json`。
+- Extension Host側(`extension.ts`/`gitActions.ts`)は`vscode`モジュール組み込みの`vscode.l10n.t()`をそのまま使用(追加パッケージ不要)。ソース文字列自体がキー兼デフォルトの英語フォールバックになるため、翻訳ファイルが一部欠けていてもエラーにならず該当箇所だけ英語のまま表示される。
+- Webview側は`vscode.l10n`に直接アクセスできない(Node外の別コンテキストのため)ので、`vscode.l10n`と同じ内部実装である`@vscode/l10n`(MIT)をWebviewバンドルに含め、Extension Hostが`vscode.env.language`に応じて読み込んだバンドルの中身を`window.__L10N_BUNDLE__`として起動時に注入する(`__CSP__`等と同じテンプレート置換の仕組みを流用)。結果として**Extension HostとWebview全体が同じ`l10n/bundle.l10n.<lang>.json`を共有**する形になり、言語追加はこのファイル1つ(+`package.nls.<lang>.json`)を足すだけで済む。
+- 静的HTML内の固定文言(ツールバーラベル・テーブル見出し等、JSが動的生成するステータスメッセージやメニュー項目とは別)は`data-i18n="<英語原文>"`/`data-i18n-placeholder="..."`属性 + 起動時に一括適用する`applyLocalization()`ヘルパーで対応。`<label>`がテキストと実際のフォームコントロールの両方を含む場合(`<label><input type="checkbox"/>テキスト</label>`)は、テキスト部分だけを`<span data-i18n="...">`で囲む必要がある(`<label>`自体に`textContent`を設定すると`<input>`ごと消えてしまうため)。
+- あえて翻訳しない文字列: gitの技術用語(`HEAD`、`detached HEAD`)、および100%データ+汎用的な記号のみで構成される文字列(diffタブタイトルの`"{0} ({1} ↔ {2})"`など、翻訳すべき単語自体が存在しない)。
+
 ## プロジェクト構成(新規フォルダ: D:\gitwork\revision-graph)
 
 実装開始時に`D:\gitwork\revision-graph`を作成し、`git init`で新規リポジトリとして初期化する(TortoiseGit本体のリポジトリとは完全に独立)。

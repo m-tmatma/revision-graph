@@ -16,6 +16,7 @@ import type {
   WebviewToHostMessage,
 } from '../shared/types';
 import { computeLayout } from './computeLayout';
+import { applyLocalization, t } from './l10n';
 import { renderGraph } from './render/graphRenderer';
 import { NODE_MIN_WIDTH, NODE_PADDING_X, NODE_PADDING_Y, NODE_ROW_HEIGHT } from './render/layoutConstants';
 import { PanZoomController } from './render/panZoom';
@@ -33,6 +34,7 @@ declare global {
 type LayoutWorkerMessage = { type: 'result'; graph: LaidOutGraph } | { type: 'error'; message: string };
 
 const vscode = acquireVsCodeApi();
+applyLocalization(document);
 const statusEl = document.getElementById('graph-status');
 const rootEl = document.getElementById('graph-root');
 const graphScrollEl = document.getElementById('graph-scroll');
@@ -65,7 +67,7 @@ if (
   !toolbar.exportSvgButton ||
   !toolbar.exportPngButton
 ) {
-  throw new Error('Git Revision Graph: webview markup is missing expected elements');
+  throw new Error(t('Git Revision Graph: webview markup is missing expected elements'));
 }
 
 function setStatus(text: string | null): void {
@@ -164,7 +166,7 @@ function renderAndFocus(graph: LaidOutGraph): void {
       minimapController = new Minimap(minimapEl, graph, controller);
     } catch (err) {
       minimapController = null;
-      minimapEl.textContent = `Minimap error: ${(err as Error).message}`;
+      minimapEl.textContent = t('Minimap error: {0}', (err as Error).message);
     }
   }
 }
@@ -177,7 +179,7 @@ function renderAndFocus(graph: LaidOutGraph): void {
 // no need to re-render from scratch.
 function buildExportSvgMarkup(graph: LaidOutGraph): string {
   const liveSvg = rootEl!.querySelector('svg');
-  if (!liveSvg) throw new Error('no graph rendered yet');
+  if (!liveSvg) throw new Error(t('no graph rendered yet'));
 
   const clone = liveSvg.cloneNode(true) as SVGSVGElement;
   clone.setAttribute('width', String(graph.width));
@@ -218,7 +220,11 @@ async function exportPng(graph: LaidOutGraph): Promise<void> {
     graph.width * graph.height > MAX_CANVAS_AREA
   ) {
     throw new Error(
-      `graph is too large to export as PNG (${Math.round(graph.width)}x${Math.round(graph.height)} exceeds the browser's canvas size limit) — use Export SVG instead`,
+      t(
+        "graph is too large to export as PNG ({0}x{1} exceeds the browser's canvas size limit) — use Export SVG instead",
+        String(Math.round(graph.width)),
+        String(Math.round(graph.height)),
+      ),
     );
   }
 
@@ -228,7 +234,7 @@ async function exportPng(graph: LaidOutGraph): Promise<void> {
     // A blocked (e.g. by CSP) load doesn't reliably fire onerror in every
     // environment, so this would otherwise hang forever with no visible
     // error at all — a timeout guarantees some reaction either way.
-    const timeoutId = setTimeout(() => reject(new Error('timed out rasterizing the SVG')), 10_000);
+    const timeoutId = setTimeout(() => reject(new Error(t('timed out rasterizing the SVG'))), 10_000);
     const img = new Image();
     img.onload = () => {
       clearTimeout(timeoutId);
@@ -236,7 +242,7 @@ async function exportPng(graph: LaidOutGraph): Promise<void> {
     };
     img.onerror = () => {
       clearTimeout(timeoutId);
-      reject(new Error('failed to rasterize the SVG'));
+      reject(new Error(t('failed to rasterize the SVG')));
     };
     img.src = svgDataUrl;
   });
@@ -246,14 +252,14 @@ async function exportPng(graph: LaidOutGraph): Promise<void> {
   // onto the canvas silently produces a near-empty PNG instead of a visible
   // failure, so catch it here instead.
   if (image.naturalWidth === 0 || image.naturalHeight === 0) {
-    throw new Error('rasterized SVG has no dimensions (naturalWidth/naturalHeight is 0)');
+    throw new Error(t('rasterized SVG has no dimensions (naturalWidth/naturalHeight is 0)'));
   }
 
   const canvas = document.createElement('canvas');
   canvas.width = graph.width;
   canvas.height = graph.height;
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('canvas 2D context unavailable');
+  if (!ctx) throw new Error(t('canvas 2D context unavailable'));
   ctx.fillStyle = getComputedStyle(document.body).backgroundColor || '#1e1e1e';
   ctx.fillRect(0, 0, graph.width, graph.height);
   ctx.drawImage(image, 0, 0, graph.width, graph.height);
@@ -264,7 +270,7 @@ async function exportPng(graph: LaidOutGraph): Promise<void> {
   // Chromium builds — that string would otherwise slip through to the
   // extension host and get written out as a handful of garbage bytes.
   if (!dataUrl.startsWith('data:image/png;base64,')) {
-    throw new Error(`canvas produced no PNG data (got "${dataUrl.slice(0, 32)}")`);
+    throw new Error(t('canvas produced no PNG data (got "{0}")', dataUrl.slice(0, 32)));
   }
 
   const message: WebviewToHostMessage = { type: 'exportPng', dataUrl };
@@ -275,7 +281,7 @@ toolbar.exportSvgButton.addEventListener('click', exportSvg);
 toolbar.exportPngButton.addEventListener('click', () => {
   if (!lastRenderedGraph) return;
   exportPng(lastRenderedGraph).catch((err: unknown) => {
-    setStatus(`Export failed: ${(err as Error).message}`);
+    setStatus(t('Export failed: {0}', (err as Error).message));
   });
 });
 
@@ -347,11 +353,11 @@ function checkoutMenuItem(node: LaidOutNode | undefined, commitId: string): Cont
     suggestedBranchName = remoteBranch.name.replace(/^[^/]+\//, '');
   } else {
     ref = commitId;
-    label = `${commitId.slice(0, 7)} (detached HEAD)`;
+    label = t('{0} (detached HEAD)', commitId.slice(0, 7));
   }
 
   return {
-    label: `Checkout ${label}`,
+    label: t('Checkout {0}', label),
     onClick: () => {
       const message: WebviewToHostMessage = { type: 'openCheckoutDialog', ref, label, suggestedBranchName };
       vscode.postMessage(message);
@@ -383,7 +389,7 @@ function attachContextMenu(
     const nodeRefs = nodesById.get(commitId)?.refs ?? [];
     if (nodeRefs.length > 0) {
       items.push({
-        label: nodeRefs.length === 1 ? 'Copy ref name' : `Copy ref names (${nodeRefs.length})`,
+        label: nodeRefs.length === 1 ? t('Copy ref name') : t('Copy ref names ({0})', String(nodeRefs.length)),
         onClick: () => {
           void navigator.clipboard.writeText(nodeRefs.map(fullRefName).join('\n'));
         },
@@ -391,7 +397,7 @@ function attachContextMenu(
     }
 
     items.push({
-      label: 'Copy full hash',
+      label: t('Copy full hash'),
       onClick: () => {
         void navigator.clipboard.writeText(commitId);
       },
@@ -403,7 +409,7 @@ function attachContextMenu(
     const { first, second } = controller.getState();
     if (first && second && (commitId === first || commitId === second)) {
       items.push({
-        label: `Compare ${first.slice(0, 7)} with ${second.slice(0, 7)}`,
+        label: t('Compare {0} with {1}', first.slice(0, 7), second.slice(0, 7)),
         onClick: () => {
           const message: WebviewToHostMessage = { type: 'compare', from: first, to: second };
           vscode.postMessage(message);
@@ -416,7 +422,7 @@ function attachContextMenu(
     // falling back to a local main/master) rather than the webview needing
     // to know it.
     items.push({
-      label: `Compare ${commitId.slice(0, 7)} with default branch`,
+      label: t('Compare {0} with default branch', commitId.slice(0, 7)),
       onClick: () => {
         const message: WebviewToHostMessage = { type: 'compareWithDefaultBranch', to: commitId };
         vscode.postMessage(message);
@@ -432,7 +438,7 @@ function attachContextMenu(
     const clickedRefType = refRow?.getAttribute('data-ref-type') as RefType | null;
     if (clickedRefName && clickedRefType && isDeletableRefType(clickedRefType)) {
       items.push({
-        label: `Delete ${fullRefName({ name: clickedRefName, type: clickedRefType })}`,
+        label: t('Delete {0}', fullRefName({ name: clickedRefName, type: clickedRefType })),
         onClick: () => {
           const message: WebviewToHostMessage = {
             type: 'deleteRef',
@@ -479,11 +485,11 @@ function buildGraphNodes(commits: GraphCommit[]): GraphNode[] {
 async function createLayoutWorker(): Promise<Worker> {
   const workerUri = window.__LAYOUT_WORKER_URI__;
   if (!workerUri) {
-    throw new Error('layout worker URI was not injected into the webview');
+    throw new Error(t('layout worker URI was not injected into the webview'));
   }
   const response = await fetch(workerUri);
   if (!response.ok) {
-    throw new Error(`failed to fetch layout worker script (HTTP ${response.status})`);
+    throw new Error(t('failed to fetch layout worker script (HTTP {0})', String(response.status)));
   }
   const code = await response.text();
   const blobUrl = URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
@@ -493,11 +499,11 @@ async function createLayoutWorker(): Promise<Worker> {
 async function handleGraphData(commits: GraphCommit[]): Promise<void> {
   if (commits.length === 0) {
     rootEl!.replaceChildren();
-    setStatus('No commits found.');
+    setStatus(t('No commits found.'));
     return;
   }
 
-  setStatus('Computing layout…');
+  setStatus(t('Computing layout…'));
   const nodes = buildGraphNodes(commits);
 
   // dagre's ranking pass recurses to a depth tracking the graph's longest
@@ -507,12 +513,12 @@ async function handleGraphData(commits: GraphCommit[]): Promise<void> {
   // than just failing.
   const fallbackToMainThread = (reason: string) => {
     console.warn(`Git Revision Graph: layout worker failed (${reason}), retrying on the main thread`);
-    setStatus('Computing layout (fallback)…');
+    setStatus(t('Computing layout (fallback)…'));
     try {
       renderAndFocus(computeLayout(nodes));
       setStatus(null);
     } catch (err) {
-      setStatus(`Layout failed: ${(err as Error).message} (reduced nodes: ${nodes.length})`);
+      setStatus(t('Layout failed: {0} (reduced nodes: {1})', (err as Error).message, String(nodes.length)));
     }
   };
 
@@ -545,7 +551,7 @@ window.addEventListener('message', (event: MessageEvent<HostToWebviewMessage>) =
     void handleGraphData(event.data.commits);
   } else if (event.data.type === 'error') {
     rootEl!.replaceChildren();
-    setStatus(`Error: ${event.data.message}`);
+    setStatus(t('Error: {0}', event.data.message));
   }
 });
 
