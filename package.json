@@ -1,0 +1,56 @@
+{
+  "name": "revision-graph",
+  "displayName": "Git Revision Graph",
+  "description": "Visualize the commit DAG (branches, merges, tags) for a Git repository, inspired by TortoiseGit's Revision Graph.",
+  "version": "0.0.1",
+  "publisher": "m-tmatma",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/m-tmatma/revision-graph.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Visualization"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "revisionGraph.show",
+        "title": "Show Revision Graph",
+        "category": "Git Revision Graph",
+        "icon": "$(git-branch)"
+      }
+    ],
+    "menus": {
+      "scm/title": [
+        {
+          "command": "revisionGraph.show",
+          "when": "scmProvider == git",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "node esbuild.js --production",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "esbuild": "^0.20.2",
+    "typescript": "^5.4.5",
+    "vitest": "^1.5.0"
+  },
+  "dependencies": {
+    "@dagrejs/dagre": "^3.1.1"
+  }
+}

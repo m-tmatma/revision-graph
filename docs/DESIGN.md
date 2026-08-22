@@ -117,11 +117,11 @@ TortoiseGitの`RevisionGraphDlgFunc.cpp`のロジックをそのまま移植す�
 
 ## レイアウトアルゴリズム
 
-**elkjs**(Eclipse Layout Kernel のJS版)の`elk.layered`アルゴリズムを採用する。
+**dagre**(`@dagrejs/dagre`、MITライセンス)を採用する。
 
-理由: TortoiseGitはOGDFの`OptimalRanking`(ランク付け)→`MedianHeuristic`(交差最小化)→`FastHierarchyLayout`(座標確定)という層状グラフレイアウトを使っている。elkjsの`layered`アルゴリズムは同じ3段階構成(`nodePlacement`, `crossingMinimization`, `cycleBreaking`など)をオプションで持ち、概念的に最も近い。dagreはより軽量だが層状レイアウトの調整幅が狭く、複雑なマージ構造での見た目の品質がelkjsに劣る場合がある。まずelkjsで実装し、大規模リポジトリでパフォーマンス上の問題が出た場合にdagreへのフォールバックを検討する。
+当初はTortoiseGitのOGDF `OptimalRanking`→`MedianHeuristic`→`FastHierarchyLayout`パイプラインに最も近い**elkjs**(`elk.layered`)を検討したが、elkjsはEPL-2.0ライセンスであり、GPLv2の本プロジェクト([LICENSE](./LICENSE)参照)とはFSFが非互換と明記する組み合わせになる。elkjs側でGPLをSecondary Licenseとして許可する通知(EPL-2.0 Exhibit A)も付与されていないため採用を見送った(詳細は[CLAUDE.md](../CLAUDE.md)のライセンス方針)。dagreも同じ「ランク付け→順序付け→座標確定」という層状(Sugiyama系)レイアウトのパイプラインを持ち、MITライセンスでGPLv2と完全互換のため、これに切り替えた。
 
-Web Worker内で実行し、`postMessage`でメインスレッドに結果(`LaidOutNode[]`, `LaidOutEdge[]`)を返す。ノードサイズは事前にラベル数(ref数)から算出し、elkjsに固定サイズとして渡す(TortoiseGitの`SetNodeRect`と同じ考え方)。
+Web Worker内で実行し、`postMessage`でメインスレッドに結果(`LaidOutNode[]`, `LaidOutEdge[]`)を返す。ノードサイズは事前にラベル数(ref数)から算出し、dagreに固定サイズとして渡す(TortoiseGitの`SetNodeRect`と同じ考え方)。dagreの`layout()`は同期実行だが、Worker内で行うためメインスレッド(描画/操作)はブロックされない。
 
 ## 描画 (SVG)
 
