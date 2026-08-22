@@ -73,6 +73,17 @@ export class PanZoomController {
     };
   }
 
+  /** The raw pan/zoom state, for carrying it over to a new controller (e.g. across a re-render) via `setView`. */
+  getView(): ViewState {
+    return { ...this.view };
+  }
+
+  /** Restores a previously-saved view exactly, no clamping/recentering. */
+  setView(view: ViewState): void {
+    this.view = { ...view };
+    this.apply();
+  }
+
   /** Fires after every pan/zoom change. Returns a function to unsubscribe. */
   onChange(listener: () => void): () => void {
     this.changeListeners.push(listener);
