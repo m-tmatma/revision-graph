@@ -12,6 +12,7 @@ import type {
   LogScopeOptions,
   ReduceOptions,
   RefInfo,
+  RefType,
   WebviewToHostMessage,
 } from '../shared/types';
 import { computeLayout } from './computeLayout';
@@ -164,6 +165,14 @@ function fullRefName(ref: RefInfo): string {
   }
 }
 
+// Deletion isn't offered for 'current-branch' (can't delete the branch
+// you're on), 'head' (not a real ref), 'stash' (needs an index, not a
+// name, to target a specific entry — different operation), or 'other'
+// (too ambiguous what deleting it would even mean).
+function isDeletableRefType(type: RefType): boolean {
+  return type === 'local-branch' || type === 'remote-branch' || type === 'tag';
+}
+
 // Checkout targets the right-clicked node's own local branch if it has
 // one, otherwise the bare commit hash (a detached-HEAD checkout). Omitted
 // entirely if the node IS the current branch already — nothing to do.
@@ -229,6 +238,26 @@ function attachContextMenu(
         label: nodeRefs.length === 1 ? 'Copy ref name' : `Copy ref names (${nodeRefs.length})`,
         onClick: () => {
           void navigator.clipboard.writeText(nodeRefs.map(fullRefName).join('\n'));
+        },
+      });
+    }
+
+    // Only offered when the click landed on a specific ref chip (unlike
+    // "Copy ref name(s)" above, deleting is inherently ref-specific — you
+    // wouldn't want deleting one ref on a node to also delete the others).
+    const refRow = target.closest?.('[data-ref-name]') as SVGGElement | null;
+    const clickedRefName = refRow?.getAttribute('data-ref-name');
+    const clickedRefType = refRow?.getAttribute('data-ref-type') as RefType | null;
+    if (clickedRefName && clickedRefType && isDeletableRefType(clickedRefType)) {
+      items.push({
+        label: `Delete ${fullRefName({ name: clickedRefName, type: clickedRefType })}`,
+        onClick: () => {
+          const message: WebviewToHostMessage = {
+            type: 'deleteRef',
+            refType: clickedRefType,
+            refName: clickedRefName,
+          };
+          vscode.postMessage(message);
         },
       });
     }

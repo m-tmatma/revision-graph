@@ -49,7 +49,8 @@ export type WebviewToHostMessage =
   | { type: 'error'; message: string }
   | { type: 'setFilter'; scope: LogScopeOptions; reduce: ReduceOptions }
   | { type: 'compare'; from: string; to: string }
-  | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string };
+  | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string }
+  | { type: 'deleteRef'; refType: RefType; refName: string };
 
 /** Node shape handed to the layout engine, after size measurement. */
 export interface GraphNode {
