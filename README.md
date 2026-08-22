@@ -50,8 +50,9 @@ This produces `vscode-git-revision-graph-<version>.vsix` in the project root.
 
 1. Open a folder that's a Git repository.
 2. Run the **"Show Revision Graph"** command from the Command Palette
-   (`Ctrl+Shift+P` / `Cmd+Shift+P`), or click the branch icon in the Source
-   Control view's title bar.
+   (`Ctrl+Shift+P` / `Cmd+Shift+P`), click the branch icon in the Source
+   Control view's title bar, or click the graph icon in the Activity Bar
+   and press **Show Revision Graph** there.
 3. The commit graph opens in a new tab as an SVG, scrolled/zoomed to the
    current branch (shown in red — the checked-out branch itself, not a
    separate "HEAD" label).

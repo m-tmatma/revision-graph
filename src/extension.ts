@@ -67,6 +67,13 @@ export function activate(context: vscode.ExtensionContext): void {
         return readFileAtRevision(cwd, uri.authority, path);
       },
     }),
+    // Never has any actual items — its only purpose is to make the
+    // Activity Bar container's view register as "empty", so VS Code shows
+    // the viewsWelcome content (a "Show Revision Graph" button) instead.
+    vscode.window.registerTreeDataProvider<never>('revisionGraph.welcomeView', {
+      getChildren: () => [],
+      getTreeItem: (element) => element,
+    }),
   );
 }
 
