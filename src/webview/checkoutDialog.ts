@@ -16,6 +16,7 @@ const trackEl = document.getElementById('track') as HTMLInputElement | null;
 const overwriteExistingEl = document.getElementById('overwrite-existing') as HTMLInputElement | null;
 const forceEl = document.getElementById('force') as HTMLInputElement | null;
 const mergeEl = document.getElementById('merge') as HTMLInputElement | null;
+const updateSubmodulesEl = document.getElementById('update-submodules') as HTMLInputElement | null;
 const okButton = document.getElementById('ok-button') as HTMLButtonElement | null;
 const cancelButton = document.getElementById('cancel-button') as HTMLButtonElement | null;
 
@@ -27,6 +28,7 @@ if (
   !overwriteExistingEl ||
   !forceEl ||
   !mergeEl ||
+  !updateSubmodulesEl ||
   !okButton ||
   !cancelButton
 ) {
@@ -50,6 +52,7 @@ okButton.addEventListener('click', () => {
     overwriteExisting: overwriteExistingEl.checked,
     force: forceEl.checked,
     merge: mergeEl.checked,
+    updateSubmodules: updateSubmodulesEl.checked,
   };
 
   if (options.createBranch && !options.newBranchName) {

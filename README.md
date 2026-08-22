@@ -75,7 +75,8 @@ This produces `revision-graph-<version>.vsix` in the project root.
 - Right-click a node for **Copy full hash**, and, unless it's already the
   current branch, **Checkout** — opens a "Switch / Checkout" panel (target
   branch/tag/commit is fixed to whatever you clicked; create a new branch,
-  track, force, or merge local changes, TortoiseGit-style). With two nodes
+  track, force, merge local changes, or update submodules,
+  TortoiseGit-style). With two nodes
   selected, right-clicking either of them also offers **Compare**, which
   opens a "Changed Files" panel (added/deleted line counts per file); click
   a file there to view its diff in VSCode's native diff editor.
