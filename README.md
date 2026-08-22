@@ -71,7 +71,9 @@ This produces `revision-graph-<version>.vsix` in the project root.
   cursor.
 - Hover a node for its full hash, author, date, and commit message.
 - Click a node to select it; Ctrl (Cmd on macOS) + click a second node to
-  select it too, for comparing (not wired up to an action yet).
+  select it too. Right-click either of the two selected nodes → **Compare**
+  to open a "Changed Files" panel (added/deleted line counts per file);
+  click a file there to view its diff in VSCode's native diff editor.
 
 ## Development
 

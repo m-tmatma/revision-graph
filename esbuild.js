@@ -8,12 +8,11 @@ const path = require('path');
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
-function copyPanelHtml() {
+function copyHtmlTemplates() {
   fs.mkdirSync(path.join(__dirname, 'dist', 'webview'), { recursive: true });
-  fs.copyFileSync(
-    path.join(__dirname, 'src', 'webview', 'panel.html'),
-    path.join(__dirname, 'dist', 'webview', 'panel.html'),
-  );
+  for (const name of ['panel.html', 'comparePanel.html']) {
+    fs.copyFileSync(path.join(__dirname, 'src', 'webview', name), path.join(__dirname, 'dist', 'webview', name));
+  }
 }
 
 /** @type {import('esbuild').BuildOptions} */
@@ -53,9 +52,21 @@ const layoutWorkerConfig = {
   minify: production,
 };
 
+/** @type {import('esbuild').BuildOptions} */
+const compareConfig = {
+  entryPoints: ['src/webview/compare.ts'],
+  bundle: true,
+  outfile: 'dist/webview/compare.js',
+  platform: 'browser',
+  format: 'iife',
+  target: 'es2022',
+  sourcemap: !production,
+  minify: production,
+};
+
 async function main() {
-  const configs = [extensionConfig, webviewMainConfig, layoutWorkerConfig];
-  copyPanelHtml();
+  const configs = [extensionConfig, webviewMainConfig, layoutWorkerConfig, compareConfig];
+  copyHtmlTemplates();
 
   if (watch) {
     const contexts = await Promise.all(configs.map((cfg) => esbuild.context(cfg)));
