@@ -17,6 +17,7 @@
   "Git Revision Graph: submodule update failed ({0})": "Git Revision Graph: サブモジュールの更新に失敗しました ({0})",
   "Delete": "削除",
   "Delete {0}? This cannot be undone.": "{0} を削除しますか?元に戻せません。",
+  "This branch is not yet fully merged into HEAD.": "このブランチはまだ完全にHEADにマージされていません。",
   "Git Revision Graph: deleted {0}": "Git Revision Graph: {0} を削除しました",
   "Git Revision Graph: delete failed ({0})": "Git Revision Graph: 削除に失敗しました ({0})",
   "git {0} failed (exit {1}): {2}": "git {0} が失敗しました (終了コード {1}): {2}",

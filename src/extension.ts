@@ -14,6 +14,7 @@ import {
   diffFileChanges,
   getCommitSummary,
   getDefaultBranchRef,
+  isBranchMerged,
   listCheckoutCandidates,
   readFileAtRevision,
   updateSubmodules,
@@ -325,17 +326,26 @@ async function handleDeleteRef(
   refName: string,
   refreshGraph: () => Promise<void>,
 ): Promise<void> {
+  // Matches TortoiseGit's own confirmation: it checks whether the branch is
+  // fully merged into HEAD *before* asking, and folds an extra warning into
+  // the same dialog when it isn't, rather than attempting a safe delete and
+  // reacting to git's refusal.
+  let message = vscode.l10n.t('Delete {0}? This cannot be undone.', refName);
+  let isUnmergedLocalBranch = false;
+  if (refType === 'local-branch' || refType === 'current-branch') {
+    isUnmergedLocalBranch = !(await isBranchMerged(cwd, refName));
+    if (isUnmergedLocalBranch) {
+      message += '\n\n' + vscode.l10n.t('This branch is not yet fully merged into HEAD.');
+    }
+  }
+
   const deleteActionLabel = vscode.l10n.t('Delete');
-  const confirmed = await vscode.window.showWarningMessage(
-    vscode.l10n.t('Delete {0}? This cannot be undone.', refName),
-    { modal: true },
-    deleteActionLabel,
-  );
+  const confirmed = await vscode.window.showWarningMessage(message, { modal: true }, deleteActionLabel);
   if (confirmed !== deleteActionLabel) return;
 
   try {
     if (refType === 'local-branch' || refType === 'current-branch') {
-      await deleteLocalBranch(cwd, refName);
+      await deleteLocalBranch(cwd, refName, isUnmergedLocalBranch);
     } else if (refType === 'tag') {
       await deleteTag(cwd, refName);
     } else if (refType === 'remote-branch') {

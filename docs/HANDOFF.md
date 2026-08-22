@@ -497,6 +497,26 @@ the whole milestone, per the user's explicit request ("M3 は要素ずつ PR 分
   `extension.ts`/`gitActions.ts`; only the webview's menu no longer offers
   them.
 
+  **Update, post-M4 (again)**: deleting a local branch not yet merged
+  into HEAD used to just fail — `deleteLocalBranch` always ran the safe
+  `git branch -d`, which git itself refuses in that case, surfacing as a
+  plain "delete failed" error with no way to proceed. Read TortoiseGit's
+  actual source (`BrowseRefsDlg.cpp`'s `ConfirmDeleteRef`) to see how it
+  handles the same situation: not a try-the-safe-delete-and-react-to-the-
+  refusal flow, but a merge check *before* asking
+  (`CGit::IsFastForward`-equivalent), with an extra warning line folded
+  into the same confirmation dialog when the branch isn't merged — no
+  second dialog, no retry. `gitActions.ts`'s new `isBranchMerged(cwd, ref,
+  into = 'HEAD')` runs `git merge-base --is-ancestor` for this (exit code
+  1 is that command's normal way of saying "no", not a failure — only
+  other exit codes reject). `handleDeleteRef` checks it for
+  `local-branch`/`current-branch` before building the confirmation
+  message, appends the warning when unmerged, and passes that same
+  boolean straight through to `deleteLocalBranch`'s new `force` parameter
+  (`git branch -D` instead of `-d`) — so a merged branch still gets the
+  safe delete, and an unmerged one only gets forced after the user saw
+  the warning and confirmed anyway.
+
 **M3 is now fully done**: pan/zoom, node selection, tooltips, and the full
 context menu (checkout, copy hash, copy ref name(s), compare, delete ref).
 Next up per DESIGN.md: **M4** (minimap, SVG/PNG export, automatic refresh
