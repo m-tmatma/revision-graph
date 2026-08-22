@@ -49,11 +49,29 @@ export function computeLayout(nodes: GraphNode[]): LaidOutGraph {
     };
   });
 
-  const graphLabel = g.graph();
+  // dagre's own graph.width/height only account for node extents; edges
+  // routed around other nodes to avoid crossings can extend past that,
+  // which would otherwise get clipped by the SVG viewBox (see graphRenderer.ts).
+  let maxX = 0;
+  let maxY = 0;
+  for (const node of laidOutNodes) {
+    maxX = Math.max(maxX, node.x + node.width);
+    maxY = Math.max(maxY, node.y + node.height);
+  }
+  for (const edge of laidOutEdges) {
+    for (const point of edge.bendPoints) {
+      maxX = Math.max(maxX, point.x);
+      maxY = Math.max(maxY, point.y);
+    }
+  }
+
+  // A little extra margin so the arrowhead marker at an edge's endpoint
+  // (drawn a few px past the point itself) never gets clipped either.
+  const margin = 8;
   return {
     nodes: laidOutNodes,
     edges: laidOutEdges,
-    width: graphLabel.width ?? 0,
-    height: graphLabel.height ?? 0,
+    width: maxX + margin,
+    height: maxY + margin,
   };
 }

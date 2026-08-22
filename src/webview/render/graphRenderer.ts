@@ -20,6 +20,10 @@ export function renderGraph(container: HTMLElement, graph: LaidOutGraph): void {
   svg.setAttribute('width', String(graph.width));
   svg.setAttribute('height', String(graph.height));
   svg.setAttribute('viewBox', `0 0 ${graph.width} ${graph.height}`);
+  // Defense in depth: computeLayout's width/height already cover every node
+  // and edge point, but SVG clips overflow by default, and a clipped edge
+  // silently looks like a rendering bug rather than an error.
+  svg.style.overflow = 'visible';
 
   const defs = createSvgElement('defs');
   defs.appendChild(buildArrowMarker());

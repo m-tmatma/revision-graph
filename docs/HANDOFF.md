@@ -111,14 +111,14 @@ Key findings that motivated the design:
 Full architecture, data model, milestones, and file layout: see
 [docs/DESIGN.md](./DESIGN.md) (already committed to `master`).
 
-## Current file state (on `feature/m1-core-graph`)
+## M1 status: done, merged to `master`
 
-`LICENSE` is committed on this branch (`ce02bde`). Everything else below is
-present in the working tree but **not yet committed**. M1 ("core display":
-git log fetch → DAG build → dagre layout → static SVG render, no pan/zoom
-yet) is functionally complete and passing its own build/typecheck/test, but
-has **not yet been sanity-checked end-to-end in a real Extension Development
-Host window** — see "Immediate next steps".
+M1 ("core display": git log fetch → DAG build → dagre layout → static SVG
+render, no pan/zoom yet) is merged (PR #1) and was manually verified against
+the TortoiseGit repo itself (`--all`, 12,102 commits → 1,024 after
+reduction). Also merged since: `.github/workflows/ci.yml` (typecheck/test/
+build/vsix-package on every push and PR, PR #2) and a root `README.md`
+(PR #3). File listing below is retained as an architecture reference.
 
 - `package.json` — extension manifest; command `revisionGraph.show`, SCM title
   menu entry, deps: `@dagrejs/dagre` (runtime), `esbuild`/`typescript`/
@@ -155,31 +155,54 @@ Host window** — see "Immediate next steps".
 - `src/extension.ts` — `activate()` registers `revisionGraph.show`; the
   command creates a `WebviewPanel` (nonce-based CSP), reads
   `dist/webview/panel.html`, fills in the placeholders (including
-  `webview.asWebviewUri` for `main.js` and `layoutWorker.js`), waits for a
-  `{type:'ready'}` message from the webview, then calls `fetchCommits` (scope
-  `all-branches`, hardcoded default for M1 — filter UI is M2) → `reduceDag`
-  → posts `{type:'graphData', commits}`.
-- `src/webview/panel.html` — the template described above.
-- `src/webview/main.ts` — on load, posts `{type:'ready'}`; on receiving
+  `webview.asWebviewUri` for `main.js` and `layoutWorker.js`), then holds
+  per-panel `scope`/`reduce` state (defaults: `all-branches`,
+  `{collapseStraightRuns: true, showAllTags: false}`). On `{type:'ready'}`
+  or `{type:'setFilter', scope, reduce}` from the webview, updates that
+  state and re-runs `fetchCommits` → `reduceDag` → posts
+  `{type:'graphData', commits}` (or `{type:'error', message}` on failure). A
+  `requestGeneration` counter discards stale results if a newer filter
+  change was applied before an in-flight `git log` resolved.
+- `src/webview/panel.html` — the template described above. Also holds the M2
+  filter toolbar: a `#scope-select` (`all-branches`/`local-branches`/
+  `current-branch`/`range`), `#range-inputs` (From/To text fields, hidden
+  unless scope is `range`), `#collapse-toggle`/`#show-tags-toggle`
+  checkboxes, and a `#refresh-button`. `<main>` is a column flexbox so the
+  toolbar stays fixed while `#graph-scroll` (wrapping status+root) scrolls
+  independently.
+- `src/webview/main.ts` — on load, posts `{type:'ready'}`. The toolbar
+  controls call `applyFilter()` on change (select/checkboxes: immediately;
+  the From/To text inputs: on blur or Enter, not on every keystroke) to post
+  `{type:'setFilter', scope, reduce}` built from the current control values
+  (`toRef` defaults to `'HEAD'` when the To field is empty). On receiving
   `graphData`, measures each node's size via `canvas.measureText` (one row
   per ref label, or the short hash if the commit has no refs — see
   `render/layoutConstants.ts` for the shared row-height/padding constants),
   then hands the sized `GraphNode[]` to the layout worker and renders the
-  `LaidOutGraph` result via `renderGraph`. Loads the worker by **fetching its
-  script and constructing a `blob:` URL**, not `new Worker(asWebviewUri(...))`
-  directly — the latter fails silently in VSCode's webview sandbox. If the
-  worker errors (e.g. `RangeError: Maximum call stack size exceeded` — seen
-  on TortoiseGit's own ~1000-node-after-reduction, ~1085-rank-deep history;
-  dagre's ranking pass recurses to a depth tracking the graph's longest
-  chain, and a Worker's stack is smaller than the main thread's), falls back
-  to calling `computeLayout` directly on the main thread (blocking, but with
-  a larger stack) rather than just failing.
+  `LaidOutGraph` result via `renderGraph`. On receiving `{type:'error'}`,
+  clears the graph and shows the message in `#graph-status` instead of
+  hanging. Loads the worker by **fetching its script and constructing a
+  `blob:` URL**, not `new Worker(asWebviewUri(...))` directly — the latter
+  fails silently in VSCode's webview sandbox. If the worker errors (e.g.
+  `RangeError: Maximum call stack size exceeded` — seen on TortoiseGit's own
+  ~1000-node-after-reduction, ~1085-rank-deep history; dagre's ranking pass
+  recurses to a depth tracking the graph's longest chain, and a Worker's
+  stack is smaller than the main thread's), falls back to calling
+  `computeLayout` directly on the main thread (blocking, but with a larger
+  stack) rather than just failing.
 - `src/webview/computeLayout.ts` — the actual dagre call, pulled out so both
   `layoutWorker.ts` and `main.ts` can call it. Builds a
   `dagre.graphlib.Graph` (`rankdir: 'TB'`) with an edge per commit→parent
   link (so newer commits rank above their ancestors), calls `dagre.layout(g)`
   synchronously, converts dagre's center-based node coordinates to the
-  top-left convention `LaidOutNode` uses.
+  top-left convention `LaidOutNode` uses. Computes `width`/`height` itself
+  from the actual max extent of every node **and every edge bend point**,
+  rather than trusting dagre's own `graph.width`/`height` — those only
+  account for node extents, so an edge routed around another node to avoid
+  a crossing could extend past them, and the SVG viewBox (sized from
+  `width`/`height`) would silently clip it, making the edge look cut off.
+  Found via a real repro: a merge commit's second parent edge detour past
+  `graph.width` in exactly this way (see PR #4).
 - `src/webview/layoutWorker.ts` — calls `computeLayout` inside the Web
   Worker and posts back `{type:'result', graph: LaidOutGraph}` (or
   `{type:'error', message}`).
@@ -196,24 +219,33 @@ Host window** — see "Immediate next steps".
 - `test/dagReducer.test.ts`, `test/logReader.test.ts` — vitest, synthetic
   commit data, no real git repo needed. 27 tests, all passing.
 
-## Immediate next steps (not yet done)
+## M2 status: done, manually verified, not yet committed
 
-1. ~~Manually sanity-check M1 end-to-end~~ — **done**. Verified against the
-   TortoiseGit repo itself (`--all`, 12,102 commits → 1,024 after
-   reduction) via `F5`; the graph renders correctly. Two real bugs were
-   found and fixed along the way (both described above): the direct
-   `new Worker(asWebviewUri(...))` webview issue, and the worker-stack-depth
-   overflow on TortoiseGit's very deep history (now has a main-thread
-   fallback).
-2. Commit the current working-tree state (everything listed above except
-   `LICENSE`, which is already committed on this branch), push
-   `feature/m1-core-graph`, open a PR against `master`.
+M2 (filter UI: scope select, straight-line elision toggle, show-all-tags
+toggle, From..To range) is implemented per the file listing above and was
+manually verified end-to-end in a real Extension Development Host, including
+a real bug found and fixed along the way: dagre's `graph.width`/`height`
+don't include edges that route around other nodes to avoid crossings, so the
+SVG viewBox (sized from those) clipped such edges, making lines look cut
+off. Fixed in `computeLayout.ts` by computing the bounding box from actual
+node/edge coordinates instead (see the file listing above).
 
-## Milestones after M1 (per DESIGN.md, each its own sequential PR)
+**Test/demo repo**: https://github.com/m-tmatma/revision-graph-test — a
+small synthetic repo (branches, a merge, tags, an unreached branch, a
+remote-only branch) built specifically so every scope/toggle combination
+visibly changes the rendered graph, with expected node counts documented in
+its own README. Useful for regression-checking M2 (and later M3/M4)
+features by hand, since a real repo's filter differences are often too
+subtle to eyeball.
 
-- **M2**: filter dialog (all-branches / local-branches / current-branch /
-  from-to range), straight-line elision toggle, "show all tags" toggle.
-- **M3**: pan/zoom, 2-node selection for compare, context menu (checkout,
-  delete ref, copy hash, compare), tooltips.
+**Not yet done**: commit the current working-tree state (`src/extension.ts`,
+`src/shared/types.ts`, `src/webview/computeLayout.ts`, `src/webview/main.ts`,
+`src/webview/panel.html`, `src/webview/render/graphRenderer.ts`), push a
+branch, open a PR against `master`, update this section once merged.
+
+## Milestones after M2 (per DESIGN.md, each its own sequential PR)
+
+- **M3** (next): pan/zoom, 2-node selection for compare, context menu
+  (checkout, delete ref, copy hash, compare), tooltips.
 - **M4**: minimap, SVG/PNG export, automatic refresh on repo change (via the
   `vscode.git` extension API's `Repository.state.onDidChange`).
