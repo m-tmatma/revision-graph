@@ -67,15 +67,16 @@
     }
     #graph-scroll {
       flex: 1 1 auto;
-      overflow: auto;
+      overflow: hidden;
+      position: relative;
     }
     #graph-status {
       padding: 12px;
       opacity: 0.7;
     }
     #graph-root {
-      width: max-content;
-      min-width: 100%;
+      position: absolute;
+      inset: 0;
     }
     .visually-hidden {
       position: absolute;

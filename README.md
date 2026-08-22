@@ -6,11 +6,16 @@ merges, tags) as an SVG graph, inspired by [TortoiseGit](https://gitlab.com/tort
 
 ## Status
 
-Early development. Milestone 1 ("core display") is implemented: fetch the
-commit history, collapse non-branching straight runs, lay out the DAG, and
-render it as SVG. Filtering, pan/zoom, node selection/comparison, and export
-are planned but not yet built — see [docs/DESIGN.md](docs/DESIGN.md) for the
-full roadmap.
+Early development. Implemented so far:
+
+- Core display: fetch the commit history, collapse non-branching straight
+  runs, lay out the DAG, render it as SVG (Milestone 1)
+- Filtering (scope, straight-run collapsing, tag visibility) and pan/zoom
+  (Milestone 2, and part of Milestone 3)
+
+Node selection/comparison, a right-click context menu (checkout, delete
+ref, copy hash, compare), tooltips, a minimap, and export are planned but
+not yet built — see [docs/DESIGN.md](docs/DESIGN.md) for the full roadmap.
 
 ## Installation
 
@@ -43,7 +48,27 @@ This produces `revision-graph-<version>.vsix` in the project root.
 2. Run the **"Show Revision Graph"** command from the Command Palette
    (`Ctrl+Shift+P` / `Cmd+Shift+P`), or click the branch icon in the Source
    Control view's title bar.
-3. The commit graph opens in a new tab as an SVG.
+3. The commit graph opens in a new tab as an SVG, scrolled/zoomed to the
+   current branch (shown in red — the checked-out branch itself, not a
+   separate "HEAD" label).
+
+**Toolbar**, along the top of the panel:
+
+- **Scope**: All branches / Local branches / Current branch / From..To
+  range. For a range, leave **To** blank for `HEAD`, and **From** blank to
+  go from the very start of history.
+- **Collapse straight runs**: hides commits that are neither a branch/merge
+  point nor referenced by any branch/tag (on by default).
+- **Show all tags**: when off, a tag alone doesn't stop a commit from being
+  collapsed by the toggle above; when on, every tagged commit is kept.
+- **Refresh**: re-applies the current settings (mainly useful after typing
+  into From/To, which otherwise apply on blur/Enter).
+
+**Navigating the graph**:
+
+- Drag to pan.
+- Mouse wheel to pan, Ctrl (Cmd on macOS) + wheel to zoom, centered on the
+  cursor.
 
 ## Development
 

@@ -1,6 +1,7 @@
 // Webview entry point: requests commit data from the extension host,
 // measures node sizes, delegates layout to the Web Worker, and renders the
-// resulting graph as SVG. No pan/zoom or interaction yet (M3 scope).
+// resulting graph as SVG with pan/zoom. Node selection, context menu, and
+// tooltips are not yet implemented (remaining M3 scope).
 
 import type {
   GraphCommit,
@@ -14,6 +15,7 @@ import type {
 import { computeLayout } from './computeLayout';
 import { renderGraph } from './render/graphRenderer';
 import { NODE_MIN_WIDTH, NODE_PADDING_X, NODE_PADDING_Y, NODE_ROW_HEIGHT } from './render/layoutConstants';
+import { PanZoomController } from './render/panZoom';
 
 declare function acquireVsCodeApi(): { postMessage(message: WebviewToHostMessage): void };
 declare global {
@@ -96,19 +98,31 @@ for (const input of [toolbar.rangeFrom, toolbar.rangeTo]) {
   });
 }
 
-// Ensures the current branch is findable at a glance even in a graph large
-// enough that HEAD isn't already in view (e.g. it's off the initial scroll
-// position, or a filter change moved it). Runs after every (re)render.
-function scrollToHead(graph: LaidOutGraph): void {
+// Renders the graph, attaches pan/zoom to the freshly created SVG (each
+// render replaces it, so the controller can't be reused across renders —
+// the old one is destroyed first, since its window-level listeners would
+// otherwise keep fighting over an SVG that's no longer in the DOM), and
+// centers the viewport on the current branch — findable at a glance even in
+// a graph large enough that HEAD wouldn't otherwise be in view (e.g. after
+// a filter change moves it). Falls back to centering the whole graph if no
+// commit in the current view carries HEAD/current-branch.
+let panZoomController: PanZoomController | null = null;
+
+function renderAndFocus(graph: LaidOutGraph): void {
+  const svg = renderGraph(rootEl!, graph);
   if (!graphScrollEl) return;
+
+  panZoomController?.destroy();
+  const controller = new PanZoomController(graphScrollEl, svg);
+  panZoomController = controller;
   const headNode = graph.nodes.find((node) =>
     node.refs.some((ref) => ref.type === 'head' || ref.type === 'current-branch'),
   );
-  if (!headNode) return;
-
-  const targetLeft = headNode.x + headNode.width / 2 - graphScrollEl.clientWidth / 2;
-  const targetTop = headNode.y + headNode.height / 2 - graphScrollEl.clientHeight / 2;
-  graphScrollEl.scrollTo({ left: Math.max(0, targetLeft), top: Math.max(0, targetTop), behavior: 'instant' });
+  if (headNode) {
+    controller.centerOn(headNode.x + headNode.width / 2, headNode.y + headNode.height / 2);
+  } else {
+    controller.centerOn(graph.width / 2, graph.height / 2);
+  }
 }
 
 function buildGraphNodes(commits: GraphCommit[]): GraphNode[] {
@@ -162,9 +176,7 @@ async function handleGraphData(commits: GraphCommit[]): Promise<void> {
     console.warn(`Git Revision Graph: layout worker failed (${reason}), retrying on the main thread`);
     setStatus('Computing layout (fallback)…');
     try {
-      const graph = computeLayout(nodes);
-      renderGraph(rootEl!, graph);
-      scrollToHead(graph);
+      renderAndFocus(computeLayout(nodes));
       setStatus(null);
     } catch (err) {
       setStatus(`Layout failed: ${(err as Error).message}`);
@@ -183,8 +195,7 @@ async function handleGraphData(commits: GraphCommit[]): Promise<void> {
       worker.terminate();
       if (event.data.type === 'result') {
         setStatus(null);
-        renderGraph(rootEl!, event.data.graph);
-        scrollToHead(event.data.graph);
+        renderAndFocus(event.data.graph);
       } else {
         fallbackToMainThread(event.data.message);
       }

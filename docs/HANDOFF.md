@@ -245,23 +245,50 @@ branch, open a PR against `master`, update this section once merged.
 
 ## M3 status: in progress
 
-Two M3 slices landed ahead of the rest (small, self-contained, shipped as
-their own PR rather than blocking on pan/zoom/selection/context menu):
+M3 slices are landing as separate, self-contained PRs rather than one PR for
+the whole milestone, per the user's explicit request ("M3 は要素ずつ PR 分けて"):
 
-- **Scroll to current branch**: on every (re)render, `main.ts`'s
-  `scrollToHead` finds the node carrying a `head` or `current-branch` ref
-  and scrolls `#graph-scroll` to center it, so HEAD is never lost off-screen
-  in a large graph.
-- **Current-branch highlighting**: `logReader.ts`'s `fetchRefs` now resolves
-  the checked-out branch name (`git symbolic-ref --short -q HEAD`) and
-  labels that branch's own ref `current-branch` (pure red, `#ff0000` in
+- **Scroll to current branch / current-branch highlighting** (shipped
+  first, superseded by pan/zoom below): `logReader.ts`'s `fetchRefs`
+  resolves the checked-out branch name (`git symbolic-ref --short -q HEAD`)
+  and labels that branch's own ref `current-branch` (pure red, `#ff0000` in
   `colors.ts`) instead of adding a separate literal "HEAD" chip next to it —
   matches TortoiseGit's own convention (the user pointed at a real
   TortoiseGit screenshot showing the checked-out branch itself in red, not a
   separate HEAD label). The literal `head`/"HEAD" ref type still exists as a
   fallback for detached-HEAD state, where there's no branch to highlight.
+- **Pan/zoom** (`src/webview/render/panZoom.ts`, `PanZoomController`):
+  replaced the native `overflow: auto` scrolling from M1/M2 with a
+  hand-rolled SVG `viewBox`-based pan/zoom, per DESIGN.md. Drag pans; plain
+  wheel also pans; Ctrl/Cmd+wheel zooms centered on the cursor
+  (`MIN_SCALE`/`MAX_SCALE` 0.05–8). `graphRenderer.ts`'s `renderGraph` no
+  longer sizes the SVG to the graph's content (`width`/`height` are now
+  `100%`, filling `#graph-scroll`) — `panZoom.ts` owns the viewBox instead.
+  `#graph-scroll` changed from `overflow: auto` to `overflow: hidden;
+  position: relative`, and `#graph-root` is now absolutely positioned
+  (`inset: 0`) so it isn't pushed around by `#graph-status`'s flow height.
+  `main.ts`'s old scroll-based `scrollToHead` became `renderAndFocus`,
+  which creates a `PanZoomController` per render and calls
+  `controller.centerOn(...)` on the current-branch node (or the graph's
+  center, if none is in view) instead of `scrollTo`.
 
-**Remaining M3 scope**: pan/zoom, 2-node selection for compare, context menu
+  Two real bugs surfaced during manual verification and are fixed in the
+  same PR:
+  - Dragging was janky (smooth via wheel, not via drag): `pointermove`
+    fires far more often than the browser can repaint a large SVG, and the
+    original code wrote the `viewBox` synchronously on every event.
+    Batched into at most one update per `requestAnimationFrame`.
+  - Dragging stopped responding entirely after the *first* drag gesture:
+    traced to `container.setPointerCapture()` — unreliable specifically
+    inside VSCode's webview. Replaced with `window`-level
+    `pointermove`/`pointerup` listeners (no capture needed; a plain flag
+    tracks whether a drag is in progress). While in there, also added a
+    `destroy()` method and had `renderAndFocus` call it on the *previous*
+    controller before creating a new one — every re-render was otherwise
+    leaving a full set of window-level listeners behind, fighting over an
+    SVG no longer even in the DOM.
+
+**Remaining M3 scope**: 2-node selection for compare, context menu
 (checkout, delete ref, copy hash, compare), tooltips.
 
 ## M4 (after M3)
