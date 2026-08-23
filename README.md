@@ -6,7 +6,7 @@ merges, tags) as an SVG graph, inspired by [TortoiseGit](https://gitlab.com/tort
 
 The UI follows VS Code's own display language setting automatically —
 Japanese, Simplified Chinese, Spanish, Brazilian Portuguese, Russian,
-Korean, and French are included today.
+Korean, French, and German are included today.
 
 ![Comparing two revisions in the graph](diff.gif)
 
