@@ -515,6 +515,17 @@ function attachContextMenu(
           vscode.postMessage(message);
         },
       });
+      // Same rationale as "Compare with default branch" above, just against
+      // HEAD (whatever's currently checked out, branch or detached) instead
+      // of the repo's default branch — the extension host passes 'HEAD'
+      // straight to git rather than the webview needing to resolve it.
+      items.push({
+        label: t('Compare with current branch'),
+        onClick: () => {
+          const message: WebviewToHostMessage = { type: 'compareWithCurrentBranch', to: commitId };
+          vscode.postMessage(message);
+        },
+      });
     }
 
     // Same ref-chip targeting as "Delete" below — renaming is ref-specific
