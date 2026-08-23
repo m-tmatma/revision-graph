@@ -5,16 +5,37 @@
 const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
 function copyHtmlTemplates() {
   fs.mkdirSync(path.join(__dirname, 'dist', 'webview'), { recursive: true });
-  for (const name of ['panel.html', 'comparePanel.html', 'checkoutDialog.html']) {
+  for (const name of ['panel.html', 'comparePanel.html', 'checkoutDialog.html', 'welcomeView.html']) {
     fs.copyFileSync(path.join(__dirname, 'src', 'webview', name), path.join(__dirname, 'dist', 'webview', name));
   }
 }
+
+// Baked into the extension bundle as __BUILD_COMMIT__ (see extension.ts) so
+// the Activity Bar welcome view can show which exact commit is running —
+// the point being to tell a stale Extension Development Host or installed
+// build apart from a fresh one at a glance, which a package.json version
+// number alone (bumped only at release time) can't do.
+function getCommitHash() {
+  try {
+    return execSync('git rev-parse --short HEAD', { cwd: __dirname }).toString().trim();
+  } catch {
+    return 'unknown';
+  }
+}
+
+// GITHUB_RUN_NUMBER is only set when this build runs inside a GitHub Actions
+// workflow (see .github/workflows/ci.yml, which already names its vsix
+// artifact `...-build${{ github.run_number }}`) — empty for every local
+// build (F5, npm run build/package), so the welcome view only shows a build
+// number when one's actually meaningful.
+const buildNumber = process.env.GITHUB_RUN_NUMBER ?? '';
 
 /** @type {import('esbuild').BuildOptions} */
 const extensionConfig = {
@@ -27,6 +48,10 @@ const extensionConfig = {
   external: ['vscode'],
   sourcemap: !production,
   minify: production,
+  define: {
+    __BUILD_COMMIT__: JSON.stringify(getCommitHash()),
+    __BUILD_NUMBER__: JSON.stringify(buildNumber),
+  },
 };
 
 /** @type {import('esbuild').BuildOptions} */
@@ -77,8 +102,27 @@ const checkoutDialogConfig = {
   minify: production,
 };
 
+/** @type {import('esbuild').BuildOptions} */
+const welcomeViewConfig = {
+  entryPoints: ['src/webview/welcomeView.ts'],
+  bundle: true,
+  outfile: 'dist/webview/welcomeView.js',
+  platform: 'browser',
+  format: 'iife',
+  target: 'es2022',
+  sourcemap: !production,
+  minify: production,
+};
+
 async function main() {
-  const configs = [extensionConfig, webviewMainConfig, layoutWorkerConfig, compareConfig, checkoutDialogConfig];
+  const configs = [
+    extensionConfig,
+    webviewMainConfig,
+    layoutWorkerConfig,
+    compareConfig,
+    checkoutDialogConfig,
+    welcomeViewConfig,
+  ];
   copyHtmlTemplates();
 
   if (watch) {

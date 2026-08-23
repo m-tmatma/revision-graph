@@ -62,16 +62,11 @@
       "revisionGraph": [
         {
           "id": "revisionGraph.welcomeView",
-          "name": "Git Revision Graph"
+          "name": "Git Revision Graph",
+          "type": "webview"
         }
       ]
-    },
-    "viewsWelcome": [
-      {
-        "view": "revisionGraph.welcomeView",
-        "contents": "%viewsWelcome.contents%"
-      }
-    ]
+    }
   },
   "scripts": {
     "build": "node esbuild.js",

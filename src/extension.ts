@@ -34,7 +34,16 @@ import type {
   RefType,
   ReduceOptions,
   WebviewToHostMessage,
+  WelcomeWebviewToHostMessage,
 } from './shared/types';
+
+// Injected by esbuild.js's `define` at build time (`git rev-parse --short
+// HEAD` at build time, not activation time — a packaged extension's
+// installed files aren't a git checkout, so this can't be read at runtime).
+declare const __BUILD_COMMIT__: string;
+// Also injected by esbuild.js's `define` — GITHUB_RUN_NUMBER at build time,
+// so only non-empty for a CI-built package (see .github/workflows/ci.yml).
+declare const __BUILD_NUMBER__: string;
 
 const DEFAULT_SCOPE: LogScopeOptions = { scope: 'all-branches' };
 const DEFAULT_REDUCE_OPTIONS: ReduceOptions = { showAllTags: false, simplifyByDecoration: false };
@@ -68,14 +77,41 @@ export function activate(context: vscode.ExtensionContext): void {
         return readFileAtRevision(cwd, uri.authority, path);
       },
     }),
-    // Never has any actual items — its only purpose is to make the
-    // Activity Bar container's view register as "empty", so VS Code shows
-    // the viewsWelcome content (a "Show Revision Graph" button) instead.
-    vscode.window.registerTreeDataProvider<never>('revisionGraph.welcomeView', {
-      getChildren: () => [],
-      getTreeItem: (element) => element,
-    }),
+    vscode.window.registerWebviewViewProvider('revisionGraph.welcomeView', createWelcomeViewProvider(context)),
   );
+}
+
+// The Activity Bar container's sole view: a "Show Revision Graph" button
+// plus the running version/build commit hash (see __BUILD_COMMIT__ above),
+// shown so a stale Extension Development Host or installed build is easy to
+// tell apart from a fresh one at a glance.
+function createWelcomeViewProvider(context: vscode.ExtensionContext): vscode.WebviewViewProvider {
+  return {
+    resolveWebviewView(webviewView) {
+      webviewView.webview.options = {
+        enableScripts: true,
+        localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview')],
+      };
+
+      const versionText = __BUILD_NUMBER__
+        ? vscode.l10n.t(
+            'Version {0} ({1}, build {2})',
+            context.extension.packageJSON.version,
+            __BUILD_COMMIT__,
+            __BUILD_NUMBER__,
+          )
+        : vscode.l10n.t('Version {0} ({1})', context.extension.packageJSON.version, __BUILD_COMMIT__);
+      void getWelcomeViewHtml(webviewView.webview, context.extensionUri, versionText).then((html) => {
+        webviewView.webview.html = html;
+      });
+
+      webviewView.webview.onDidReceiveMessage((message: WelcomeWebviewToHostMessage) => {
+        if (message.type === 'show') {
+          void vscode.commands.executeCommand('revisionGraph.show');
+        }
+      });
+    },
+  };
 }
 
 export function deactivate(): void {}
@@ -462,4 +498,9 @@ function getComparePanelHtml(webview: vscode.Webview, extensionUri: vscode.Uri):
 
 function getCheckoutDialogHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {
   return getSimplePanelHtml(webview, extensionUri, 'checkoutDialog.js', 'checkoutDialog.html');
+}
+
+async function getWelcomeViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri, versionText: string): Promise<string> {
+  const html = await getSimplePanelHtml(webview, extensionUri, 'welcomeView.js', 'welcomeView.html');
+  return html.replaceAll('__VERSION_TEXT__', versionText);
 }

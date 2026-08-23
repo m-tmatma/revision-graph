@@ -154,3 +154,6 @@ export type CheckoutWebviewToHostMessage =
   | { type: 'ready' }
   | { type: 'submit'; options: CheckoutOptions }
   | { type: 'cancel' };
+
+/** Message sent from the Activity Bar welcome view's webview back to the extension host. */
+export type WelcomeWebviewToHostMessage = { type: 'show' };
