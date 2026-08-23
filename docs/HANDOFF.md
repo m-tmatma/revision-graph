@@ -836,3 +836,40 @@ viewport instead of HEAD: `PanZoomController` gained `getView()`/
 outgoing controller's view can be captured just before it's destroyed and
 handed straight to the replacement one, carrying the exact pan/zoom state
 across a re-render's inherent "new SVG, new controller" reset.
+
+## Post-M4: create branch/tag here
+
+Also on request, growing the set of git operations available from the
+graph. Right-clicking any node now offers **Create branch here…** and
+**Create tag here…**.
+
+- Unlike "Checkout" (a whole "Switch / Checkout" webview panel, because it
+  has several combinable options — force/merge/track/submodule-update),
+  these two have no such option set worth a panel: just a name, and for a
+  tag an optional message. So the webview sends a bare
+  `{ type: 'createBranch' | 'createTag', startPoint: commitId }` and
+  `extension.ts` drives everything itself with native
+  `vscode.window.showInputBox`/`showWarningMessage` dialogs — the same
+  "no custom webview UI when a built-in picker already fits" call made for
+  incremental checkout above.
+- `gitActions.ts` gained `branchExists`/`tagExists` (`git show-ref
+  --verify --quiet refs/heads|tags/<name>`) so the existing-name case can
+  be checked *before* asking, rather than attempting the create and
+  reacting to git's refusal — same reasoning as `isBranchMerged` for
+  delete-branch: fold the warning into one confirmation instead of a
+  failed attempt followed by a retry prompt. Confirmed, `createBranch`/
+  `createTag` re-run with `-f`.
+- For the tag's message prompt, `showInputBox` returns `undefined` only on
+  Escape/cancel, but `''` for "submitted with nothing typed" — that's the
+  signal used to tell "cancelled the whole flow" apart from "no message",
+  which is deliberately a valid choice: it produces a lightweight tag
+  (`git tag <name> <rev>`) instead of an annotated one
+  (`git tag -a -m <message> <name> <rev>`), same distinction the real
+  `git tag` CLI makes based on whether `-m`/`-a` was given.
+- Creating a branch doesn't switch to it — right-clicking a specific
+  historical commit to bookmark it with a branch is a distinct action
+  from wanting to move HEAD there, and TortoiseGit's own "create branch"
+  dialog treats switching as an opt-in checkbox rather than the default
+  too. Modeled here as a follow-up `showInformationMessage` with a
+  "Switch to `<name>`" action button after the branch is created,
+  reusing the same plain `checkoutRef` call incremental checkout uses.

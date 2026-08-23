@@ -212,6 +212,38 @@ export async function deleteTag(cwd: string, name: string): Promise<void> {
   await runGitCapture(cwd, ['tag', '-d', name]);
 }
 
+export async function branchExists(cwd: string, name: string): Promise<boolean> {
+  return runGitCapture(cwd, ['show-ref', '--verify', '--quiet', `refs/heads/${name}`])
+    .then(() => true)
+    .catch(() => false);
+}
+
+export async function tagExists(cwd: string, name: string): Promise<boolean> {
+  return runGitCapture(cwd, ['show-ref', '--verify', '--quiet', `refs/tags/${name}`])
+    .then(() => true)
+    .catch(() => false);
+}
+
+/** `git branch [-f] <name> <startPoint>` — `force` re-points an existing branch (like `-B` on checkout). */
+export async function createBranch(cwd: string, name: string, startPoint: string, force = false): Promise<void> {
+  const args = ['branch'];
+  if (force) args.push('-f');
+  args.push(name, startPoint);
+  await runGitCapture(cwd, args);
+}
+
+/**
+ * `git tag [-f] <name> <startPoint>`, or `-a -m <message>` for an annotated
+ * tag when `message` is non-empty (a lightweight tag otherwise).
+ */
+export async function createTag(cwd: string, name: string, startPoint: string, message: string, force = false): Promise<void> {
+  const args = ['tag'];
+  if (force) args.push('-f');
+  if (message) args.push('-a', '-m', message);
+  args.push(name, startPoint);
+  await runGitCapture(cwd, args);
+}
+
 /**
  * Deletes only the local remote-tracking ref (e.g. `refs/remotes/origin/foo`)
  * — does not touch the actual branch on the remote server.
