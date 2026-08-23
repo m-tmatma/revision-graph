@@ -15,6 +15,7 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Spanish localization.
 - Brazilian Portuguese localization.
 - Russian localization.
+- Korean localization.
 
 ## 0.4.0
 

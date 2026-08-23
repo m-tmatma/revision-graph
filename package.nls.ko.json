@@ -1,0 +1,4 @@
+{
+  "extension.description": "TortoiseGit의 \"리비전 그래프\" 기능에서 영감을 받아, Git 저장소의 커밋 DAG(브랜치, 병합, 태그)를 시각화합니다.",
+  "command.show.title": "리비전 그래프 표시"
+}
