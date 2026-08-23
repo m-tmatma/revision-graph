@@ -18,6 +18,7 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Korean localization.
 - French localization.
 - German localization.
+- Traditional Chinese localization.
 
 ## 0.4.0
 

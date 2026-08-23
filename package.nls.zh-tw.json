@@ -1,0 +1,4 @@
+{
+  "extension.description": "以圖形方式呈現 Git 儲存庫的提交 DAG(分支、合併、標籤),靈感來自 TortoiseGit 的「版本圖」功能。",
+  "command.show.title": "顯示版本圖"
+}
