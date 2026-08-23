@@ -23,7 +23,7 @@ if not defined VSIX (
 )
 
 echo Installing !VSIX! ...
-code --install-extension "!VSIX!"
+call code --install-extension "!VSIX!"
 if errorlevel 1 (
     echo Installation failed.
     pause
