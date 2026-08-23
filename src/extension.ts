@@ -7,7 +7,10 @@ import * as fs from 'node:fs/promises';
 import * as vscode from 'vscode';
 import { reduceDag } from './git/dagReducer';
 import {
+  branchExists,
   checkoutRef,
+  createBranch,
+  createTag,
   deleteLocalBranch,
   deleteRemoteTrackingRef,
   deleteTag,
@@ -17,6 +20,7 @@ import {
   isBranchMerged,
   listCheckoutCandidates,
   readFileAtRevision,
+  tagExists,
   updateSubmodules,
 } from './git/gitActions';
 import { fetchCommits } from './git/logReader';
@@ -195,6 +199,10 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       );
     } else if (message.type === 'deleteRef') {
       await handleDeleteRef(cwd, message.refType, message.refName, refresh);
+    } else if (message.type === 'createBranch') {
+      await handleCreateBranch(cwd, message.startPoint, refresh);
+    } else if (message.type === 'createTag') {
+      await handleCreateTag(cwd, message.startPoint, refresh);
     } else if (message.type === 'exportSvg') {
       await exportToFile('revision-graph.svg', { [vscode.l10n.t('SVG Image')]: ['svg'] }, Buffer.from(message.svg, 'utf-8'));
     } else if (message.type === 'exportPng') {
@@ -395,6 +403,91 @@ async function handleDeleteRef(
     await refreshGraph();
   } catch (err) {
     vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: delete failed ({0})', (err as Error).message));
+  }
+}
+
+async function handleCreateBranch(
+  cwd: string,
+  startPoint: string,
+  refreshGraph: (focusOnHead?: boolean) => Promise<void>,
+): Promise<void> {
+  const name = await vscode.window.showInputBox({
+    prompt: vscode.l10n.t('New branch name'),
+    validateInput: (value) => (value.trim() ? undefined : vscode.l10n.t('Branch name cannot be empty.')),
+  });
+  if (!name) return;
+
+  let force = false;
+  if (await branchExists(cwd, name)) {
+    const overwriteLabel = vscode.l10n.t('Overwrite');
+    const confirmed = await vscode.window.showWarningMessage(
+      vscode.l10n.t('Branch {0} already exists. Overwrite it?', name),
+      { modal: true },
+      overwriteLabel,
+    );
+    if (confirmed !== overwriteLabel) return;
+    force = true;
+  }
+
+  try {
+    await createBranch(cwd, name, startPoint, force);
+  } catch (err) {
+    vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: create branch failed ({0})', (err as Error).message));
+    return;
+  }
+  await refreshGraph();
+
+  // Offered as a follow-up rather than an upfront checkbox: creating a
+  // branch elsewhere in history is routine (bookmarking a commit) and
+  // usually shouldn't move HEAD, so switching is opt-in after the fact.
+  const switchLabel = vscode.l10n.t('Switch to {0}', name);
+  const choice = await vscode.window.showInformationMessage(
+    vscode.l10n.t('Git Revision Graph: created branch {0}', name),
+    switchLabel,
+  );
+  if (choice === switchLabel) {
+    try {
+      await checkoutRef(cwd, name, SIMPLE_CHECKOUT_OPTIONS);
+      await refreshGraph(true);
+    } catch (err) {
+      vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: checkout failed ({0})', (err as Error).message));
+    }
+  }
+}
+
+async function handleCreateTag(cwd: string, startPoint: string, refreshGraph: () => Promise<void>): Promise<void> {
+  const name = await vscode.window.showInputBox({
+    prompt: vscode.l10n.t('New tag name'),
+    validateInput: (value) => (value.trim() ? undefined : vscode.l10n.t('Tag name cannot be empty.')),
+  });
+  if (!name) return;
+
+  // showInputBox returns undefined only on Escape/cancel, and '' for an
+  // empty submission -- that distinction is what tells apart "cancelled the
+  // whole flow" from "no message" (a deliberate lightweight tag).
+  const message = await vscode.window.showInputBox({
+    prompt: vscode.l10n.t('Tag message (leave empty for a lightweight tag)'),
+  });
+  if (message === undefined) return;
+
+  let force = false;
+  if (await tagExists(cwd, name)) {
+    const overwriteLabel = vscode.l10n.t('Overwrite');
+    const confirmed = await vscode.window.showWarningMessage(
+      vscode.l10n.t('Tag {0} already exists. Overwrite it?', name),
+      { modal: true },
+      overwriteLabel,
+    );
+    if (confirmed !== overwriteLabel) return;
+    force = true;
+  }
+
+  try {
+    await createTag(cwd, name, startPoint, message, force);
+    vscode.window.showInformationMessage(vscode.l10n.t('Git Revision Graph: created tag {0}', name));
+    await refreshGraph();
+  } catch (err) {
+    vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: create tag failed ({0})', (err as Error).message));
   }
 }
 

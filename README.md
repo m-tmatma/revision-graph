@@ -109,6 +109,12 @@ the Remote Extension Host". Instead, either:
     "Switch / Checkout" panel (target branch/tag/commit is fixed to
     whatever you clicked; create a new branch, track, force, merge local
     changes, or update submodules, TortoiseGit-style).
+  - **Create branch here…** / **Create tag here…** — prompts for a name
+    (and, for a tag, an optional message; leaving it empty makes a
+    lightweight tag instead of an annotated one), warning first if a
+    branch/tag with that name already exists. Creating a branch doesn't
+    switch to it automatically — you're offered a "Switch to" action
+    afterward.
   - **Copy ref name(s)**, if it has any refs (every ref on the node, as
     full `refs/heads/...` paths, one per line).
   - **Copy full hash**.

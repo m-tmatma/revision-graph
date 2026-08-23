@@ -436,6 +436,25 @@ function attachContextMenu(
     const checkoutItem = checkoutMenuItem(nodesById.get(commitId), commitId);
     if (checkoutItem) items.push(checkoutItem);
 
+    // Both hand off entirely to the extension host: name/message input and
+    // the existing-ref overwrite check are native VSCode dialogs there
+    // (showInputBox/showWarningMessage), not a webview panel — there's no
+    // combinable-options set here the way there is for checkout.
+    items.push({
+      label: t('Create branch here…'),
+      onClick: () => {
+        const message: WebviewToHostMessage = { type: 'createBranch', startPoint: commitId };
+        vscode.postMessage(message);
+      },
+    });
+    items.push({
+      label: t('Create tag here…'),
+      onClick: () => {
+        const message: WebviewToHostMessage = { type: 'createTag', startPoint: commitId };
+        vscode.postMessage(message);
+      },
+    });
+
     // Copies every ref on the node at once (its full `refs/heads/...` path,
     // one per line) rather than requiring a click on each ref chip
     // individually — a node commonly carries both a local and a remote

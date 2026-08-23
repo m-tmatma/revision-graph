@@ -3,6 +3,16 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+### Added
+
+- Right-click context menu: **Create branch here…** and **Create tag here…**,
+  creating a local branch or a lightweight/annotated tag (message input left
+  empty) at the clicked commit. Warns before overwriting an existing branch
+  or tag with the same name; creating a branch offers a follow-up "Switch to"
+  action rather than checking it out automatically.
+
 ## 0.1.0
 
 Initial feature set.
