@@ -6,7 +6,8 @@
 # Using Remote-SSH (or Dev Containers/WSL)? Running this from a plain `ssh`
 # session on the remote host is not reliable -- whatever "code" is first in
 # PATH there may be an unrelated local install, installing the extension to
-# the wrong place. See the README's "Using Remote-SSH" note instead.
+# the wrong place. Use install-remote-ssh.sh instead, or see the README's
+# "Using Remote-SSH" note.
 set -e
 cd "$(dirname "$0")"
 

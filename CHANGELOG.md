@@ -3,6 +3,15 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+### Added
+
+- `scripts/install-remote-ssh.sh`, for installing onto a Remote-SSH (or
+  Dev Containers/WSL) host from a shell — finds the running VS Code
+  Server's own CLI shim under `~/.vscode-server` directly, rather than
+  relying on `PATH`'s `code`, which isn't reliable in that context.
+
 ## 0.4.0
 
 ### Added

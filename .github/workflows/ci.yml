@@ -25,7 +25,7 @@ jobs:
       - name: Stage release artifact
         run: |
           mkdir -p release
-          cp *.vsix scripts/install.bat scripts/install.sh scripts/install.command release/
+          cp *.vsix scripts/install.bat scripts/install.sh scripts/install.command scripts/install-remote-ssh.sh release/
       - uses: actions/upload-artifact@v7
         with:
           name: vsix-v${{ steps.version.outputs.version }}-build${{ github.run_number }}
