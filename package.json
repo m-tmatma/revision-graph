@@ -1,6 +1,6 @@
 {
   "name": "vscode-git-revision-graph",
-  "displayName": "Git Revision Graph",
+  "displayName": "VSCode Git Revision Graph",
   "description": "%extension.description%",
   "version": "0.1.0",
   "publisher": "tmatma",
