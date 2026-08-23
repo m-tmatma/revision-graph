@@ -1,0 +1,4 @@
+{
+  "extension.description": "Visualiza el DAG de confirmaciones (ramas, fusiones, etiquetas) de un repositorio Git, inspirado en la función «Gráfico de revisiones» de TortoiseGit.",
+  "command.show.title": "Mostrar gráfico de revisiones"
+}

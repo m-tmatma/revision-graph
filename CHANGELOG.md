@@ -12,6 +12,7 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   Server's own CLI shim under `~/.vscode-server` directly, rather than
   relying on `PATH`'s `code`, which isn't reliable in that context.
 - Simplified Chinese localization.
+- Spanish localization.
 
 ## 0.4.0
 
