@@ -21,6 +21,10 @@ instead of collapsing them into one.
 
 ## Committing
 
+Never commit directly to `master`. Always create a feature/chore branch
+first (`git checkout -b <type>/<name>`), commit there, push it, and open
+a PR — even for a small or docs-only change.
+
 Don't run `git commit` (or push, or open/update a PR) for a code change
 until the user has manually verified it works — running `npm run
 typecheck`/`test`/`build` successfully is not the same as the feature
