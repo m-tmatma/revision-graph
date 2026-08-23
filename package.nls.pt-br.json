@@ -1,0 +1,4 @@
+{
+  "extension.description": "Visualiza o DAG de confirmações (ramificações, mesclagens, tags) de um repositório Git, inspirado no recurso \"Gráfico de revisões\" do TortoiseGit.",
+  "command.show.title": "Mostrar gráfico de revisões"
+}

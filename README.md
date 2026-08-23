@@ -5,7 +5,8 @@ merges, tags) as an SVG graph, inspired by [TortoiseGit](https://gitlab.com/tort
 "Revision Graph" feature.
 
 The UI follows VS Code's own display language setting automatically —
-Japanese, Simplified Chinese, and Spanish are included today.
+Japanese, Simplified Chinese, Spanish, and Brazilian Portuguese are
+included today.
 
 ![Comparing two revisions in the graph](diff.gif)
 
