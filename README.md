@@ -39,7 +39,14 @@ first in that session's `PATH` may be an unrelated local install on the
 remote machine, or resolve to nothing at all — either way, the extension
 doesn't end up where the Remote-SSH connection actually looks for it, and
 VS Code reports it as installed locally but "disabled ... defined to run in
-the Remote Extension Host". Instead, either:
+the Remote Extension Host". Instead, any of:
+   - From a shell on the remote host (e.g. scripted over `ssh`, or a plain
+     terminal there): copy the `.vsix` and
+     [`scripts/install-remote-ssh.sh`](scripts/install-remote-ssh.sh) over
+     and run the script — it finds the running VS Code Server's own CLI
+     shim under `~/.vscode-server` directly, rather than relying on
+     `PATH`. Needs a VS Code window to have connected to that host at
+     least once already (that's what creates the shim).
    - Install it normally on your local machine first (Marketplace or a
      `.vsix`, as above) — once connected via Remote-SSH, the Extensions view
      then offers a one-click **"Install in SSH: \<host\>"** button; or
