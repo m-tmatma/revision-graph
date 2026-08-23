@@ -19,6 +19,17 @@ When merging a PR (`gh pr merge`), always use a merge commit
 keeps each feature's individual commits visible in `master`'s history
 instead of collapsing them into one.
 
+## Committing
+
+Don't run `git commit` (or push, or open/update a PR) for a code change
+until the user has manually verified it works — running `npm run
+typecheck`/`test`/`build` successfully is not the same as the feature
+actually working (a webview change also needs an Extension Development
+Host reload to take effect, which build success doesn't imply). After
+implementing and verifying the build, describe what changed and wait for
+the user to confirm before committing — including a small fix-up commit
+on an already-open PR's branch.
+
 ## Accessibility
 
 AccessLint runs on every PR and has flagged issues on webview HTML files
