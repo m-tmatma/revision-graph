@@ -127,8 +127,11 @@ the Remote Extension Host". Instead, either:
     local `main`/`master` if that isn't set). Offered on any single node,
     no second selection needed.
   - Right-click a *specific local branch's ref chip* (not a remote branch
-    or tag, and not just anywhere on the node) for **Delete** — asks for
-    confirmation first.
+    or tag, and not just anywhere on the node) for **Rename** (prompts for
+    the new name, warning first if a branch with that name already exists)
+    or **Delete** (asks for confirmation first). Rename is offered on the
+    current branch too — unlike Delete, git doesn't refuse to rename the
+    branch you're on.
 
 ## Development
 

@@ -182,6 +182,15 @@ export async function deleteLocalBranch(cwd: string, name: string, force = false
 }
 
 /**
+ * `git branch -m <old> <new>` (or `-M` when `force` is true, to overwrite an
+ * existing branch named `new`). Works on the current branch too — unlike
+ * delete, git doesn't refuse to rename the branch you're on.
+ */
+export async function renameLocalBranch(cwd: string, oldName: string, newName: string, force = false): Promise<void> {
+  await runGitCapture(cwd, ['branch', force ? '-M' : '-m', oldName, newName]);
+}
+
+/**
  * Whether `ref` is fully merged into `into` (default `HEAD`) — i.e.
  * whether `git branch -d` would succeed on it. Mirrors TortoiseGit's own
  * `CGit::IsFastForward` check ahead of its branch-delete confirmation:
