@@ -19,6 +19,18 @@ All planned milestones are implemented:
 See [DESIGN.md](DESIGN.md) for design details and [HANDOFF.md](HANDOFF.md)
 for implementation notes.
 
+## Prerequisites
+
+**Node.js 24** — matches [CI](../.github/workflows/ci.yml) and `package.json`'s
+`engines.node`. An older version may still work for day-to-day building
+(esbuild/TypeScript themselves don't need 24), but some dev-only
+dependencies (e.g. `@vscode/vsce`'s own dependencies) declare 24 as their
+minimum and `npm install` will print `EBADENGINE` warnings on anything
+older.
+
+Get it via [nvm](https://github.com/nvm-sh/nvm) (`nvm install 24 && nvm use 24`)
+or the official installer from [nodejs.org](https://nodejs.org/).
+
 ## Build
 
 ```sh
