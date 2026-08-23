@@ -1,0 +1,87 @@
+name: "Bug report / バグ報告"
+description: "Report a problem with the extension / 拡張機能の不具合を報告する"
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug!
+        バグ報告ありがとうございます。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "What happened? / 何が起きましたか?"
+      description: "A clear description of the bug. / 発生した問題を具体的に記載してください。"
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: "Steps to reproduce / 再現手順"
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected behavior / 期待する動作"
+    validations:
+      required: false
+
+  - type: input
+    id: extension-version
+    attributes:
+      label: "Extension version / 拡張機能のバージョン"
+      description: "Shown in the Activity Bar's Git Revision Graph welcome view. / Activity Bar の Git Revision Graph ウェルカム画面に表示されます。"
+      placeholder: "e.g. 0.1.0 (abc1234)"
+    validations:
+      required: true
+
+  - type: input
+    id: vscode-version
+    attributes:
+      label: "VS Code version / VS Code のバージョン"
+      description: "Help > About / ヘルプ > VS Code について"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: "Environment / 実行環境"
+      description: "Where is VS Code running this extension? / この拡張機能はどの環境で実行されていますか?"
+      options:
+        - "Local / ローカル"
+        - "Remote-SSH"
+        - "WSL"
+        - "Dev Containers"
+        - "Other / その他"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: "Operating System / OS"
+      options:
+        - "Windows"
+        - "macOS"
+        - "Linux"
+        - "Other / その他"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Logs / screenshots / ログ・スクリーンショット"
+      description: "Any relevant error messages, Output panel logs, or screenshots. / エラーメッセージや Output パネルのログ、スクリーンショットなど。"
+    validations:
+      required: false

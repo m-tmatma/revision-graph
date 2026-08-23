@@ -1,0 +1,41 @@
+name: "Feature request / 機能要望"
+description: "Suggest an idea for this extension / この拡張機能への要望を提案する"
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion!
+        ご提案ありがとうございます。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: "What problem does this solve? / どんな課題を解決しますか?"
+      description: "Is your feature request related to a problem? What's inconvenient today? / 現状どんな不便がありますか?"
+    validations:
+      required: false
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: "Proposed solution / 提案する解決策"
+      description: "What would you like to happen? / どうなってほしいですか?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Alternatives considered / 検討した代替案"
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Additional context / その他の補足"
+      description: "Screenshots, references, etc. / スクリーンショットや参考情報など。"
+    validations:
+      required: false
