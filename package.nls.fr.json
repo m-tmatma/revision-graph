@@ -1,0 +1,4 @@
+{
+  "extension.description": "Visualise le DAG des commits (branches, fusions, étiquettes) d'un dépôt Git, inspiré de la fonctionnalité « Graphe des révisions » de TortoiseGit.",
+  "command.show.title": "Afficher le graphe des révisions"
+}
