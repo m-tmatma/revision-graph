@@ -3,13 +3,19 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## Unreleased
+## 0.4.0
 
 ### Added
 
 - Right-click context menu: **Copy commit info**, copying the same text
   `git show -s` would print for that commit (hash and ref decorations,
   author, date, and full message).
+
+### Fixed
+
+- The SCM title bar button's icon no longer looks inconsistent with the
+  Activity Bar container's icon — both now use the same custom diamond
+  design instead of the built-in `$(git-branch)` codicon.
 
 ## 0.3.0
 
