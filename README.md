@@ -1,4 +1,4 @@
-# Git Revision Graph
+# VSCode Git Revision Graph
 
 A VSCode extension that visualizes a Git repository's commit DAG (branches,
 merges, tags) as an SVG graph, inspired by [TortoiseGit](https://gitlab.com/tortoisegit/tortoisegit)'s
