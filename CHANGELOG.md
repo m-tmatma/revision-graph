@@ -11,6 +11,9 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   prompting for a new name (warning first if a branch with that name
   already exists). Offered on the current branch too, since git doesn't
   refuse to rename the branch you're on.
+- Right-click context menu: **Compare with current branch**, opening the
+  "Changed Files" panel against whatever's currently checked out (`HEAD`)
+  — a counterpart to the existing **Compare with default branch**.
 
 ## 0.2.0
 

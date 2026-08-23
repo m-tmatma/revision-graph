@@ -126,6 +126,9 @@ the Remote Extension Host". Instead, either:
     against whatever the repo's default branch is (`origin/HEAD`, or a
     local `main`/`master` if that isn't set). Offered on any single node,
     no second selection needed.
+  - **Compare with current branch** — the same "Changed Files" panel,
+    against whatever's currently checked out (`HEAD`), regardless of the
+    repo's default branch. Also offered on any single node.
   - Right-click a *specific local branch's ref chip* (not a remote branch
     or tag, and not just anywhere on the node) for **Rename** (prompts for
     the new name, warning first if a branch with that name already exists)
