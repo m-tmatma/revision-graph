@@ -381,6 +381,15 @@ function isDeletableRefType(type: RefType): boolean {
   return type === 'local-branch';
 }
 
+// Unlike delete, git doesn't refuse to rename the branch you're currently
+// on (`git branch -m <new>` works fine in that case), so 'current-branch'
+// is offered here too. The stacking-mistake concern that dropped
+// 'remote-branch'/'tag' from isDeletableRefType above applies just the
+// same to rename, so those stay excluded.
+function isRenameableRefType(type: RefType): boolean {
+  return type === 'local-branch' || type === 'current-branch';
+}
+
 // Checkout targets the right-clicked node's own local branch if it has
 // one, otherwise the bare commit hash (a detached-HEAD checkout). Omitted
 // entirely if the node IS the current branch already — nothing to do.
@@ -508,13 +517,29 @@ function attachContextMenu(
       });
     }
 
+    // Same ref-chip targeting as "Delete" below — renaming is ref-specific
+    // too. Placed before Delete so the destructive item stays last.
+    const refRow = target.closest?.('[data-ref-name]') as SVGGElement | null;
+    const clickedRefName = refRow?.getAttribute('data-ref-name');
+    const clickedRefType = refRow?.getAttribute('data-ref-type') as RefType | null;
+    if (clickedRefName && clickedRefType && isRenameableRefType(clickedRefType)) {
+      items.push({
+        label: t('Rename {0}', fullRefName({ name: clickedRefName, type: clickedRefType })),
+        onClick: () => {
+          const message: WebviewToHostMessage = {
+            type: 'renameRef',
+            refType: clickedRefType,
+            refName: clickedRefName,
+          };
+          vscode.postMessage(message);
+        },
+      });
+    }
+
     // Only offered when the click landed on a specific ref chip (unlike
     // "Copy ref name(s)" above, deleting is inherently ref-specific — you
     // wouldn't want deleting one ref on a node to also delete the others).
     // Kept last in the menu: it's the only destructive item here.
-    const refRow = target.closest?.('[data-ref-name]') as SVGGElement | null;
-    const clickedRefName = refRow?.getAttribute('data-ref-name');
-    const clickedRefType = refRow?.getAttribute('data-ref-type') as RefType | null;
     if (clickedRefName && clickedRefType && isDeletableRefType(clickedRefType)) {
       items.push({
         label: t('Delete {0}', fullRefName({ name: clickedRefName, type: clickedRefType })),

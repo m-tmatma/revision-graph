@@ -3,6 +3,15 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+### Added
+
+- Right-click context menu: **Rename** for a local branch's ref chip,
+  prompting for a new name (warning first if a branch with that name
+  already exists). Offered on the current branch too, since git doesn't
+  refuse to rename the branch you're on.
+
 ## 0.2.0
 
 ### Added

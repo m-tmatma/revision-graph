@@ -20,6 +20,7 @@ import {
   isBranchMerged,
   listCheckoutCandidates,
   readFileAtRevision,
+  renameLocalBranch,
   tagExists,
   updateSubmodules,
 } from './git/gitActions';
@@ -199,6 +200,8 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       );
     } else if (message.type === 'deleteRef') {
       await handleDeleteRef(cwd, message.refType, message.refName, refresh);
+    } else if (message.type === 'renameRef') {
+      await handleRenameRef(cwd, message.refName, refresh);
     } else if (message.type === 'createBranch') {
       await handleCreateBranch(cwd, message.startPoint, refresh);
     } else if (message.type === 'createTag') {
@@ -403,6 +406,36 @@ async function handleDeleteRef(
     await refreshGraph();
   } catch (err) {
     vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: delete failed ({0})', (err as Error).message));
+  }
+}
+
+async function handleRenameRef(cwd: string, oldName: string, refreshGraph: () => Promise<void>): Promise<void> {
+  const newName = await vscode.window.showInputBox({
+    prompt: vscode.l10n.t('New name for {0}', oldName),
+    value: oldName,
+    valueSelection: [0, oldName.length],
+    validateInput: (value) => (value.trim() ? undefined : vscode.l10n.t('Branch name cannot be empty.')),
+  });
+  if (!newName || newName === oldName) return;
+
+  let force = false;
+  if (await branchExists(cwd, newName)) {
+    const overwriteLabel = vscode.l10n.t('Overwrite');
+    const confirmed = await vscode.window.showWarningMessage(
+      vscode.l10n.t('Branch {0} already exists. Overwrite it?', newName),
+      { modal: true },
+      overwriteLabel,
+    );
+    if (confirmed !== overwriteLabel) return;
+    force = true;
+  }
+
+  try {
+    await renameLocalBranch(cwd, oldName, newName, force);
+    vscode.window.showInformationMessage(vscode.l10n.t('Git Revision Graph: renamed {0} to {1}', oldName, newName));
+    await refreshGraph();
+  } catch (err) {
+    vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: rename failed ({0})', (err as Error).message));
   }
 }
 
