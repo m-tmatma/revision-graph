@@ -37,7 +37,7 @@ Extension Host                          Webview (SVG UI)
 CLI経由でgit log取得                     postMessage で
   ↓                                      GraphData を受信
 生パース → GraphCommit[]                    ↓
-  ↓                                      Web Worker内でELKレイアウト計算
+  ↓                                      Web Worker内でdagreレイアウト計算
 DAG構築 + 直線区間の間引き                    ↓
   ↓                                      SVG描画(ノード/エッジ/ラベル)
 postMessage で GraphData 送信              ↓
@@ -48,7 +48,7 @@ git操作コマンド実行                        ↑
 
 **設計判断の理由**:
 - git log取得とDAG構築(TortoiseGitのワーカースレッド相当)はExtension Host側で行う。Extension HostはWebviewとは別プロセスなので、ここで多少重い処理をしてもUIはブロックしない。
-- レイアウト計算(Sugiyama相当)はWebview内のWeb Workerで行う。ノード数が数千に達する大規模リポジトリでも描画スレッドをブロックしない。elkjsはWeb Worker実行をサポートしている。
+- レイアウト計算(Sugiyama相当)はWebview内のWeb Workerで行う。ノード数が数千に達する大規模リポジトリでも描画スレッドをブロックしない。dagreはWeb Worker実行をサポートしている(採用理由は後述「レイアウトアルゴリズム」参照)。
 - 実際のgit変更コマンド(checkout/ブランチ削除など)はWebviewから直接実行できない(Node API不可)ため、必ずExtension Hostに委譲する。
 
 ## データモデル (TypeScript)
@@ -130,7 +130,7 @@ Web Worker内で実行し、`postMessage`でメインスレッドに結果(`Laid
 ## 描画 (SVG)
 
 - ノード: 角丸`<rect>` + 内部に `refs` を縦積みで`<text>`ラベル表示。色は**ref種別ごとの固定パレット**(current branch / local branch / remote branch / tag / stash / other)で、TortoiseGit本家のデフォルト値(`src/TortoiseProc/Colors.cpp`のレジストリデフォルト、`CurrentBranch`=`#c80000`、`LocalBranch`=`#00c300`、`RemoteBranch`=`#ffddaa`、`Tag`=`#ffff00`、`Stash`=`#808080`、`OtherRef`=`#e0e0e0`)にそのまま合わせている(VSCodeテーマには追従しない — テーマが変わっても見た目が本家と一致することを優先)。テキスト色はコントラスト比から自動選択(WCAG相対輝度計算)。
-- エッジ: `<polyline>` でelkjsの`bendPoints`をそのまま繋ぐ。ノード境界でクリップ(TortoiseGitの`cutPoint`相当の矩形交差計算)。矢印は`<polygon>`で手計算。
+- エッジ: `<polyline>` でdagreの`points`をそのまま繋ぐ(dagreが既にノード境界にアンカーされた点を返すため、TortoiseGitの`cutPoint`相当の手動クリップ計算は不要)。矢印は`<polygon>`で手計算。
 - VSCodeのテーマ変数(`--vscode-editor-background`等)をCSSカスタムプロパティ経由で使い、ライト/ダークテーマに自動追従させる。
 - SVG/PNGエクスポート: 描画済みの`<svg>`を`cloneNode`し、`width`/`height`/`viewBox`をグラフ全体の論理サイズに上書きしてシリアライズする(表示中の`viewBox`はパン/ズーム後の一部領域のため)。SVGはそのままファイル書き出し、PNGはさらに`data:image/svg+xml`の`<img>`として読み込み`<canvas>`に描画してから`toDataURL('image/png')`で書き出す。テーマ変数は独立したドキュメントコンテキストの`<img>`内では解決できないため、各属性に埋め込んだフォールバック色(`var(--vscode-x, <fallback>)`)がそのまま使われる — テーマには追従しないが表示は崩れない、という妥協。**大規模リポジトリでは論理サイズがブラウザの2D canvas上限(1辺16384px/総面積約2億6千万px、実測で`5051 x 112174`のような値になるケースを確認)を超えることがあり、その場合`canvas.toDataURL()`は例外を投げず`"data:,"`という無効な値を静かに返す**。これを書き出すと壊れたPNGファイルになるため、`exportPng`側で事前にサイズ判定し、上限超過時はSVGエクスポートを案内するエラーメッセージを表示する。
 
@@ -185,7 +185,7 @@ revision-graph/
       gitActions.ts            # checkout/削除等のgit操作
     webview/
       main.ts                  # Webviewエントリ、postMessage受信
-      layoutWorker.ts          # elkjs実行用Web Worker
+      layoutWorker.ts          # dagre実行用Web Worker
       render/
         graphRenderer.ts        # SVG描画
         colors.ts                # ref種別カラーパレット、コントラスト計算
