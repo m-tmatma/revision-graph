@@ -11,6 +11,7 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   Dev Containers/WSL) host from a shell — finds the running VS Code
   Server's own CLI shim under `~/.vscode-server` directly, rather than
   relying on `PATH`'s `code`, which isn't reliable in that context.
+- Simplified Chinese localization.
 
 ## 0.4.0
 
