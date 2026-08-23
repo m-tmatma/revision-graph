@@ -27,15 +27,8 @@
 # the binary itself lives under ~/.vscode-server -- confirmed on a real
 # host, where the extension landed there instead and so was invisible to
 # the actual remote extension host.
-#
-# Uninstalls any existing copy first, sideloading a .vsix whose version
-# matches one already tracked from the Marketplace is unreliable -- VS
-# Code can silently keep (or revert to) the Marketplace copy on reload
-# since it sees no version change, discarding the sideloaded build.
 set -e
 cd "$(dirname "$0")"
-
-EXTENSION_ID=tmatma.vscode-git-revision-graph
 
 VSIX=$(ls -1 *.vsix 2>/dev/null | head -n 1)
 if [ -z "$VSIX" ]; then
@@ -55,11 +48,6 @@ case "$REMOTE_CLI" in
     *) SERVER_ROOT=${REMOTE_CLI%/code-*} ;;
 esac
 EXTENSIONS_DIR="$SERVER_ROOT/extensions"
-
-if "$REMOTE_CLI" --extensions-dir "$EXTENSIONS_DIR" --list-extensions | grep -qix "$EXTENSION_ID"; then
-    echo "Uninstalling existing $EXTENSION_ID first ..."
-    "$REMOTE_CLI" --extensions-dir "$EXTENSIONS_DIR" --uninstall-extension "$EXTENSION_ID"
-fi
 
 echo "Installing $VSIX using $REMOTE_CLI (--extensions-dir $EXTENSIONS_DIR) ..."
 "$REMOTE_CLI" --extensions-dir "$EXTENSIONS_DIR" --install-extension "$VSIX"
