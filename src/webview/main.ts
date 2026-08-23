@@ -463,7 +463,7 @@ function attachContextMenu(
     const { first, second } = controller.getState();
     if (first && second && (commitId === first || commitId === second)) {
       items.push({
-        label: t('Compare {0} with {1}', first.slice(0, 7), second.slice(0, 7)),
+        label: t('Compare'),
         onClick: () => {
           const message: WebviewToHostMessage = { type: 'compare', from: first, to: second };
           vscode.postMessage(message);
@@ -476,7 +476,7 @@ function attachContextMenu(
     // falling back to a local main/master) rather than the webview needing
     // to know it.
     items.push({
-      label: t('Compare {0} with default branch', commitId.slice(0, 7)),
+      label: t('Compare with default branch'),
       onClick: () => {
         const message: WebviewToHostMessage = { type: 'compareWithDefaultBranch', to: commitId };
         vscode.postMessage(message);
