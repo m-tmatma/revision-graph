@@ -38,7 +38,10 @@
         "command": "revisionGraph.show",
         "title": "%command.show.title%",
         "category": "Git Revision Graph",
-        "icon": "$(git-branch)"
+        "icon": {
+          "light": "resources/revision-graph-icon-light.svg",
+          "dark": "resources/revision-graph-icon-dark.svg"
+        }
       }
     ],
     "menus": {
