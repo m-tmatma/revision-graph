@@ -485,6 +485,18 @@ function attachContextMenu(
       },
     });
 
+    // Unlike the copy items above, this needs the extension host — the
+    // webview only has the already-parsed commit fields (subject, body,
+    // author, ...), not the exact `git show -s` text (ref decorations,
+    // git's own date formatting, a "Merge:" line for merge commits, ...).
+    items.push({
+      label: t('Copy commit info'),
+      onClick: () => {
+        const message: WebviewToHostMessage = { type: 'copyCommitInfo', commitId };
+        vscode.postMessage(message);
+      },
+    });
+
     // "Compare" only makes sense once two nodes are selected, and only on
     // one of those two (right-clicking an unrelated third node wouldn't
     // have an obvious meaning).

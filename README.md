@@ -118,6 +118,8 @@ the Remote Extension Host". Instead, either:
   - **Copy ref name(s)**, if it has any refs (every ref on the node, as
     full `refs/heads/...` paths, one per line).
   - **Copy full hash**.
+  - **Copy commit info** — the same text `git show -s` would print for that
+    commit (hash and ref decorations, author, date, and full message).
   - With two nodes selected, right-clicking either of them also offers
     **Compare**, which opens a "Changed Files" panel (added/deleted line
     counts per file); click a file there to view its diff in VSCode's

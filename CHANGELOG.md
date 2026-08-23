@@ -3,6 +3,14 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+### Added
+
+- Right-click context menu: **Copy commit info**, copying the same text
+  `git show -s` would print for that commit (hash and ref decorations,
+  author, date, and full message).
+
 ## 0.3.0
 
 ### Added
