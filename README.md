@@ -7,6 +7,8 @@ merges, tags) as an SVG graph, inspired by [TortoiseGit](https://gitlab.com/tort
 The UI follows VS Code's own display language setting automatically —
 Japanese is included today.
 
+![Comparing two revisions in the graph](diff.gif)
+
 ## Installation
 
 Install from the [Marketplace](https://marketplace.visualstudio.com/items?itemName=tmatma.vscode-git-revision-graph) —
