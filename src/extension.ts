@@ -15,6 +15,7 @@ import {
   deleteRemoteTrackingRef,
   deleteTag,
   diffFileChanges,
+  getCommitShowSummary,
   getCommitSummary,
   getDefaultBranchRef,
   isBranchMerged,
@@ -193,6 +194,13 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       }
     } else if (message.type === 'compareWithCurrentBranch') {
       await showCompareChanges(context, cwd, 'HEAD', message.to);
+    } else if (message.type === 'copyCommitInfo') {
+      try {
+        const text = await getCommitShowSummary(cwd, message.commitId);
+        await vscode.env.clipboard.writeText(text);
+      } catch (err) {
+        vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
+      }
     } else if (message.type === 'openCheckoutDialog') {
       showCheckoutDialog(
         context,

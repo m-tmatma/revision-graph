@@ -40,6 +40,17 @@ export async function getCommitSummary(cwd: string, rev: string): Promise<Commit
 }
 
 /**
+ * `git show --no-patch` (i.e. `git show -s`) output for a commit — the
+ * commit hash and ref decorations, author, date, and full message, exactly
+ * as git itself formats them. `--no-color` overrides any `color.ui=always`
+ * in the user's git config, since this is meant for the clipboard, not a
+ * terminal.
+ */
+export async function getCommitShowSummary(cwd: string, rev: string): Promise<string> {
+  return (await runGitCapture(cwd, ['show', '--no-color', '--no-patch', rev])).trimEnd();
+}
+
+/**
  * The repo's default branch — what `origin/HEAD` points at (i.e. GitHub's
  * or another host's configured "Default branch" for the repo), or `main`/
  * `master` (whichever exists) if `origin/HEAD` isn't set, e.g. in a shallow

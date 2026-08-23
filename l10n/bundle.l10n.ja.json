@@ -65,6 +65,7 @@
   "Copy ref name": "ref名をコピー",
   "Copy ref names ({0})": "ref名をコピー ({0})",
   "Copy full hash": "フルハッシュをコピー",
+  "Copy commit info": "コミット情報をコピー",
   "Compare": "比較",
   "Compare with default branch": "デフォルトブランチと比較",
   "Compare with current branch": "現在のブランチと比較",

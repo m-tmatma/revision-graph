@@ -60,6 +60,7 @@ export type WebviewToHostMessage =
   | { type: 'compare'; from: string; to: string }
   | { type: 'compareWithDefaultBranch'; to: string }
   | { type: 'compareWithCurrentBranch'; to: string }
+  | { type: 'copyCommitInfo'; commitId: string }
   | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string }
   | { type: 'deleteRef'; refType: RefType; refName: string }
   | { type: 'renameRef'; refType: RefType; refName: string }
