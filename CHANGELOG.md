@@ -13,6 +13,7 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   relying on `PATH`'s `code`, which isn't reliable in that context.
 - Simplified Chinese localization.
 - Spanish localization.
+- Brazilian Portuguese localization.
 
 ## 0.4.0
 
