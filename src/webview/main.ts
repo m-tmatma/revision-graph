@@ -474,14 +474,20 @@ function attachContextMenu(
     // Unlike "Compare" above, this needs only the right-clicked node — the
     // extension host resolves "the default branch" itself (origin/HEAD,
     // falling back to a local main/master) rather than the webview needing
-    // to know it.
-    items.push({
-      label: t('Compare with default branch'),
-      onClick: () => {
-        const message: WebviewToHostMessage = { type: 'compareWithDefaultBranch', to: commitId };
-        vscode.postMessage(message);
-      },
-    });
+    // to know it. Hidden once two nodes are already selected: "Compare"
+    // above already covers that case, and offering both at once is
+    // redundant (and, if the right-clicked node ends up not being either
+    // selected node, ambiguous about which node "with default branch"
+    // would even apply to).
+    if (!(first && second)) {
+      items.push({
+        label: t('Compare with default branch'),
+        onClick: () => {
+          const message: WebviewToHostMessage = { type: 'compareWithDefaultBranch', to: commitId };
+          vscode.postMessage(message);
+        },
+      });
+    }
 
     // Only offered when the click landed on a specific ref chip (unlike
     // "Copy ref name(s)" above, deleting is inherently ref-specific — you
