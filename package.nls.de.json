@@ -1,0 +1,4 @@
+{
+  "extension.description": "Visualisiert den Commit-DAG (Branches, Merges, Tags) eines Git-Repositorys, inspiriert vom „Revisionsgraph“-Feature von TortoiseGit.",
+  "command.show.title": "Revisionsgraph anzeigen"
+}
