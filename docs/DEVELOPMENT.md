@@ -64,3 +64,19 @@ English.
 
 GPLv2 — see [LICENSE](../LICENSE). See also [CLAUDE.md](../CLAUDE.md) for
 this project's dependency license policy.
+
+## Contributing
+
+A few project conventions live in [CLAUDE.md](../CLAUDE.md) (originally
+written as instructions for an AI coding assistant, but they apply to any
+contributor) — worth reading before opening a PR:
+
+- **Dependency licensing**: no GPL-incompatible dependency (see "License
+  policy" above).
+- **PR merges**: always a merge commit (`gh pr merge --merge`), never
+  squash or rebase, so each feature's individual commits stay visible in
+  `master`'s history.
+- **Accessibility**: any PR that adds or changes a webview HTML file
+  (`*.html` under `src/webview/`) needs a clean local `accesslint` scan
+  first — CLAUDE.md has the exact command and the list of issues it tends
+  to catch.
