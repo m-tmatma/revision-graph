@@ -14,6 +14,7 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Simplified Chinese localization.
 - Spanish localization.
 - Brazilian Portuguese localization.
+- Russian localization.
 
 ## 0.4.0
 
