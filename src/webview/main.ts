@@ -640,32 +640,64 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
   }
 
   setStatus(t('Computing layout…'));
+  const buildStart = performance.now();
   const nodes = buildGraphNodes(commits);
+  console.log(`Git Revision Graph: buildGraphNodes for ${nodes.length} nodes took ${Math.round(performance.now() - buildStart)}ms`);
+
+  // Debugging aid for large/slow repositories (temporary — remove once
+  // https://github.com/m-tmatma/vscode-git-revision-graph/issues/87 or its
+  // follow-ups land): the status text visibly ticks up so "still working on
+  // a huge repo" is distinguishable from "actually stuck" without needing
+  // to open DevTools, and each stage's own timing goes to the console for
+  // when DevTools *is* available.
+  const waitStart = performance.now();
+  let tickerHandle: ReturnType<typeof setInterval> | undefined;
+  const startTicker = (label: string) => {
+    stopTicker();
+    tickerHandle = setInterval(() => {
+      setStatus(`${label} (${Math.round((performance.now() - waitStart) / 1000)}s)`);
+    }, 2000);
+  };
+  const stopTicker = () => {
+    if (tickerHandle !== undefined) {
+      clearInterval(tickerHandle);
+      tickerHandle = undefined;
+    }
+  };
 
   // Falls back to a (blocking) main-thread layout rather than just failing
   // if the worker itself couldn't be started (see createLayoutWorker's own
   // error cases) or throws for some other reason.
   const fallbackToMainThread = (reason: string) => {
     console.warn(`Git Revision Graph: layout worker failed (${reason}), retrying on the main thread`);
-    setStatus(t('Computing layout (fallback)…'));
+    startTicker(t('Computing layout (fallback)…'));
     try {
-      renderAndFocus(computeLayout(nodes), focusOnHead);
+      const fallbackStart = performance.now();
+      const graph = computeLayout(nodes);
+      console.log(`Git Revision Graph: main-thread computeLayout took ${Math.round(performance.now() - fallbackStart)}ms`);
+      stopTicker();
+      renderAndFocus(graph, focusOnHead);
       setStatus(null);
     } catch (err) {
+      stopTicker();
       setStatus(t('Layout failed: {0} (reduced nodes: {1})', (err as Error).message, String(nodes.length)));
     }
   };
 
   try {
     const worker = await createLayoutWorker();
+    startTicker(t('Computing layout…'));
 
     worker.addEventListener('error', (event) => {
       worker.terminate();
+      stopTicker();
       fallbackToMainThread(event.message);
     });
 
     worker.addEventListener('message', (event: MessageEvent<LayoutWorkerMessage>) => {
       worker.terminate();
+      console.log(`Git Revision Graph: worker round-trip took ${Math.round(performance.now() - waitStart)}ms`);
+      stopTicker();
       if (event.data.type === 'result') {
         setStatus(null);
         renderAndFocus(event.data.graph, focusOnHead);
@@ -676,6 +708,7 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
 
     worker.postMessage({ type: 'layout', nodes });
   } catch (err) {
+    stopTicker();
     fallbackToMainThread((err as Error).message);
   }
 }
