@@ -1,8 +1,8 @@
 /// <reference lib="webworker" />
-// Runs dagre layout inside a dedicated Web Worker, so layout computation
-// never blocks the webview's render/interaction thread for typical repos.
-// See computeLayout.ts for why main.ts also keeps a main-thread fallback for
-// when this worker's smaller stack can't handle a very deep history.
+// Runs the layout engine inside a dedicated Web Worker, so layout
+// computation never blocks the webview's render/interaction thread. See
+// computeLayout.ts for the main-thread fallback main.ts also keeps for
+// the (rare) case where the worker itself fails to start.
 
 import { computeLayout } from './computeLayout';
 import type { GraphNode } from '../shared/types';

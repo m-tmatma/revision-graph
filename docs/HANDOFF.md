@@ -873,3 +873,56 @@ graph. Right-clicking any node now offers **Create branch here…** and
   too. Modeled here as a follow-up `showInformationMessage` with a
   "Switch to `<name>`" action button after the branch is created,
   reusing the same plain `checkoutRef` call incremental checkout uses.
+
+## Post-M4: switch layout engine from dagre to d3-dag
+
+Reported as `Maximum call stack size exceeded` when opening the graph on a
+very large real-world repository (tens of thousands of commits) with Scope:
+All branches — both the Worker attempt and the existing main-thread fallback
+(added for exactly this class of failure, see M1's "検証方法" in DESIGN.md)
+failed. Confirmed the same repository renders fine in TortoiseGit itself and
+in `rodriguesvali/git-revision-graph` — an unrelated VSCode extension that
+happens to also be named "Git Revision Graph" (the name this project's own
+README/CHANGELOG note was already taken, hence "VSCode Git Revision Graph").
+That extension's README states it "intentionally loads a bounded
+recent-commit window instead of unbounded full history" and uses `d3-dag`
+(MIT) rather than `dagre` for layout — proof this was a solvable limitation
+of the specific implementation, not an inherent ceiling.
+
+Root cause: `dagre`'s ranking pass uses plain recursion whose depth tracks
+the graph's longest chain. `dagReducer.ts`'s always-on elision only
+collapses straight single-parent/single-child runs, so a repository with a
+large number of genuine branch/merge points (not just a long straight
+history) still produces a large, deep reduced graph — deep enough here to
+overflow even the main thread's larger stack, not just the Worker's.
+
+Replaced `dagre` with `d3-dag` (MIT) in `computeLayout.ts`, using
+`layeringLongestPath` + `coordGreedy` rather than d3-dag's own
+LP-solver-based defaults (`layeringSimplex`/`coordSimplex` — the library's
+closest equivalent to dagre's network-simplex approach): both chosen
+operators are simple, fast heuristics with no recursion whose depth tracks
+the graph's shape, trading some layout tidiness (wider graphs, edges less
+centered under their nodes) for guaranteed stack safety and speed.
+Benchmarked directly (see `test/computeLayout.test.ts`'s 20,000-node
+regression test, and see the git history for the throwaway stress-test
+scripts used to explore this) against three synthetic shapes at 20,000
+nodes: a linear chain (448ms), a realistic mix of chain + periodic merges
+(534ms), and — the one shape that's still slow — an extreme, unrealistic
+single-layer fan-out of thousands of direct children of one root (multiple
+seconds at 5,000 nodes; not a stack overflow, just O(n²)-ish crossing/
+coordinate-assignment cost for that particular shape, which doesn't
+resemble a real commit history).
+
+`graphConnect()` (d3-dag's link-based graph builder) only learns about a
+node from an edge referencing it, unlike dagre's `setNode`/`setEdge` split —
+so a node with no in-graph parent that also isn't any other node's parent
+(only possible for a single-commit repo, or an isolated node from a
+scope/range filter) needs an explicit `.single(true)` self-link
+(`[id, id]`) to be registered at all.
+
+Also filed [#87](https://github.com/m-tmatma/vscode-git-revision-graph/issues/87)
+before this fix landed, since bounded/windowed history loading (the other
+half of what the competing extension does) is still worth doing
+independently — it bounds the layout engine's input size regardless of
+which library computes the layout, and is the more scalable long-term
+answer for the pathological wide-graph shape above.

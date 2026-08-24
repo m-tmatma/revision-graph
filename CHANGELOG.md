@@ -3,6 +3,14 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+### Fixed
+
+- The graph could fail to open on very large repositories with
+  `Maximum call stack size exceeded`. Replaced the layout engine (dagre →
+  d3-dag) to fix it.
+
 ## 0.5.0
 
 ### Added

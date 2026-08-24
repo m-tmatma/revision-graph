@@ -642,11 +642,9 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
   setStatus(t('Computing layout…'));
   const nodes = buildGraphNodes(commits);
 
-  // dagre's ranking pass recurses to a depth tracking the graph's longest
-  // chain; a dedicated Worker's stack is smaller than the main thread's, so
-  // a very deep history can overflow the worker even though the same graph
-  // lays out fine here. Fall back to a (blocking) main-thread layout rather
-  // than just failing.
+  // Falls back to a (blocking) main-thread layout rather than just failing
+  // if the worker itself couldn't be started (see createLayoutWorker's own
+  // error cases) or throws for some other reason.
   const fallbackToMainThread = (reason: string) => {
     console.warn(`Git Revision Graph: layout worker failed (${reason}), retrying on the main thread`);
     setStatus(t('Computing layout (fallback)…'));

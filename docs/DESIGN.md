@@ -123,6 +123,8 @@ TortoiseGitの`RevisionGraphDlgFunc.cpp`のロジックをそのまま移植す�
 
 **dagre**(`@dagrejs/dagre`、MITライセンス)を採用する。
 
+> **Note(post-M4)**: 大規模リポジトリ(数万コミット規模)でdagreのランク付けパスがメインスレッドでもスタックオーバーフローする事例が見つかり、後日**d3-dag**(同じくMITライセンス)に切り替えた。以下の本節はdagre採用時点の記録として残す。経緯は[docs/HANDOFF.md](./HANDOFF.md)の「Post-M4: switch layout engine from dagre to d3-dag」を参照。
+
 当初はTortoiseGitのOGDF `OptimalRanking`→`MedianHeuristic`→`FastHierarchyLayout`パイプラインに最も近い**elkjs**(`elk.layered`)を検討したが、elkjsはEPL-2.0ライセンスであり、GPLv2の本プロジェクト([LICENSE](./LICENSE)参照)とはFSFが非互換と明記する組み合わせになる。elkjs側でGPLをSecondary Licenseとして許可する通知(EPL-2.0 Exhibit A)も付与されていないため採用を見送った(詳細は[CLAUDE.md](../CLAUDE.md)のライセンス方針)。dagreも同じ「ランク付け→順序付け→座標確定」という層状(Sugiyama系)レイアウトのパイプラインを持ち、MITライセンスでGPLv2と完全互換のため、これに切り替えた。
 
 Web Worker内で実行し、`postMessage`でメインスレッドに結果(`LaidOutNode[]`, `LaidOutEdge[]`)を返す。ノードサイズは事前にラベル数(ref数)から算出し、dagreに固定サイズとして渡す(TortoiseGitの`SetNodeRect`と同じ考え方)。dagreの`layout()`は同期実行だが、Worker内で行うためメインスレッド(描画/操作)はブロックされない。
