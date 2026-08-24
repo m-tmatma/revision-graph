@@ -903,15 +903,32 @@ closest equivalent to dagre's network-simplex approach): both chosen
 operators are simple, fast heuristics with no recursion whose depth tracks
 the graph's shape, trading some layout tidiness (wider graphs, edges less
 centered under their nodes) for guaranteed stack safety and speed.
-Benchmarked directly (see `test/computeLayout.test.ts`'s 20,000-node
-regression test, and see the git history for the throwaway stress-test
-scripts used to explore this) against three synthetic shapes at 20,000
-nodes: a linear chain (448ms), a realistic mix of chain + periodic merges
-(534ms), and — the one shape that's still slow — an extreme, unrealistic
-single-layer fan-out of thousands of direct children of one root (multiple
-seconds at 5,000 nodes; not a stack overflow, just O(n²)-ish crossing/
-coordinate-assignment cost for that particular shape, which doesn't
-resemble a real commit history).
+Benchmarked directly (see `test/computeLayout.test.ts`, and the git history
+for the throwaway stress-test scripts used to explore this) against three
+synthetic shapes at 20,000 nodes: a linear chain (448ms) and a chain with
+periodic merges (534ms) — both fast — but a wide single layer (many nodes
+sharing a rank) was multiple seconds at just 5,000 nodes, scaling worse
+than quadratically with `sugiyama()`'s *default* decross operator,
+`decrossTwoLayer`.
+
+That's not an edge case to write off: manually verifying the actual fix
+against a real "Scope: All branches" repository (rather than only the
+synthetic shapes above) reproduced the exact same symptom the dagre
+migration was meant to fix — the UI stuck on "Computing layout…"
+indefinitely, no error, so the main-thread fallback never even triggered
+(it only fires on an explicit worker error, not on "still running"). A
+repository with many active/long-lived branches genuinely does put a large
+number of nodes in one rank, since `layeringLongestPath` (like dagre's
+original ranking) puts every one of those branch tips the same distance
+from the common history they all fork from. Switched `decross` to
+`decrossDfs` (a single DFS pass, no per-layer crossing optimization) —
+confirmed it handles the same 5,000-wide case in ~120ms, and re-verified
+speed on the linear chain and chain-with-merges shapes plus a new
+synthetic "10,000-commit trunk + 50 long-lived 500-commit branches" shape
+meant to approximate a real large, actively-developed repository (all
+comfortably under a second). `test/computeLayout.test.ts` has a dedicated
+regression test for the wide-layer case with a tight-ish timeout, since
+that's what would actually catch a regression back to the slow default.
 
 `graphConnect()` (d3-dag's link-based graph builder) only learns about a
 node from an edge referencing it, unlike dagre's `setNode`/`setEdge` split —

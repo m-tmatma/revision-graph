@@ -64,4 +64,28 @@ describe('computeLayout', () => {
     expect(graph.nodes).toHaveLength(chainLength + 2);
     expect(graph.edges).toHaveLength(chainLength + 1);
   });
+
+  it(
+    'lays out a wide fan-out (many branches sharing a rank) quickly',
+    () => {
+      // Regression coverage for a second incident this module's operator
+      // choices exist to prevent: d3-dag's default decross (decrossTwoLayer)
+      // is a fine heuristic for a typical repo shape, but was catastrophically
+      // slow -- 9+ seconds at this exact size -- for a single very wide layer,
+      // the shape a real "Scope: All branches" repo with many active
+      // branches produces. decrossDfs handles it in well under a second; the
+      // test's own timeout below (generous, but nowhere near 9s) is what
+      // would actually catch a regression back to the slow default.
+      const width = 5000;
+      const nodes: GraphNode[] = [node('root', [])];
+      for (let i = 0; i < width; i++) {
+        nodes.push(node(`b${i}`, ['root']));
+      }
+
+      const graph = computeLayout(nodes);
+
+      expect(graph.nodes).toHaveLength(width + 1);
+    },
+    5000,
+  );
 });

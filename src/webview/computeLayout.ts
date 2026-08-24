@@ -10,23 +10,33 @@
 // thousands of commits) even on the main thread's larger stack -- the same
 // repo renders fine in TortoiseGit itself and in another VSCode extension
 // that also happens to be named "Git Revision Graph" (which uses d3-dag).
-// `layeringLongestPath` + `coordGreedy` were picked over d3-dag's LP-solver
-// based defaults (`layeringSimplex` + `coordSimplex`) specifically for
-// that scalability: both are simple, fast heuristics with no recursion
-// whose depth tracks the graph's shape, trading a bit of layout tidiness
-// (wider graphs, less centered edges) for guaranteed speed and stack safety
-// even on 10,000+-node graphs. Confirmed via a synthetic 20,000-commit
-// history (linear and with periodic merges) laying out in well under a
-// second; an extreme, unrealistic single-layer fan-out of thousands of
-// direct children of one root is the one shape that's still slow -- not a
-// stack overflow, just O(n^2)-ish crossing/coordinate work for that shape.
+// `layeringLongestPath` + `decrossDfs` + `coordGreedy` were picked over
+// d3-dag's LP-solver based defaults (`layeringSimplex` + `coordSimplex`,
+// and the default decross `decrossTwoLayer`) specifically for scalability:
+// all three are simple, fast heuristics with no recursion whose depth
+// tracks the graph's shape, trading a bit of layout tidiness (wider
+// graphs, less centered edges, more crossings) for guaranteed speed and
+// stack safety even on tens-of-thousands-of-node graphs. `decrossTwoLayer`
+// (the default) was tried first and looked fine on every synthetic shape
+// except one: a very wide layer (thousands of nodes sharing a rank, e.g.
+// many long-lived branches all forking from early history) made it
+// catastrophically slow -- 9+ seconds at just 5,000 nodes in one layer,
+// scaling worse than quadratically -- which is exactly the shape a real
+// "Scope: All branches" repository with many active branches produces, so
+// it silently hung the UI on "Computing layout…" with no error to trigger
+// the fallback. `decrossDfs` (a single DFS pass, no per-layer
+// optimization) handles the identical case in ~120ms. Confirmed all three
+// operators together stay fast (low hundreds of ms) on a 20,000-commit
+// linear chain, a realistic chain-with-periodic-merges mix, and a
+// synthetic "10,000-commit trunk + 50 long-lived 500-commit branches"
+// shape meant to approximate a real large, actively-developed repository.
 //
 // `nodes` is always the *reduced* graph (dagReducer.ts's always-on
 // elision -- a straight run is never shown expanded, matching real
 // TortoiseGit), so its longest chain -- and this layout's cost -- is
 // bounded regardless of how large the underlying repo's full history is.
 
-import { coordGreedy, graphConnect, layeringLongestPath, sugiyama } from 'd3-dag';
+import { coordGreedy, decrossDfs, graphConnect, layeringLongestPath, sugiyama } from 'd3-dag';
 import type { GraphNode as D3DagNode } from 'd3-dag';
 import type { GraphNode, LaidOutEdge, LaidOutGraph, LaidOutNode } from '../shared/types';
 
@@ -68,6 +78,7 @@ export function computeLayout(nodes: GraphNode[]): LaidOutGraph {
 
   const layout = sugiyama()
     .layering(layeringLongestPath())
+    .decross(decrossDfs())
     .coord(coordGreedy())
     .nodeSize((node: D3DagNode<string, LinkDatum>): readonly [number, number] => {
       const original = nodeById.get(node.data)!;
