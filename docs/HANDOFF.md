@@ -943,3 +943,52 @@ half of what the competing extension does) is still worth doing
 independently — it bounds the layout engine's input size regardless of
 which library computes the layout, and is the more scalable long-term
 answer for the pathological wide-graph shape above.
+
+## Post-M4: `--sparse` was missing entirely — the real root cause of the layout slowness
+
+Investigating why a real large repository's layout took ~2140s even after
+the decrossDfs fix above (all three stages instrumented; `compute` alone —
+the algorithm, isolated from worker/postMessage overhead — was the vast
+majority of that time, not build or render) led to comparing node counts
+against TortoiseGit on the same repository, both with "Show branches and
+merges" checked. The user noticed noticeably more ref-less commits in this
+extension's graph than TortoiseGit's.
+
+Re-reading TortoiseGit's own source more carefully (confirming the exact
+line already quoted in the "fixing a real-repo layout crash" entry above,
+which had the right quote but missed its implication):
+`LOG_INFO_SIMPILFY_BY_DECORATION | (m_bShowBranchingsMerges ? LOG_INFO_SPARSE : 0)`.
+`LOG_INFO_SIMPILFY_BY_DECORATION` is **unconditional** — TortoiseGit always
+applies `--simplify-by-decoration`; the checkbox only controls whether
+`--sparse` is *additionally* applied on top of it (confirmed against
+`Git.cpp`'s `GetLogCmd`: `LOG_INFO_ALL_BRANCH` → `--all`,
+`LOG_INFO_LOCAL_BRANCHES` → `--branches`, matching this project's own
+scope options 1:1).
+
+This project's `buildLogArgs` instead treated the toggle as a plain on/off
+switch for `--simplify-by-decoration` itself — so "checked" (the default)
+sent *no* simplification flag at all, fetching git's full raw history.
+That's a strictly larger, unpruned commit set than *either* of
+TortoiseGit's two actual modes (`--simplify-by-decoration --sparse` when
+checked, `--simplify-by-decoration` alone when unchecked) — explaining
+both the extra ref-less noise the user noticed and, very plausibly, the
+bulk of the ~2140s: `--simplify-by-decoration` prunes at the git level,
+before any commit ever reaches dagReducer.ts, the layout engine, or
+anything else this session's earlier instrumentation could see.
+
+Fixed to match exactly: `buildLogArgs` now always pushes
+`--simplify-by-decoration`, then `--sparse` only when the (renamed)
+`ReduceOptions.sparse` is true. Renamed `simplifyByDecoration` → `sparse`
+throughout (`ReduceOptions`, `buildLogArgs`, `fetchCommits`,
+`currentReduceOptions`) since the old name no longer described what the
+flag actually gates. Default stays checked (`sparse: true`) — matches
+TortoiseGit's own default and this project's existing README wording,
+neither of which needed to change; only the flag *composition* was wrong.
+
+Confirmed against this project's own repo that both flags are valid
+together (`git log --simplify-by-decoration --sparse --all`) and that
+`--simplify-by-decoration` alone is dramatically more aggressive (182 → 15
+commits here) — though `--sparse` mode showed the same 182 either way for
+this small, mostly-linear repo, so the real reduction on the large
+repository that motivated this fix is still unconfirmed pending the user's
+next test.

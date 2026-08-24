@@ -95,12 +95,13 @@ function currentScope(): LogScopeOptions {
 
 function currentReduceOptions(): ReduceOptions {
   return {
-    // Checked = show every branch/merge, including ones git would
-    // otherwise consider irrelevant to any ref (TortoiseGit's own "Show
-    // branches and merges", unchecked by default there too) — inverted
-    // from simplifyByDecoration, which defaults to true (matching git log
-    // *without* --simplify-by-decoration only once this is unchecked).
-    simplifyByDecoration: !toolbar.showBranchesMergesToggle!.checked,
+    // Checked (the default) = TortoiseGit's own "Show branches and merges"
+    // checked = `--sparse` on top of the always-applied
+    // `--simplify-by-decoration` (see ReduceOptions/logReader.ts) = show
+    // every merge, but still only within the ref-relevant history that
+    // --simplify-by-decoration establishes. Unchecked drops --sparse for
+    // more aggressive pruning.
+    sparse: toolbar.showBranchesMergesToggle!.checked,
     showAllTags: toolbar.showTagsToggle!.checked,
   };
 }

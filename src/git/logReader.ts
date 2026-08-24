@@ -60,20 +60,29 @@ function runGitBuffered(cwd: string, args: string[]): Promise<string> {
   });
 }
 
-export function buildLogArgs(options: LogScopeOptions, simplifyByDecoration: boolean): string[] {
+export function buildLogArgs(options: LogScopeOptions, sparse: boolean): string[] {
   const format = ['%H', '%P', '%s', '%an', '%ae', '%at', '%B'].join(FIELD_SEP) + RECORD_SEP;
   const args = ['log', `--pretty=format:${format}`, '--no-color'];
 
-  // Matches TortoiseGit's own "Show branches and merges" toggle: rather
-  // than reimplementing git's own history-simplification algorithm
-  // ourselves, just ask git to do it (or not) via this flag. When on
-  // (the default), git rewrites away any commit — including a merge —
-  // that isn't reachable from a ref and isn't needed to preserve the
-  // ancestry relationships between commits that are, before we ever see
-  // the output; dagReducer.ts's own straight-run elision still runs
-  // afterwards regardless, on whatever git returns.
-  if (simplifyByDecoration) {
-    args.push('--simplify-by-decoration');
+  // Matches TortoiseGit's own "Show branches and merges" toggle exactly,
+  // confirmed by reading TortoiseGit's own source (RevisionGraphDlgFunc.cpp,
+  // Git.cpp): it unconditionally applies `--simplify-by-decoration` (which
+  // lets git prune commits — including whole merges — that aren't reachable
+  // from a ref and aren't needed to preserve ancestry between commits that
+  // are), and *additionally* passes `--sparse` only when the toggle is
+  // checked (the default), which tells git not to skip over merges that
+  // simplification would otherwise treat as pass-throughs. An earlier
+  // version of this code treated the toggle as a plain on/off switch for
+  // `--simplify-by-decoration` itself, which meant "checked" (the default)
+  // sent no simplification flags at all — a much larger, unpruned history
+  // than either of TortoiseGit's two actual modes, and the direct cause of
+  // a real large repository rendering a visibly noisier graph than
+  // TortoiseGit's own (see docs/HANDOFF.md's "Post-M4" entry on this).
+  // dagReducer.ts's own straight-run elision still runs afterwards
+  // regardless, on whatever git returns.
+  args.push('--simplify-by-decoration');
+  if (sparse) {
+    args.push('--sparse');
   }
 
   switch (options.scope) {
@@ -195,13 +204,9 @@ export function parseLogRecord(record: string, refsByHash: Map<string, RefInfo[]
   };
 }
 
-export async function fetchCommits(
-  cwd: string,
-  options: LogScopeOptions,
-  simplifyByDecoration: boolean,
-): Promise<GraphCommit[]> {
+export async function fetchCommits(cwd: string, options: LogScopeOptions, sparse: boolean): Promise<GraphCommit[]> {
   const refsByHash = await fetchRefs(cwd);
-  const output = await runGitBuffered(cwd, buildLogArgs(options, simplifyByDecoration));
+  const output = await runGitBuffered(cwd, buildLogArgs(options, sparse));
 
   const commits: GraphCommit[] = [];
   for (const record of output.split(RECORD_SEP)) {

@@ -32,9 +32,14 @@ describe('buildLogArgs', () => {
     expect(() => buildLogArgs({ scope: 'range' }, false)).toThrow();
   });
 
-  it('adds --simplify-by-decoration only when requested', () => {
+  it('always includes --simplify-by-decoration, matching TortoiseGit', () => {
     expect(buildLogArgs({ scope: 'all-branches' }, true)).toContain('--simplify-by-decoration');
-    expect(buildLogArgs({ scope: 'all-branches' }, false)).not.toContain('--simplify-by-decoration');
+    expect(buildLogArgs({ scope: 'all-branches' }, false)).toContain('--simplify-by-decoration');
+  });
+
+  it('adds --sparse only when requested (checked "Show branches and merges")', () => {
+    expect(buildLogArgs({ scope: 'all-branches' }, true)).toContain('--sparse');
+    expect(buildLogArgs({ scope: 'all-branches' }, false)).not.toContain('--sparse');
   });
 });
 
