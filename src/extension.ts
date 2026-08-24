@@ -52,7 +52,7 @@ declare const __BUILD_COMMIT__: string;
 declare const __BUILD_NUMBER__: string;
 
 const DEFAULT_SCOPE: LogScopeOptions = { scope: 'all-branches' };
-const DEFAULT_REDUCE_OPTIONS: ReduceOptions = { showAllTags: false, simplifyByDecoration: false };
+const DEFAULT_REDUCE_OPTIONS: ReduceOptions = { showAllTags: false, sparse: true };
 // No force/merge/create-branch/submodule-update — the incremental-checkout
 // picker is meant as a fast, no-questions-asked branch switch, same as
 // typing `git checkout <name>` yourself. The right-click "Checkout" item
@@ -156,7 +156,7 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
   const refresh = async (focusOnHead = false) => {
     const generation = ++requestGeneration;
     try {
-      const commits = await fetchCommits(cwd, scope, reduce.simplifyByDecoration);
+      const commits = await fetchCommits(cwd, scope, reduce.sparse);
       const reduced = reduceDag(commits, reduce);
       if (generation !== requestGeneration) return;
       const message: HostToWebviewMessage = { type: 'graphData', commits: reduced, focusOnHead };

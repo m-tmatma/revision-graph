@@ -36,15 +36,16 @@ export interface LogScopeOptions {
  * Options controlling how much of the history is shown. `showAllTags`
  * governs dagReducer.ts's always-on straight-line elision (a tag alone
  * protects a commit from being elided only when this is true).
- * `simplifyByDecoration` is passed straight through to `git log` as
- * `--simplify-by-decoration` (see logReader.ts's buildLogArgs) — whether
- * git itself prunes commits, including whole merges, that aren't
- * reachable from any ref and aren't needed to preserve ancestry between
- * ones that are, before dagReducer.ts's own elision even runs.
+ * `sparse` is passed straight through to `git log` as `--sparse` on top of
+ * an always-applied `--simplify-by-decoration` (see logReader.ts's
+ * buildLogArgs — this exactly matches TortoiseGit's own "Show branches and
+ * merges" toggle) — whether git itself skips over merges that
+ * simplify-by-decoration would otherwise treat as pass-throughs, before
+ * dagReducer.ts's own elision even runs.
  */
 export interface ReduceOptions {
   showAllTags: boolean;
-  simplifyByDecoration: boolean;
+  sparse: boolean;
 }
 
 /** Message sent from the extension host to the webview. */

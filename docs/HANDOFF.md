@@ -873,3 +873,122 @@ graph. Right-clicking any node now offers **Create branch here…** and
   too. Modeled here as a follow-up `showInformationMessage` with a
   "Switch to `<name>`" action button after the branch is created,
   reusing the same plain `checkoutRef` call incremental checkout uses.
+
+## Post-M4: switch layout engine from dagre to d3-dag
+
+Reported as `Maximum call stack size exceeded` when opening the graph on a
+very large real-world repository (tens of thousands of commits) with Scope:
+All branches — both the Worker attempt and the existing main-thread fallback
+(added for exactly this class of failure, see M1's "検証方法" in DESIGN.md)
+failed. Confirmed the same repository renders fine in TortoiseGit itself and
+in `rodriguesvali/git-revision-graph` — an unrelated VSCode extension that
+happens to also be named "Git Revision Graph" (the name this project's own
+README/CHANGELOG note was already taken, hence "VSCode Git Revision Graph").
+That extension's README states it "intentionally loads a bounded
+recent-commit window instead of unbounded full history" and uses `d3-dag`
+(MIT) rather than `dagre` for layout — proof this was a solvable limitation
+of the specific implementation, not an inherent ceiling.
+
+Root cause: `dagre`'s ranking pass uses plain recursion whose depth tracks
+the graph's longest chain. `dagReducer.ts`'s always-on elision only
+collapses straight single-parent/single-child runs, so a repository with a
+large number of genuine branch/merge points (not just a long straight
+history) still produces a large, deep reduced graph — deep enough here to
+overflow even the main thread's larger stack, not just the Worker's.
+
+Replaced `dagre` with `d3-dag` (MIT) in `computeLayout.ts`, using
+`layeringLongestPath` + `coordGreedy` rather than d3-dag's own
+LP-solver-based defaults (`layeringSimplex`/`coordSimplex` — the library's
+closest equivalent to dagre's network-simplex approach): both chosen
+operators are simple, fast heuristics with no recursion whose depth tracks
+the graph's shape, trading some layout tidiness (wider graphs, edges less
+centered under their nodes) for guaranteed stack safety and speed.
+Benchmarked directly (see `test/computeLayout.test.ts`, and the git history
+for the throwaway stress-test scripts used to explore this) against three
+synthetic shapes at 20,000 nodes: a linear chain (448ms) and a chain with
+periodic merges (534ms) — both fast — but a wide single layer (many nodes
+sharing a rank) was multiple seconds at just 5,000 nodes, scaling worse
+than quadratically with `sugiyama()`'s *default* decross operator,
+`decrossTwoLayer`.
+
+That's not an edge case to write off: manually verifying the actual fix
+against a real "Scope: All branches" repository (rather than only the
+synthetic shapes above) reproduced the exact same symptom the dagre
+migration was meant to fix — the UI stuck on "Computing layout…"
+indefinitely, no error, so the main-thread fallback never even triggered
+(it only fires on an explicit worker error, not on "still running"). A
+repository with many active/long-lived branches genuinely does put a large
+number of nodes in one rank, since `layeringLongestPath` (like dagre's
+original ranking) puts every one of those branch tips the same distance
+from the common history they all fork from. Switched `decross` to
+`decrossDfs` (a single DFS pass, no per-layer crossing optimization) —
+confirmed it handles the same 5,000-wide case in ~120ms, and re-verified
+speed on the linear chain and chain-with-merges shapes plus a new
+synthetic "10,000-commit trunk + 50 long-lived 500-commit branches" shape
+meant to approximate a real large, actively-developed repository (all
+comfortably under a second). `test/computeLayout.test.ts` has a dedicated
+regression test for the wide-layer case with a tight-ish timeout, since
+that's what would actually catch a regression back to the slow default.
+
+`graphConnect()` (d3-dag's link-based graph builder) only learns about a
+node from an edge referencing it, unlike dagre's `setNode`/`setEdge` split —
+so a node with no in-graph parent that also isn't any other node's parent
+(only possible for a single-commit repo, or an isolated node from a
+scope/range filter) needs an explicit `.single(true)` self-link
+(`[id, id]`) to be registered at all.
+
+Also filed [#87](https://github.com/m-tmatma/vscode-git-revision-graph/issues/87)
+before this fix landed, since bounded/windowed history loading (the other
+half of what the competing extension does) is still worth doing
+independently — it bounds the layout engine's input size regardless of
+which library computes the layout, and is the more scalable long-term
+answer for the pathological wide-graph shape above.
+
+## Post-M4: `--sparse` was missing entirely — the real root cause of the layout slowness
+
+Investigating why a real large repository's layout took ~2140s even after
+the decrossDfs fix above (all three stages instrumented; `compute` alone —
+the algorithm, isolated from worker/postMessage overhead — was the vast
+majority of that time, not build or render) led to comparing node counts
+against TortoiseGit on the same repository, both with "Show branches and
+merges" checked. The user noticed noticeably more ref-less commits in this
+extension's graph than TortoiseGit's.
+
+Re-reading TortoiseGit's own source more carefully (confirming the exact
+line already quoted in the "fixing a real-repo layout crash" entry above,
+which had the right quote but missed its implication):
+`LOG_INFO_SIMPILFY_BY_DECORATION | (m_bShowBranchingsMerges ? LOG_INFO_SPARSE : 0)`.
+`LOG_INFO_SIMPILFY_BY_DECORATION` is **unconditional** — TortoiseGit always
+applies `--simplify-by-decoration`; the checkbox only controls whether
+`--sparse` is *additionally* applied on top of it (confirmed against
+`Git.cpp`'s `GetLogCmd`: `LOG_INFO_ALL_BRANCH` → `--all`,
+`LOG_INFO_LOCAL_BRANCHES` → `--branches`, matching this project's own
+scope options 1:1).
+
+This project's `buildLogArgs` instead treated the toggle as a plain on/off
+switch for `--simplify-by-decoration` itself — so "checked" (the default)
+sent *no* simplification flag at all, fetching git's full raw history.
+That's a strictly larger, unpruned commit set than *either* of
+TortoiseGit's two actual modes (`--simplify-by-decoration --sparse` when
+checked, `--simplify-by-decoration` alone when unchecked) — explaining
+both the extra ref-less noise the user noticed and, very plausibly, the
+bulk of the ~2140s: `--simplify-by-decoration` prunes at the git level,
+before any commit ever reaches dagReducer.ts, the layout engine, or
+anything else this session's earlier instrumentation could see.
+
+Fixed to match exactly: `buildLogArgs` now always pushes
+`--simplify-by-decoration`, then `--sparse` only when the (renamed)
+`ReduceOptions.sparse` is true. Renamed `simplifyByDecoration` → `sparse`
+throughout (`ReduceOptions`, `buildLogArgs`, `fetchCommits`,
+`currentReduceOptions`) since the old name no longer described what the
+flag actually gates. Default stays checked (`sparse: true`) — matches
+TortoiseGit's own default and this project's existing README wording,
+neither of which needed to change; only the flag *composition* was wrong.
+
+Confirmed against this project's own repo that both flags are valid
+together (`git log --simplify-by-decoration --sparse --all`) and that
+`--simplify-by-decoration` alone is dramatically more aggressive (182 → 15
+commits here) — though `--sparse` mode showed the same 182 either way for
+this small, mostly-linear repo, so the real reduction on the large
+repository that motivated this fix is still unconfirmed pending the user's
+next test.

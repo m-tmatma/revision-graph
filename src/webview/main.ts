@@ -93,12 +93,13 @@ function currentScope(): LogScopeOptions {
 
 function currentReduceOptions(): ReduceOptions {
   return {
-    // Checked = show every branch/merge, including ones git would
-    // otherwise consider irrelevant to any ref (TortoiseGit's own "Show
-    // branches and merges", unchecked by default there too) — inverted
-    // from simplifyByDecoration, which defaults to true (matching git log
-    // *without* --simplify-by-decoration only once this is unchecked).
-    simplifyByDecoration: !toolbar.showBranchesMergesToggle!.checked,
+    // Checked (the default) = TortoiseGit's own "Show branches and merges"
+    // checked = `--sparse` on top of the always-applied
+    // `--simplify-by-decoration` (see ReduceOptions/logReader.ts) = show
+    // every merge, but still only within the ref-relevant history that
+    // --simplify-by-decoration establishes. Unchecked drops --sparse for
+    // more aggressive pruning.
+    sparse: toolbar.showBranchesMergesToggle!.checked,
     showAllTags: toolbar.showTagsToggle!.checked,
   };
 }
@@ -642,35 +643,59 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
   setStatus(t('Computing layout…'));
   const nodes = buildGraphNodes(commits);
 
-  // dagre's ranking pass recurses to a depth tracking the graph's longest
-  // chain; a dedicated Worker's stack is smaller than the main thread's, so
-  // a very deep history can overflow the worker even though the same graph
-  // lays out fine here. Fall back to a (blocking) main-thread layout rather
-  // than just failing.
+  // Ticks the status up with elapsed seconds while waiting, so "still
+  // working on a large repository" is distinguishable from "stuck" without
+  // needing DevTools.
+  const waitStart = performance.now();
+  let tickerHandle: ReturnType<typeof setInterval> | undefined;
+  const startTicker = (label: string) => {
+    stopTicker();
+    tickerHandle = setInterval(() => {
+      setStatus(`${label} (${Math.round((performance.now() - waitStart) / 1000)}s)`);
+    }, 2000);
+  };
+  const stopTicker = () => {
+    if (tickerHandle !== undefined) {
+      clearInterval(tickerHandle);
+      tickerHandle = undefined;
+    }
+  };
+
+  const finish = (graph: LaidOutGraph) => {
+    stopTicker();
+    renderAndFocus(graph, focusOnHead);
+    setStatus(null);
+  };
+
+  // Falls back to a (blocking) main-thread layout rather than just failing
+  // if the worker itself couldn't be started (see createLayoutWorker's own
+  // error cases) or throws for some other reason.
   const fallbackToMainThread = (reason: string) => {
     console.warn(`Git Revision Graph: layout worker failed (${reason}), retrying on the main thread`);
-    setStatus(t('Computing layout (fallback)…'));
+    startTicker(t('Computing layout (fallback)…'));
     try {
-      renderAndFocus(computeLayout(nodes), focusOnHead);
-      setStatus(null);
+      finish(computeLayout(nodes));
     } catch (err) {
+      stopTicker();
       setStatus(t('Layout failed: {0} (reduced nodes: {1})', (err as Error).message, String(nodes.length)));
     }
   };
 
   try {
     const worker = await createLayoutWorker();
+    startTicker(t('Computing layout…'));
 
     worker.addEventListener('error', (event) => {
       worker.terminate();
+      stopTicker();
       fallbackToMainThread(event.message);
     });
 
     worker.addEventListener('message', (event: MessageEvent<LayoutWorkerMessage>) => {
       worker.terminate();
+      stopTicker();
       if (event.data.type === 'result') {
-        setStatus(null);
-        renderAndFocus(event.data.graph, focusOnHead);
+        finish(event.data.graph);
       } else {
         fallbackToMainThread(event.data.message);
       }
@@ -678,6 +703,7 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
 
     worker.postMessage({ type: 'layout', nodes });
   } catch (err) {
+    stopTicker();
     fallbackToMainThread((err as Error).message);
   }
 }
