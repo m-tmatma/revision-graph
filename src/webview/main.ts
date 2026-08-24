@@ -642,7 +642,8 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
   setStatus(t('Computing layout…'));
   const buildStart = performance.now();
   const nodes = buildGraphNodes(commits);
-  console.log(`Git Revision Graph: buildGraphNodes for ${nodes.length} nodes took ${Math.round(performance.now() - buildStart)}ms`);
+  const buildMs = performance.now() - buildStart;
+  console.log(`Git Revision Graph: buildGraphNodes for ${nodes.length} nodes took ${Math.round(buildMs)}ms`);
 
   // Debugging aid for large/slow repositories (temporary — remove once
   // https://github.com/m-tmatma/vscode-git-revision-graph/issues/87 or its
@@ -672,8 +673,13 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
   // the way.
   const finish = (graph: LaidOutGraph) => {
     stopTicker();
+    const layoutMs = performance.now() - waitStart;
+    const renderStart = performance.now();
     renderAndFocus(graph, focusOnHead);
-    setStatus(`${Math.round((performance.now() - waitStart) / 1000)}s`);
+    const renderMs = performance.now() - renderStart;
+    console.log(`Git Revision Graph: renderAndFocus (SVG DOM build) took ${Math.round(renderMs)}ms`);
+    const fmt = (ms: number) => (ms / 1000).toFixed(1);
+    setStatus(`build ${fmt(buildMs)}s, layout ${fmt(layoutMs)}s, render ${fmt(renderMs)}s`);
   };
 
   // Falls back to a (blocking) main-thread layout rather than just failing
