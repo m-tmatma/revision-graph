@@ -31,7 +31,9 @@ declare global {
   }
 }
 
-type LayoutWorkerMessage = { type: 'result'; graph: LaidOutGraph } | { type: 'error'; message: string };
+type LayoutWorkerMessage =
+  | { type: 'result'; graph: LaidOutGraph; computeMs: number }
+  | { type: 'error'; message: string };
 
 // Space left above the current-branch node when it's topmost (see
 // `renderAndFocus`), so it doesn't render flush against the viewport edge.
@@ -610,6 +612,7 @@ function buildGraphNodes(commits: GraphCommit[]): GraphNode[] {
 // webview sandbox (the resource origin isn't Worker-loadable directly), so
 // fetch the script and construct a blob: URL instead.
 async function createLayoutWorker(): Promise<Worker> {
+  const start = performance.now();
   const workerUri = window.__LAYOUT_WORKER_URI__;
   if (!workerUri) {
     throw new Error(t('layout worker URI was not injected into the webview'));
@@ -620,7 +623,66 @@ async function createLayoutWorker(): Promise<Worker> {
   }
   const code = await response.text();
   const blobUrl = URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
-  return new Worker(blobUrl);
+  const worker = new Worker(blobUrl);
+  console.log(`Git Revision Graph: createLayoutWorker (fetch + instantiate) took ${Math.round(performance.now() - start)}ms`);
+  return worker;
+}
+
+// Debugging aid (see the comment further down): cheap-to-compute shape
+// stats -- these are what would actually be needed to reproduce a slow
+// layout with synthetic data, since node/edge counts alone don't capture
+// "how wide/deep/branchy" the reduced graph actually is. Returned as a
+// string (not just logged) so it can go in the on-screen status too.
+function describeGraphShape(nodes: GraphNode[]): string {
+  const nodeById = new Map(nodes.map((n) => [n.id, n]));
+  let roots = 0;
+  let maxParents = 0;
+  const childCount = new Map<string, number>();
+  for (const node of nodes) {
+    const inGraphParents = node.parents.filter((p) => nodeById.has(p));
+    if (inGraphParents.length === 0) roots++;
+    maxParents = Math.max(maxParents, inGraphParents.length);
+    for (const parent of inGraphParents) {
+      childCount.set(parent, (childCount.get(parent) ?? 0) + 1);
+    }
+  }
+  const maxChildren = childCount.size > 0 ? Math.max(...childCount.values()) : 0;
+
+  // BFS depth from every root, tracking the widest single depth level --
+  // an approximation of the layer width the layout engine will actually
+  // see (its own ranking may differ slightly, but this is O(n) and cheap).
+  const depth = new Map<string, number>();
+  const queue: string[] = [];
+  for (const node of nodes) {
+    if (node.parents.filter((p) => nodeById.has(p)).length === 0) {
+      depth.set(node.id, 0);
+      queue.push(node.id);
+    }
+  }
+  const childrenOf = new Map<string, string[]>();
+  for (const node of nodes) {
+    for (const parent of node.parents) {
+      if (!nodeById.has(parent)) continue;
+      (childrenOf.get(parent) ?? childrenOf.set(parent, []).get(parent)!).push(node.id);
+    }
+  }
+  const widthByDepth = new Map<number, number>();
+  let qi = 0;
+  while (qi < queue.length) {
+    const id = queue[qi++];
+    const d = depth.get(id)!;
+    widthByDepth.set(d, (widthByDepth.get(d) ?? 0) + 1);
+    for (const child of childrenOf.get(id) ?? []) {
+      if (!depth.has(child)) {
+        depth.set(child, d + 1);
+        queue.push(child);
+      }
+    }
+  }
+  const maxDepth = Math.max(0, ...depth.values());
+  const maxWidth = widthByDepth.size > 0 ? Math.max(...widthByDepth.values()) : 0;
+
+  return `roots=${roots} maxParents=${maxParents} maxChildren=${maxChildren} maxDepth=${maxDepth} maxWidth=${maxWidth}`;
 }
 
 async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boolean): Promise<void> {
@@ -643,7 +705,8 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
   const buildStart = performance.now();
   const nodes = buildGraphNodes(commits);
   const buildMs = performance.now() - buildStart;
-  console.log(`Git Revision Graph: buildGraphNodes for ${nodes.length} nodes took ${Math.round(buildMs)}ms`);
+  const shape = describeGraphShape(nodes);
+  console.log(`Git Revision Graph: buildGraphNodes for ${nodes.length} nodes took ${Math.round(buildMs)}ms (${shape})`);
 
   // Debugging aid for large/slow repositories (temporary — remove once
   // https://github.com/m-tmatma/vscode-git-revision-graph/issues/87 or its
@@ -671,7 +734,7 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
   // actually slow?" is answerable from the screen alone even for someone
   // who stepped away and only saw the finished graph, not the ticker along
   // the way.
-  const finish = (graph: LaidOutGraph) => {
+  const finish = (graph: LaidOutGraph, computeMs?: number) => {
     stopTicker();
     const layoutMs = performance.now() - waitStart;
     const renderStart = performance.now();
@@ -679,7 +742,15 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
     const renderMs = performance.now() - renderStart;
     console.log(`Git Revision Graph: renderAndFocus (SVG DOM build) took ${Math.round(renderMs)}ms`);
     const fmt = (ms: number) => (ms / 1000).toFixed(1);
-    setStatus(`build ${fmt(buildMs)}s, layout ${fmt(layoutMs)}s, render ${fmt(renderMs)}s`);
+    const edgeCount = graph.edges.length;
+    // computeMs (only set on the worker success path) is the time the
+    // layout algorithm itself spent inside the worker; layoutMs also
+    // includes createLayoutWorker() and postMessage transfer both ways, so
+    // showing both narrows down "algorithm" vs. "worker plumbing".
+    const computePart = computeMs !== undefined ? `, compute ${fmt(computeMs)}s` : '';
+    setStatus(
+      `${nodes.length} nodes, ${edgeCount} edges, ${shape} — build ${fmt(buildMs)}s, layout ${fmt(layoutMs)}s${computePart}, render ${fmt(renderMs)}s`,
+    );
   };
 
   // Falls back to a (blocking) main-thread layout rather than just failing
@@ -714,7 +785,8 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
       console.log(`Git Revision Graph: worker round-trip took ${Math.round(performance.now() - waitStart)}ms`);
       stopTicker();
       if (event.data.type === 'result') {
-        finish(event.data.graph);
+        console.log(`Git Revision Graph: worker-side computeLayout took ${Math.round(event.data.computeMs)}ms`);
+        finish(event.data.graph, event.data.computeMs);
       } else {
         fallbackToMainThread(event.data.message);
       }
