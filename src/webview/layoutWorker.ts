@@ -16,10 +16,8 @@ self.addEventListener('message', (event: MessageEvent<LayoutRequest>) => {
   if (event.data?.type !== 'layout') return;
 
   try {
-    const start = performance.now();
     const graph = computeLayout(event.data.nodes);
-    const computeMs = performance.now() - start;
-    (self as unknown as Worker).postMessage({ type: 'result', graph, computeMs });
+    (self as unknown as Worker).postMessage({ type: 'result', graph });
   } catch (err) {
     (self as unknown as Worker).postMessage({ type: 'error', message: String(err) });
   }
