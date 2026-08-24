@@ -665,6 +665,17 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
     }
   };
 
+  // Leaves how long the whole thing actually took on screen (until the next
+  // render cycle replaces it) rather than clearing to idle -- so "was it
+  // actually slow?" is answerable from the screen alone even for someone
+  // who stepped away and only saw the finished graph, not the ticker along
+  // the way.
+  const finish = (graph: LaidOutGraph) => {
+    stopTicker();
+    renderAndFocus(graph, focusOnHead);
+    setStatus(`${Math.round((performance.now() - waitStart) / 1000)}s`);
+  };
+
   // Falls back to a (blocking) main-thread layout rather than just failing
   // if the worker itself couldn't be started (see createLayoutWorker's own
   // error cases) or throws for some other reason.
@@ -675,9 +686,7 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
       const fallbackStart = performance.now();
       const graph = computeLayout(nodes);
       console.log(`Git Revision Graph: main-thread computeLayout took ${Math.round(performance.now() - fallbackStart)}ms`);
-      stopTicker();
-      renderAndFocus(graph, focusOnHead);
-      setStatus(null);
+      finish(graph);
     } catch (err) {
       stopTicker();
       setStatus(t('Layout failed: {0} (reduced nodes: {1})', (err as Error).message, String(nodes.length)));
@@ -699,8 +708,7 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
       console.log(`Git Revision Graph: worker round-trip took ${Math.round(performance.now() - waitStart)}ms`);
       stopTicker();
       if (event.data.type === 'result') {
-        setStatus(null);
-        renderAndFocus(event.data.graph, focusOnHead);
+        finish(event.data.graph);
       } else {
         fallbackToMainThread(event.data.message);
       }
