@@ -10,6 +10,10 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - The graph could fail to open on very large repositories with
   `Maximum call stack size exceeded`. Replaced the layout engine (dagre →
   d3-dag) to fix it.
+- The graph could also take an extremely long time to open on very large,
+  branchy repositories even after the fix above. Fixed by using a
+  faster coordinate-assignment algorithm (Brandes-Köpf, ported from dagre —
+  the same class of algorithm TortoiseGit itself uses for this step).
 
 ## 0.5.0
 

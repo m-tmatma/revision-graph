@@ -10,34 +10,40 @@
 // thousands of commits) even on the main thread's larger stack -- the same
 // repo renders fine in TortoiseGit itself and in another VSCode extension
 // that also happens to be named "Git Revision Graph" (which uses d3-dag).
-// `layeringLongestPath` + `decrossDfs` + `coordGreedy` were picked over
-// d3-dag's LP-solver based defaults (`layeringSimplex` + `coordSimplex`,
-// and the default decross `decrossTwoLayer`) specifically for scalability:
-// all three are simple, fast heuristics with no recursion whose depth
-// tracks the graph's shape, trading a bit of layout tidiness (wider
-// graphs, less centered edges, more crossings) for guaranteed speed and
-// stack safety even on tens-of-thousands-of-node graphs. `decrossTwoLayer`
-// (the default) was tried first and looked fine on every synthetic shape
-// except one: a very wide layer (thousands of nodes sharing a rank, e.g.
-// many long-lived branches all forking from early history) made it
+// `layeringLongestPath` + `decrossDfs` were picked over d3-dag's LP-solver
+// based defaults (`layeringSimplex`, and the default decross
+// `decrossTwoLayer`) specifically for scalability: both are simple, fast
+// heuristics with no recursion whose depth tracks the graph's shape,
+// trading a bit of layout tidiness for guaranteed speed and stack safety
+// even on tens-of-thousands-of-node graphs. `decrossTwoLayer` (the
+// default) was tried first and looked fine on every synthetic shape except
+// one: a very wide layer (thousands of nodes sharing a rank, e.g. many
+// long-lived branches all forking from early history) made it
 // catastrophically slow -- 9+ seconds at just 5,000 nodes in one layer,
 // scaling worse than quadratically -- which is exactly the shape a real
 // "Scope: All branches" repository with many active branches produces, so
 // it silently hung the UI on "Computing layout…" with no error to trigger
 // the fallback. `decrossDfs` (a single DFS pass, no per-layer
-// optimization) handles the identical case in ~120ms. Confirmed all three
-// operators together stay fast (low hundreds of ms) on a 20,000-commit
-// linear chain, a realistic chain-with-periodic-merges mix, and a
-// synthetic "10,000-commit trunk + 50 long-lived 500-commit branches"
-// shape meant to approximate a real large, actively-developed repository.
+// optimization) handles the identical case in ~120ms.
+//
+// The coordinate-assignment step (`coordBrandesKopf.ts`) isn't one of
+// d3-dag's own operators: `coordGreedy` still took several minutes on a
+// real large repository even with the fixes above, and `coordQuad` ran out
+// of memory on the same synthetic shape that exposed it. Ported instead
+// from `@dagrejs/dagre`'s implementation of Brandes & Köpf, "Fast and
+// Simple Horizontal Coordinate Assignment" -- the same algorithm
+// TortoiseGit's own OGDF FastHierarchyLayout uses for this step, and (per
+// dagre's own docs) near-linear time regardless of graph shape. See
+// coordBrandesKopf.ts's own header comment for the full writeup.
 //
 // `nodes` is always the *reduced* graph (dagReducer.ts's always-on
 // elision -- a straight run is never shown expanded, matching real
 // TortoiseGit), so its longest chain -- and this layout's cost -- is
 // bounded regardless of how large the underlying repo's full history is.
 
-import { coordGreedy, decrossDfs, graphConnect, layeringLongestPath, sugiyama } from 'd3-dag';
+import { decrossDfs, graphConnect, layeringLongestPath, sugiyama } from 'd3-dag';
 import type { GraphNode as D3DagNode } from 'd3-dag';
+import { coordBrandesKopf } from './coordBrandesKopf';
 import type { GraphNode, LaidOutEdge, LaidOutGraph, LaidOutNode } from '../shared/types';
 
 /** Our own link datum: a `graphConnect` edge tuple of [child, parent] commit ids. */
@@ -79,7 +85,7 @@ export function computeLayout(nodes: GraphNode[]): LaidOutGraph {
   const layout = sugiyama()
     .layering(layeringLongestPath())
     .decross(decrossDfs())
-    .coord(coordGreedy())
+    .coord(coordBrandesKopf)
     .nodeSize((node: D3DagNode<string, LinkDatum>): readonly [number, number] => {
       const original = nodeById.get(node.data)!;
       return [original.width, original.height];

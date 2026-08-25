@@ -65,6 +65,57 @@ describe('computeLayout', () => {
     expect(graph.edges).toHaveLength(chainLength + 1);
   });
 
+  it('never overlaps two nodes horizontally within the same rank', () => {
+    // Brandes-Köpf's whole job is respecting horizontal separation --
+    // regression coverage for the coordinate-assignment algorithm itself,
+    // not just "did it crash or finish in time" like the tests above.
+    // Builds a moderately branchy graph (a trunk with several forks that
+    // merge back at different points) to actually exercise alignment
+    // across multiple ranks, not just a single simple shape.
+    const nodes: GraphNode[] = [];
+    const TRUNK = 40;
+    for (let i = 0; i < TRUNK - 1; i++) nodes.push(node(`t${i}`, [`t${i + 1}`]));
+    nodes.push(node(`t${TRUNK - 1}`, []));
+    for (let b = 0; b < 8; b++) {
+      const fork = 5 + b * 4;
+      const mergeAt = Math.max(0, fork - 3);
+      let prev = `b${b}-0`;
+      nodes.push(node(prev, [`t${fork}`]));
+      for (let i = 1; i < 5; i++) {
+        nodes.push(node(`b${b}-${i}`, [prev]));
+        prev = `b${b}-${i}`;
+      }
+      // merge the branch tip back into the trunk as a second parent
+      const trunkNode = nodes.find((n) => n.id === `t${mergeAt}`)!;
+      trunkNode.parents.push(prev);
+    }
+
+    const graph = computeLayout(nodes);
+
+    // Group nodes by rank (same y) and check every same-rank pair for
+    // horizontal overlap.
+    const byY = new Map<number, typeof graph.nodes>();
+    for (const n of graph.nodes) {
+      const bucket = byY.get(n.y) ?? [];
+      bucket.push(n);
+      byY.set(n.y, bucket);
+    }
+
+    let checked = 0;
+    for (const bucket of byY.values()) {
+      for (let i = 0; i < bucket.length; i++) {
+        for (let j = i + 1; j < bucket.length; j++) {
+          const a = bucket[i];
+          const b = bucket[j];
+          const [left, right] = a.x <= b.x ? [a, b] : [b, a];
+          expect(left.x + left.width).toBeLessThanOrEqual(right.x + 0.01);
+          checked++;
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
+  });
+
   it(
     'lays out a wide fan-out (many branches sharing a rank) quickly',
     () => {

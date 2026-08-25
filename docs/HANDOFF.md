@@ -992,3 +992,90 @@ commits here) — though `--sparse` mode showed the same 182 either way for
 this small, mostly-linear repo, so the real reduction on the large
 repository that motivated this fix is still unconfirmed pending the user's
 next test.
+
+## Post-M4: port dagre's Brandes-Köpf coordinate assignment as a custom d3-dag Coord
+
+The `--sparse` fix above corrected the fetched history's size, but reported
+layout `compute` time for the real repository was still ~610-2140s at just
+10,560 nodes -- while every synthetic shape this session could construct
+(up to 200,000 nodes, several shapes deliberately designed to stress
+`coordGreedy`) finished in well under a second. Cloning TortoiseGit's own
+source (`/home/tsuchiyama/tortoisegit`) to check its algorithm choices
+directly (`RevisionGraphWnd.cpp`, `RevisionGraphDlgFunc.cpp`) confirmed it
+uses `ogdf::OptimalRanking` + `ogdf::MedianHeuristic` + `ogdf::FastHierarchyLayout`
+— arguably *more* sophisticated ranking/crossing-minimization than this
+project's `layeringLongestPath`/`decrossDfs` — and still renders the same
+real repository in ~3s, pointing squarely at d3-dag's *coordinate
+assignment* step as the remaining outlier, not the choice of ranking/decross
+heuristic.
+
+Confirmed directly: swapping only `coord` from `coordGreedy` to `coordQuad`
+on an otherwise-identical synthetic shape ran the process out of memory
+(~4GB) before crashing. Different d3-dag coord operators have wildly
+different scaling behavior for the same graph — not just a constant-factor
+difference — which fits a graph shape none of this session's synthetic
+attempts quite reproduced still being catastrophically slow specifically at
+the coordinate-assignment step.
+
+Considered reusing dagre's own coordinate assignment (Brandes & Köpf, "Fast
+and Simple Horizontal Coordinate Assignment") directly, since dagre exists
+purely as an MIT-licensed dependency at that point (its *ranking* step is
+what forced the original move to d3-dag). Checked dagre's current source
+(`lib/rank/feasible-tree.ts`, `lib/rank/util.ts`) and confirmed *every* one
+of its ranking strategies -- including `ranker: 'longest-path'`, which
+looked like an easy way to dodge the recursion without switching engines
+entirely -- uses a recursive `dfs` whose depth tracks the graph's longest
+chain. Re-adopting dagre wholesale (even with `ranker` overridden) wasn't
+viable. dagre's `lib/position/bk.ts` (the BK implementation itself) is also
+tightly coupled to dagre's own `Graph` class and its `normalize` step
+(dummy-node insertion for edges spanning multiple ranks), so it isn't
+directly reusable as a standalone function either.
+
+The unlock: d3-dag's `Coord` operator interface is a supported, documented
+extension point (`sugiyama().coord(customFn)`), and critically, d3-dag's
+own pipeline *already* performs the dummy-node-expansion step internally
+(`sugifyLayer`/`sugifyCompact`) before calling whichever `coord` operator is
+configured -- handing it a ready-made `SugiNode<N,L>[][]` (a "sugi node" is
+either a real node or a dummy standing in for one rank-segment of a
+multi-rank edge) plus a `sep` function that already encodes node/gap
+separation. That's functionally the exact representation dagre's own
+`normalize` step builds for its `positionX` to consume, so dagre's BK
+algorithm could be ported to work against d3-dag's `SugiNode` API instead
+of dagre's own `Graph`, without needing to reimplement dummy-node insertion
+or separation math at all.
+
+`src/webview/coordBrandesKopf.ts`: ported from `@dagrejs/dagre`'s
+`lib/position/bk.ts` (MIT, Copyright (c) 2012-2014 Chris Pettitt --
+GPL-compatible per CLAUDE.md's license policy; the file carries the
+attribution). Deliberately simplified relative to dagre's version:
+
+- Uses d3-dag's provided `sep` function throughout instead of porting
+  dagre's own separation math (which accounts for edge-label positions and
+  compound-graph subgraph borders -- neither applies here).
+- Only implements "type 1" conflicts (a non-inner segment crossing an inner
+  segment). Dagre's "type 2" conflicts only matter for compound-graph
+  subgraph border dummy nodes, a feature this project doesn't have — so
+  they'd be checking for a case that can't occur. This is a real, minor
+  quality tradeoff (very slightly more avoidable crossings among dummy-node
+  chains in some rare layouts) with no effect on correctness or speed.
+- `Map`/`Set` keyed on `SugiNode` object identity, rather than dagre's
+  string ids + the `v > w` canonicalization dagre needed to keep a
+  plain-object conflict map consistent.
+
+Result, replacing only the `coord` operator (ranking/decross unchanged):
+20,000-node linear chain and chain-with-merges shapes stayed in the low
+hundreds of ms (as before); the previously-slow shapes dropped
+dramatically -- the "trunk + 60 long-range branches" shape (4.4s with
+`coordGreedy`) to ~300ms, and a synthetic shape matching the real
+repository's exact reported stats (10,560 nodes, 16,791 edges, max 12
+children on one node, max depth 328, max width 102) to ~400ms. Added a
+dedicated regression test (`test/computeLayout.test.ts`) asserting no two
+nodes in the same rank ever overlap horizontally -- the actual correctness
+property Brandes-Köpf exists to guarantee, not just "did it crash or finish
+in time" like the earlier tests.
+
+Manual visual verification in a real Extension Development Host against
+the actual repository that motivated this investigation is still needed —
+none of this session's synthetic reproductions exactly matched its true
+compute time, so the improvement is strong evidence, not final proof, until
+confirmed there directly.
