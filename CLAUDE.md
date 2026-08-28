@@ -34,6 +34,14 @@ implementing and verifying the build, describe what changed and wait for
 the user to confirm before committing — including a small fix-up commit
 on an already-open PR's branch.
 
+## Language
+
+Write commit messages, PR titles/descriptions, and PR/issue comments in
+English, even when the conversation with the user is in another language —
+this repo's history and its GitHub-facing text should stay consistent for
+any future contributor or reader, regardless of what language a given
+session was conducted in.
+
 ## Accessibility
 
 AccessLint runs on every PR and has flagged issues on webview HTML files
