@@ -3,6 +3,15 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 0.7.0
+
+### Added
+
+- A "Fetch" button in the graph's toolbar, running `git fetch --all
+  --prune` (updates every remote's tracking branches and removes local
+  remote-tracking refs for branches deleted upstream), then refreshing
+  the graph.
+
 ## 0.6.0
 
 ### Fixed
