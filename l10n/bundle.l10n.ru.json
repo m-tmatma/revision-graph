@@ -2,6 +2,8 @@
   "Git Revision Graph: open a folder first.": "Git Revision Graph: сначала откройте папку.",
   "Git Revision Graph": "Граф ревизий",
   "Git Revision Graph: {0}": "Git Revision Graph: {0}",
+  "{0} ({1} ↔ {2})": "{0} ({1} ↔ {2})",
+  "{0}: {1}": "{0}: {1}",
   "current branch": "текущая ветка",
   "remote": "удалённый",
   "Type to filter branches, then select one to check out": "Введите текст для фильтрации веток, затем выберите ветку для переключения",

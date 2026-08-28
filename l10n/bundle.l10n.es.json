@@ -2,6 +2,8 @@
   "Git Revision Graph: open a folder first.": "Git Revision Graph: abra primero una carpeta.",
   "Git Revision Graph": "Gráfico de revisiones",
   "Git Revision Graph: {0}": "Git Revision Graph: {0}",
+  "{0} ({1} ↔ {2})": "{0} ({1} ↔ {2})",
+  "{0}: {1}": "{0}: {1}",
   "current branch": "rama actual",
   "remote": "remoto",
   "Type to filter branches, then select one to check out": "Escriba para filtrar ramas y seleccione una para extraerla",

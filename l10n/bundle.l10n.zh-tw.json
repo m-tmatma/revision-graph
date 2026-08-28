@@ -2,6 +2,8 @@
   "Git Revision Graph: open a folder first.": "Git Revision Graph: 請先開啟一個資料夾。",
   "Git Revision Graph": "版本圖",
   "Git Revision Graph: {0}": "Git Revision Graph: {0}",
+  "{0} ({1} ↔ {2})": "{0} ({1} ↔ {2})",
+  "{0}: {1}": "{0}: {1}",
   "current branch": "目前分支",
   "remote": "遠端",
   "Type to filter branches, then select one to check out": "輸入以篩選分支,然後選擇要簽出的分支",

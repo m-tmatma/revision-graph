@@ -2,6 +2,8 @@
   "Git Revision Graph: open a folder first.": "Git Revision Graph: 먼저 폴더를 여세요.",
   "Git Revision Graph": "리비전 그래프",
   "Git Revision Graph: {0}": "Git Revision Graph: {0}",
+  "{0} ({1} ↔ {2})": "{0} ({1} ↔ {2})",
+  "{0}: {1}": "{0}: {1}",
   "current branch": "현재 브랜치",
   "remote": "원격",
   "Type to filter branches, then select one to check out": "입력하여 브랜치를 필터링한 다음 체크아웃할 브랜치를 선택하세요",
