@@ -92,3 +92,6 @@ contributor) — worth reading before opening a PR:
   (`*.html` under `src/webview/`) needs a clean local `accesslint` scan
   first — CLAUDE.md has the exact command and the list of issues it tends
   to catch.
+- **Automated review**: CodeRabbit posts an automated review comment on
+  every PR — treat its findings like any other reviewer's, but human
+  review still applies before merging.
