@@ -34,6 +34,12 @@ implementing and verifying the build, describe what changed and wait for
 the user to confirm before committing — including a small fix-up commit
 on an already-open PR's branch.
 
+When fixing multiple review findings (CodeRabbit, a human reviewer, etc.)
+on the same PR, don't bundle unrelated ones into a single fix-up commit
+just because they landed at the same time — split them into one commit
+per finding, even on the same branch/PR. Unrelated findings squashed
+together make the history harder to review or selectively revert later.
+
 ## Language
 
 Write commit messages, PR titles/descriptions, and PR/issue comments in
