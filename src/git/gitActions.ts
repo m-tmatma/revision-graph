@@ -190,6 +190,14 @@ export async function updateSubmodules(cwd: string): Promise<void> {
   await runGitCapture(cwd, ['submodule', 'update', '--init', '--recursive']);
 }
 
+/**
+ * `git fetch --all --prune` — updates every remote's tracking branches and
+ * removes local remote-tracking refs for branches deleted upstream.
+ */
+export async function fetchAll(cwd: string): Promise<void> {
+  await runGitCapture(cwd, ['fetch', '--all', '--prune']);
+}
+
 /** `git branch -d` (safe delete), or `-D` (force) when `force` is true. */
 export async function deleteLocalBranch(cwd: string, name: string, force = false): Promise<void> {
   await runGitCapture(cwd, ['branch', force ? '-D' : '-d', name]);

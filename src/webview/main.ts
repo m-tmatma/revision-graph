@@ -52,6 +52,7 @@ const toolbar = {
   showBranchesMergesToggle: document.getElementById('show-branches-merges-toggle') as HTMLInputElement | null,
   showTagsToggle: document.getElementById('show-tags-toggle') as HTMLInputElement | null,
   refreshButton: document.getElementById('refresh-button') as HTMLButtonElement | null,
+  fetchButton: document.getElementById('fetch-button') as HTMLButtonElement | null,
   checkoutButton: document.getElementById('checkout-button') as HTMLButtonElement | null,
   exportSvgButton: document.getElementById('export-svg-button') as HTMLButtonElement | null,
   exportPngButton: document.getElementById('export-png-button') as HTMLButtonElement | null,
@@ -67,6 +68,7 @@ if (
   !toolbar.showBranchesMergesToggle ||
   !toolbar.showTagsToggle ||
   !toolbar.refreshButton ||
+  !toolbar.fetchButton ||
   !toolbar.checkoutButton ||
   !toolbar.exportSvgButton ||
   !toolbar.exportPngButton
@@ -139,6 +141,10 @@ toolbar.showTagsToggle.addEventListener('change', applyFilter);
 toolbar.refreshButton.addEventListener('click', () => {
   focusOnHeadForNextGraphData = true;
   applyFilter();
+});
+toolbar.fetchButton.addEventListener('click', () => {
+  const message: WebviewToHostMessage = { type: 'fetch' };
+  vscode.postMessage(message);
 });
 toolbar.checkoutButton.addEventListener('click', () => {
   const message: WebviewToHostMessage = { type: 'incrementalCheckout' };

@@ -15,6 +15,7 @@ import {
   deleteRemoteTrackingRef,
   deleteTag,
   diffFileChanges,
+  fetchAll,
   getCommitShowSummary,
   getCommitSummary,
   getDefaultBranchRef,
@@ -152,6 +153,10 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
   // (e.g. rapidly toggling checkboxes); only the latest request's result
   // should ever reach the webview.
   let requestGeneration = 0;
+  // `git fetch` takes an exclusive lock on the repo's refs — running two at
+  // once would have the second fail outright rather than queue, so a click
+  // while one is already in flight is simply ignored.
+  let fetchInProgress = false;
 
   const refresh = async (focusOnHead = false) => {
     const generation = ++requestGeneration;
@@ -227,6 +232,14 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       );
     } else if (message.type === 'incrementalCheckout') {
       await showIncrementalCheckout(cwd, refresh);
+    } else if (message.type === 'fetch') {
+      if (fetchInProgress) return;
+      fetchInProgress = true;
+      try {
+        await handleFetch(cwd, refresh);
+      } finally {
+        fetchInProgress = false;
+      }
     }
   });
 }
@@ -375,6 +388,16 @@ function showCheckoutDialog(
       await refreshGraph(true);
     }
   });
+}
+
+async function handleFetch(cwd: string, refreshGraph: () => Promise<void>): Promise<void> {
+  try {
+    await fetchAll(cwd);
+    vscode.window.showInformationMessage(vscode.l10n.t('Git Revision Graph: fetch complete'));
+    await refreshGraph();
+  } catch (err) {
+    vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: fetch failed ({0})', (err as Error).message));
+  }
 }
 
 async function handleDeleteRef(
