@@ -108,6 +108,9 @@ export async function diffFileChanges(cwd: string, from: string, to: string): Pr
     if (letter && path) statusByPath.set(path, statusFromLetter(letter));
   }
 
+  // Binary files report `-` instead of a line count.
+  const parseCount = (raw: string) => (raw === '-' ? undefined : Number(raw));
+
   const changes: FileChange[] = [];
   for (const line of numstatOutput.split('\n')) {
     if (!line.trim()) continue;
@@ -116,9 +119,8 @@ export async function diffFileChanges(cwd: string, from: string, to: string): Pr
     changes.push({
       path,
       status: statusByPath.get(path) ?? 'other',
-      // Binary files report `-` instead of a line count.
-      added: addedRaw === '-' ? undefined : Number(addedRaw),
-      deleted: deletedRaw === '-' ? undefined : Number(deletedRaw),
+      added: parseCount(deletedRaw),
+      deleted: parseCount(addedRaw),
     });
   }
   return changes;
