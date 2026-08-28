@@ -15,6 +15,7 @@ import {
   deleteRemoteTrackingRef,
   deleteTag,
   diffFileChanges,
+  fetchAll,
   getCommitShowSummary,
   getCommitSummary,
   getDefaultBranchRef,
@@ -227,6 +228,8 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       );
     } else if (message.type === 'incrementalCheckout') {
       await showIncrementalCheckout(cwd, refresh);
+    } else if (message.type === 'fetch') {
+      await handleFetch(cwd, refresh);
     }
   });
 }
@@ -375,6 +378,16 @@ function showCheckoutDialog(
       await refreshGraph(true);
     }
   });
+}
+
+async function handleFetch(cwd: string, refreshGraph: () => Promise<void>): Promise<void> {
+  try {
+    await fetchAll(cwd);
+    vscode.window.showInformationMessage(vscode.l10n.t('Git Revision Graph: fetch complete'));
+    await refreshGraph();
+  } catch (err) {
+    vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: fetch failed ({0})', (err as Error).message));
+  }
 }
 
 async function handleDeleteRef(

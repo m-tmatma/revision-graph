@@ -67,6 +67,7 @@ export type WebviewToHostMessage =
   | { type: 'renameRef'; refType: RefType; refName: string }
   | { type: 'createBranch'; startPoint: string }
   | { type: 'createTag'; startPoint: string }
+  | { type: 'fetch' }
   | { type: 'exportSvg'; svg: string }
   | { type: 'exportPng'; dataUrl: string }
   | { type: 'incrementalCheckout' };
