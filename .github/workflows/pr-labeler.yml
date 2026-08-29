@@ -27,7 +27,7 @@ jobs:
           case "$TITLE" in
             feat:*) label=feat ;;
             fix:*) label=fix ;;
-            change:*) label=change ;;
+            change:*) label=spec-change ;;
             refactor:*) label=refactor ;;
             i18n:*) label=i18n ;;
             docs:*) label=docs ;;

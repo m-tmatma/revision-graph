@@ -12,7 +12,7 @@ changelog:
         - fix
     - title: 🔄 Changes
       labels:
-        - change
+        - spec-change
     - title: ♻️ Refactoring
       labels:
         - refactor
