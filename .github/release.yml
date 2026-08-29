@@ -1,0 +1,30 @@
+changelog:
+  exclude:
+    labels:
+      - chore
+      - ci
+  categories:
+    - title: ✨ Features
+      labels:
+        - feat
+    - title: 🐛 Bug Fixes
+      labels:
+        - fix
+    - title: 🔄 Changes
+      labels:
+        - spec-change
+    - title: ♻️ Refactoring
+      labels:
+        - refactor
+    - title: 🌐 Localization
+      labels:
+        - i18n
+    - title: ♿ Accessibility
+      labels:
+        - accessibility
+    - title: 📝 Documentation
+      labels:
+        - docs
+    - title: Other Changes
+      labels:
+        - "*"
