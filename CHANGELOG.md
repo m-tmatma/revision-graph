@@ -16,6 +16,11 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Show Log panel: a "Compare with current branch" item in the
   per-commit context menu, opening the Compare (Changed Files) panel
   against HEAD.
+- Show Log panel: Ctrl/Cmd+click two commits (or use the "Select for
+  Compare" context-menu item, including Ctrl/Cmd+right-click as a
+  shortcut that pairs with whatever's currently expanded) to diff them
+  directly against each other, same as the main graph view's own
+  two-node selection.
 
 ### Fixed
 

@@ -455,6 +455,8 @@ function showLogPanel(context: vscode.ExtensionContext, cwd: string, startRef: s
       await handleCreateTag(cwd, message.startPoint, refreshAfterRepoChange);
     } else if (message.type === 'compareWithCurrentBranch') {
       await showCompareChanges(context, cwd, 'HEAD', message.to);
+    } else if (message.type === 'compare') {
+      await showCompareChanges(context, cwd, message.from, message.to);
     }
   });
 }

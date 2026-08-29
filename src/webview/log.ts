@@ -7,7 +7,7 @@
 
 import type { FileChange, LogEntry, LogHostToWebviewMessage, LogWebviewToHostMessage, RefInfo } from '../shared/types';
 import { applyLocalization, t } from './l10n';
-import { resolveCheckoutTarget } from './render/checkoutTarget';
+import { refDisplayLabel, resolveCheckoutTarget } from './render/checkoutTarget';
 import { contrastTextColor, REF_COLORS } from './render/colors';
 import { showContextMenu, type ContextMenuItem } from './render/contextMenu';
 import { createSvgElement, formatDate } from './render/graphRenderer';
@@ -40,6 +40,71 @@ if (!commitListEl) {
 let expandedHash: string | undefined;
 const fileListsByHash = new Map<string, HTMLUListElement>();
 const buttonsByHash = new Map<string, HTMLButtonElement>();
+const entriesByHash = new Map<string, LogEntry>();
+const compareBadgesByHash = new Map<string, HTMLSpanElement>();
+
+// Two-commit selection for "Compare": Ctrl/Cmd+click keeps a sliding window
+// of the last two *distinct* commits clicked, oldest evicted first, so
+// repeatedly Ctrl-clicking never gets stuck anchored to a stale first pick.
+// A plain click (see clearCompareSelection below) abandons the selection
+// entirely, mirroring the main graph's own SelectionController (whose plain
+// click also resets the whole selection) -- without that, ordinary
+// expand/collapse browsing in between Ctrl-clicks would leave an old,
+// forgotten selection to resurface unexpectedly paired with whatever gets
+// Ctrl-clicked next. Also reset on every full render (a fresh `logData`
+// message), same as the main graph resets on every `graphData` message.
+let compareSelection: string[] = [];
+
+// A numbered badge ("1"/"2") in the subject text, rather than a colored
+// accent on the row itself -- a left-edge accent sits right beside the
+// multi-colored lane graph (blue/orange/green/purple/red/yellow lines), so
+// any single accent color risked blending into whichever lane happened to
+// be running past that row. Text position also doubles as the "from"/"to"
+// order used by the eventual `compare` message.
+function applyCompareHighlight(): void {
+  compareBadgesByHash.forEach((badge, hash) => {
+    const position = compareSelection.indexOf(hash);
+    badge.hidden = position === -1;
+    if (position !== -1) badge.textContent = String(position + 1);
+  });
+}
+
+function toggleCompareSelection(hash: string): void {
+  if (compareSelection[compareSelection.length - 1] === hash) return; // re-clicking the most recent pick is a no-op
+  compareSelection = [...compareSelection, hash].slice(-2);
+  applyCompareHighlight();
+}
+
+function clearCompareSelection(): void {
+  if (compareSelection.length === 0) return;
+  compareSelection = [];
+  applyCompareHighlight();
+}
+
+// Ctrl/Cmd+right-click's own entry point (see the contextmenu listener
+// below, and the "Select for Compare" menu item): if the pending selection
+// isn't already a complete pair, fills the missing slot with whatever's
+// currently expanded -- the ordinary (non-Ctrl) click that expanded it
+// already counted as "looking at this one", it just didn't say so
+// explicitly via Ctrl. Covers both "browsed to A, then Ctrl+right-click B"
+// (selection empty) and "browsed to A, Ctrl+left-clicked B, then
+// Ctrl+right-click B again to open the menu" (selection has only B) --
+// either way this completes the pair with A. Deliberately narrower than
+// "selection isn't already a full pair": if the user already Ctrl-clicked
+// some other commit C (compareSelection = [C], C !== hash), prefilling
+// `expandedHash` here would evict C and silently swap in A instead --
+// exactly the explicit pick the user just made. Once two commits have been
+// deliberately Ctrl-clicked, or the expanded commit IS the one being
+// right-clicked, there's nothing to fill in and this defers entirely to
+// toggleCompareSelection.
+function selectForCompareViaContextMenu(hash: string): void {
+  const shouldPairWithExpanded =
+    compareSelection.length === 0 || (compareSelection.length === 1 && compareSelection[0] === hash);
+  if (shouldPairWithExpanded && expandedHash && expandedHash !== hash) {
+    compareSelection = [...compareSelection, expandedHash].slice(-2);
+  }
+  toggleCompareSelection(hash);
+}
 
 function statusLabel(status: FileChange['status']): string {
   switch (status) {
@@ -259,6 +324,10 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
 
   const subject = document.createElement('span');
   subject.className = 'subject';
+  const compareBadge = document.createElement('span');
+  compareBadge.className = 'compare-badge';
+  compareBadge.hidden = true;
+  subject.appendChild(compareBadge);
   for (const ref of entry.refs) subject.appendChild(buildRefBadge(ref));
   if (laneRow.isMerge) {
     const badge = document.createElement('span');
@@ -284,8 +353,24 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
   // Attached to the whole row, not just the button, so clicking the
   // lane-graph SVG beside the text also toggles this commit -- the SVG
   // isn't itself an interactive element (it's aria-hidden, decorative),
-  // so a click there wouldn't otherwise reach anything.
-  main.addEventListener('click', () => toggleCommit(entry.hash));
+  // so a click there wouldn't otherwise reach anything. Ctrl/Cmd+click is
+  // reserved for the two-commit Compare selection below instead of
+  // expanding the row, matching the main graph's own Ctrl/Cmd+click
+  // convention for node selection.
+  main.addEventListener('click', (event) => {
+    if (event.ctrlKey || event.metaKey) {
+      toggleCompareSelection(entry.hash);
+    } else {
+      // A plain click means "browse elsewhere", same as the main graph's own
+      // plain click abandoning whatever pair was selected there -- without
+      // this, an old compare selection from several clicks ago silently
+      // stuck around through any number of ordinary expand/collapse clicks
+      // in between, resurfacing unexpectedly paired with whatever was
+      // Ctrl-clicked next.
+      clearCompareSelection();
+      toggleCommit(entry.hash);
+    }
+  });
 
   // Without this, right-clicking a row falls through to the webview's
   // native OS edit menu (Cut/Copy/Paste) -- meaningless here since none of
@@ -294,6 +379,17 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
   // graph view's node context menu.
   main.addEventListener('contextmenu', (event) => {
     event.preventDefault();
+
+    // Holding Ctrl/Cmd while right-clicking is the fast path: pick a second
+    // commit and immediately see the "Compare with {0}" item in the same
+    // gesture. If nothing's been Ctrl-clicked yet this round, pair with
+    // whatever's currently expanded (the commit the user was just looking
+    // at via an ordinary click) rather than requiring a separate, explicit
+    // Ctrl+left-click first.
+    if (event.ctrlKey || event.metaKey) {
+      selectForCompareViaContextMenu(entry.hash);
+    }
+
     const items: ContextMenuItem[] = [];
 
     const checkoutItem = checkoutMenuItem(entry);
@@ -335,6 +431,30 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
         },
       },
     );
+
+    // Keyboard/AT-accessible equivalent of the Ctrl/Cmd+click selection
+    // above -- that gesture has no keyboard equivalent (same gap the main
+    // graph's own selection has), so these menu items expose the same two
+    // states (pick a commit / compare the two picked commits) without
+    // requiring a mouse.
+    const [from, to] = compareSelection;
+    if (from && to && (entry.hash === from || entry.hash === to)) {
+      const fromLabel = refDisplayLabel(entriesByHash.get(from)?.refs ?? [], from);
+      const toLabel = refDisplayLabel(entriesByHash.get(to)?.refs ?? [], to);
+      items.push({
+        label: t('Compare {0} and {1}', fromLabel, toLabel),
+        onClick: () => {
+          const message: LogWebviewToHostMessage = { type: 'compare', from, to };
+          vscode.postMessage(message);
+        },
+      });
+    } else if (compareSelection[compareSelection.length - 1] !== entry.hash) {
+      items.push({
+        label: t('Select for Compare'),
+        onClick: () => selectForCompareViaContextMenu(entry.hash),
+      });
+    }
+
     showContextMenu(event.clientX, event.clientY, items);
   });
 
@@ -348,6 +468,8 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
 
   buttonsByHash.set(entry.hash, button);
   fileListsByHash.set(entry.hash, fileList);
+  entriesByHash.set(entry.hash, entry);
+  compareBadgesByHash.set(entry.hash, compareBadge);
 
   return li;
 }
@@ -355,7 +477,10 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
 function render(entries: LogEntry[]): void {
   fileListsByHash.clear();
   buttonsByHash.clear();
+  entriesByHash.clear();
+  compareBadgesByHash.clear();
   expandedHash = undefined;
+  compareSelection = [];
 
   const { rows, laneCount } = computeLanes(entries);
   commitListEl!.replaceChildren(...entries.map((entry, i) => buildCommitRow(entry, rows[i], laneCount)));
@@ -365,7 +490,10 @@ function render(entries: LogEntry[]): void {
 function renderLogError(message: string): void {
   fileListsByHash.clear();
   buttonsByHash.clear();
+  entriesByHash.clear();
+  compareBadgesByHash.clear();
   expandedHash = undefined;
+  compareSelection = [];
 
   const li = document.createElement('li');
   li.className = 'file-list-status error';

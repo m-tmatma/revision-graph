@@ -129,5 +129,7 @@
   "Merge": "合併",
   "Parents: {0}": "父提交: {0}",
   "No changes.": "沒有變更。",
-  "Copy path": "複製路徑"
+  "Copy path": "複製路徑",
+  "Select for Compare": "選取以進行比較",
+  "Compare {0} and {1}": "比較 {0} 和 {1}"
 }

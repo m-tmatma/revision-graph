@@ -35,3 +35,17 @@ export function resolveCheckoutTarget(refs: RefInfo[], commitId: string): Checko
 
   return { ref: commitId, label: t('{0} (detached HEAD)', commitId.slice(0, 7)) };
 }
+
+// Picks the most identifiable label for a commit: the branch/tag name it
+// carries (preferring the current branch, then a local branch, then a tag,
+// then a remote-tracking branch) over its bare hash. Shared by the main
+// graph view (the "Show Log" panel's own title) and the Show Log panel
+// (the "Compare with {0}" menu label for a two-commit selection).
+export function refDisplayLabel(refs: RefInfo[], commitId: string): string {
+  const preferred =
+    refs.find((ref) => ref.type === 'current-branch') ??
+    refs.find((ref) => ref.type === 'local-branch') ??
+    refs.find((ref) => ref.type === 'tag') ??
+    refs.find((ref) => ref.type === 'remote-branch');
+  return preferred ? preferred.name : commitId.slice(0, 7);
+}

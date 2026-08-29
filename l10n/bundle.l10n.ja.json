@@ -134,5 +134,7 @@
   "Merge": "マージ",
   "Parents: {0}": "親: {0}",
   "No changes.": "変更はありません。",
-  "Copy path": "パスをコピー"
+  "Copy path": "パスをコピー",
+  "Select for Compare": "比較用に選択",
+  "Compare {0} and {1}": "{0} と {1} を比較"
 }
