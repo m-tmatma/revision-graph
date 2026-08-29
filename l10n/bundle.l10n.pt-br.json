@@ -115,5 +115,11 @@
   "Merge local changes": "Mesclar alterações locais",
   "Update submodules (init + update --recursive)": "Atualizar submódulos (init + update --recursive)",
   "Cancel": "Cancelar",
-  "OK": "OK"
+  "OK": "OK",
+  "Delete Merged Branches…": "Excluir ramificações mescladas…",
+  "Git Revision Graph: no local branches are fully merged into the current branch.": "Git Revision Graph: nenhuma ramificação local está totalmente mesclada na ramificação atual.",
+  "Select merged branches to delete": "Selecione as ramificações mescladas para excluir",
+  "Delete {0} branch(es)? This cannot be undone.": "Excluir {0} ramificação(ões)? Esta ação não pode ser desfeita.",
+  "Git Revision Graph: deleted {0} branch(es).": "Git Revision Graph: {0} ramificação(ões) excluída(s).",
+  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: falha ao excluir: {0}"
 }

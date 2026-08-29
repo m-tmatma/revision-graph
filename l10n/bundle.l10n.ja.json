@@ -120,5 +120,11 @@
   "Merge local changes": "ローカルの変更をマージ",
   "Update submodules (init + update --recursive)": "サブモジュールを更新 (init + update --recursive)",
   "Cancel": "キャンセル",
-  "OK": "OK"
+  "OK": "OK",
+  "Delete Merged Branches…": "マージ済みブランチを削除…",
+  "Git Revision Graph: no local branches are fully merged into the current branch.": "Git Revision Graph: 現在のブランチに完全にマージされたローカルブランチはありません。",
+  "Select merged branches to delete": "削除するマージ済みブランチを選択してください",
+  "Delete {0} branch(es)? This cannot be undone.": "{0} 個のブランチを削除しますか?元に戻せません。",
+  "Git Revision Graph: deleted {0} branch(es).": "Git Revision Graph: {0} 個のブランチを削除しました。",
+  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: 削除に失敗しました: {0}"
 }
