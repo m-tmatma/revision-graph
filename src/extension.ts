@@ -476,7 +476,13 @@ async function handleRenameRef(cwd: string, oldName: string, refreshGraph: () =>
 }
 
 async function handleDeleteMergedBranches(cwd: string, refreshGraph: () => Promise<void>): Promise<void> {
-  const candidates = await listMergedLocalBranches(cwd);
+  let candidates: string[];
+  try {
+    candidates = await listMergedLocalBranches(cwd);
+  } catch (err) {
+    vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
+    return;
+  }
   if (candidates.length === 0) {
     vscode.window.showInformationMessage(
       vscode.l10n.t('Git Revision Graph: no local branches are fully merged into the current branch.'),
