@@ -121,5 +121,12 @@
   "Select merged branches to delete": "Seleccione las ramas fusionadas para eliminar",
   "Delete {0} branch(es)? This cannot be undone.": "¿Eliminar {0} rama(s)? Esta acción no se puede deshacer.",
   "Git Revision Graph: deleted {0} branch(es).": "Git Revision Graph: se eliminaron {0} rama(s).",
-  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: error al eliminar: {0}"
+  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: error al eliminar: {0}",
+  "Show Log": "Mostrar registro",
+  "Commit Log": "Registro de confirmaciones",
+  "Log: {0}": "Registro: {0}",
+  "Git Revision Graph: log panel markup is missing expected elements": "Git Revision Graph: al panel de registro le faltan elementos esperados",
+  "Merge": "Fusión",
+  "Parents: {0}": "Padres: {0}",
+  "No changes.": "Sin cambios."
 }

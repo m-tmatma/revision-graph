@@ -11,7 +11,7 @@ import { NODE_PADDING_Y, NODE_ROW_HEIGHT } from './layoutConstants';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const ARROW_SIZE = 6;
 
-function createSvgElement<K extends keyof SVGElementTagNameMap>(tag: K): SVGElementTagNameMap[K] {
+export function createSvgElement<K extends keyof SVGElementTagNameMap>(tag: K): SVGElementTagNameMap[K] {
   return document.createElementNS(SVG_NS, tag);
 }
 
@@ -119,7 +119,7 @@ function buildTooltip(node: LaidOutNode): SVGTitleElement {
   return title;
 }
 
-function formatDate(unixSeconds: number): string {
+export function formatDate(unixSeconds: number): string {
   const date = new Date(unixSeconds * 1000);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;

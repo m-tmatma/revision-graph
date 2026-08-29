@@ -121,5 +121,12 @@
   "Select merged branches to delete": "Sélectionnez les branches fusionnées à supprimer",
   "Delete {0} branch(es)? This cannot be undone.": "Supprimer {0} branche(s) ? Cette action est irréversible.",
   "Git Revision Graph: deleted {0} branch(es).": "Git Revision Graph : {0} branche(s) supprimée(s).",
-  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph : échec de la suppression : {0}"
+  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph : échec de la suppression : {0}",
+  "Show Log": "Afficher le journal",
+  "Commit Log": "Journal des commits",
+  "Log: {0}": "Journal : {0}",
+  "Git Revision Graph: log panel markup is missing expected elements": "Git Revision Graph : des éléments attendus sont absents du balisage du panneau de journal",
+  "Merge": "Fusion",
+  "Parents: {0}": "Parents : {0}",
+  "No changes.": "Aucune modification."
 }

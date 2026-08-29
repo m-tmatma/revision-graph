@@ -4,7 +4,7 @@
 
 import { spawn } from 'node:child_process';
 import * as vscode from 'vscode';
-import type { CheckoutOptions, FileChange } from '../shared/types';
+import type { CheckoutOptions, FileChange, LogEntry } from '../shared/types';
 
 function runGitCapture(cwd: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -51,6 +51,57 @@ export async function getCommitSummary(cwd: string, rev: string): Promise<Commit
  */
 export async function getCommitShowSummary(cwd: string, rev: string): Promise<string> {
   return (await runGitCapture(cwd, ['show', '--no-color', '--no-patch', '--decorate', rev])).trimEnd();
+}
+
+/**
+ * `git log <rev>` — `rev` and its ancestors, most recent first, for the
+ * "Show Log" panel's commit list. Capped at `maxCount` so an enormous
+ * history doesn't get loaded into the webview all at once.
+ *
+ * `--topo-order` guarantees every commit is listed after all of its
+ * children — the lane-assignment algorithm in logLanes.ts relies on that
+ * to know a commit's hash was already registered as some lane's "expected
+ * next" value by an earlier row (true for every row except the very
+ * first). Plain reverse-chronological order doesn't give that guarantee
+ * (clock skew between branches can list a parent before its child).
+ */
+export async function getLogEntries(cwd: string, rev: string, maxCount = 300): Promise<LogEntry[]> {
+  const output = await runGitCapture(cwd, [
+    'log',
+    '--topo-order',
+    `--max-count=${maxCount}`,
+    '--format=%H\x1f%P\x1f%s\x1f%an\x1f%at',
+    rev,
+  ]);
+  return output
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => {
+      const [hash, parentsRaw, subject, authorName, authorDate] = line.split('\x1f');
+      return {
+        hash: hash ?? '',
+        parents: parentsRaw ? parentsRaw.split(' ').filter(Boolean) : [],
+        subject: subject ?? '',
+        authorName: authorName ?? '',
+        authorDate: Number(authorDate ?? 0),
+      };
+    });
+}
+
+const EMPTY_TREE_SHA = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+
+/**
+ * The first parent of `hash`, or git's canonical empty-tree object if
+ * `hash` has no parent (a root commit) — a safe `diffFileChanges` base for
+ * showing a single commit's own changes in the "Show Log" panel. A merge
+ * commit's first parent is what git itself treats as "the branch it was
+ * merged into", so this matches `git show`'s own default diff for a
+ * non-merge commit without special-casing merges here.
+ */
+export async function getDiffBase(cwd: string, hash: string): Promise<string> {
+  return runGitCapture(cwd, ['rev-parse', '--verify', '-q', `${hash}^`])
+    .then((out) => out.trim())
+    .catch(() => EMPTY_TREE_SHA);
 }
 
 /**

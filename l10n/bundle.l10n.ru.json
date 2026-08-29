@@ -121,5 +121,12 @@
   "Select merged branches to delete": "Выберите слитые ветки для удаления",
   "Delete {0} branch(es)? This cannot be undone.": "Удалить выбранные ветки ({0})? Это действие нельзя отменить.",
   "Git Revision Graph: deleted {0} branch(es).": "Git Revision Graph: удалено веток: {0}.",
-  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: не удалось удалить: {0}"
+  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: не удалось удалить: {0}",
+  "Show Log": "Показать журнал",
+  "Commit Log": "Журнал коммитов",
+  "Log: {0}": "Журнал: {0}",
+  "Git Revision Graph: log panel markup is missing expected elements": "Git Revision Graph: в разметке панели журнала отсутствуют ожидаемые элементы",
+  "Merge": "Слияние",
+  "Parents: {0}": "Родители: {0}",
+  "No changes.": "Нет изменений."
 }

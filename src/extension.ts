@@ -19,6 +19,8 @@ import {
   getCommitShowSummary,
   getCommitSummary,
   getDefaultBranchRef,
+  getDiffBase,
+  getLogEntries,
   isBranchMerged,
   listCheckoutCandidates,
   listMergedLocalBranches,
@@ -38,7 +40,9 @@ import type {
   CompareHostToWebviewMessage,
   CompareWebviewToHostMessage,
   HostToWebviewMessage,
+  LogHostToWebviewMessage,
   LogScopeOptions,
+  LogWebviewToHostMessage,
   RefType,
   ReduceOptions,
   WebviewToHostMessage,
@@ -220,6 +224,8 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       await handleRenameRef(cwd, message.refName, refresh);
     } else if (message.type === 'deleteMergedBranches') {
       await handleDeleteMergedBranches(cwd, refresh);
+    } else if (message.type === 'showLog') {
+      showLogPanel(context, cwd, message.commitId, message.label);
     } else if (message.type === 'createBranch') {
       await handleCreateBranch(cwd, message.startPoint, refresh);
     } else if (message.type === 'createTag') {
@@ -336,7 +342,73 @@ async function openFileDiff(from: string, to: string, path: string): Promise<voi
   const fromUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, authority: from, path: `/${path}` });
   const toUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, authority: to, path: `/${path}` });
   const title = vscode.l10n.t('{0} ({1} ↔ {2})', path, from.slice(0, 7), to.slice(0, 7));
-  await vscode.commands.executeCommand('vscode.diff', fromUri, toUri, title);
+  // Explicit ViewColumn.Beside: without it, vscode.diff opens in the
+  // active editor group -- which, since this is always triggered from a
+  // click inside the Compare/Log webview panel, is that panel's own
+  // column, competing with it for space instead of opening alongside it.
+  // preview: true reuses that same tab (VSCode's italic-title "preview"
+  // mode) on the next file click instead of accumulating a new pinned tab
+  // per file. preserveFocus: true keeps the webview panel itself the
+  // active editor group throughout -- without it, focus jumps to the
+  // diff on the first click, so the *second* click's "Beside" (now
+  // relative to that diff, not the webview) opens yet another column
+  // beside it instead of reusing the first, defeating both of the above.
+  await vscode.commands.executeCommand('vscode.diff', fromUri, toUri, title, {
+    viewColumn: vscode.ViewColumn.Beside,
+    preview: true,
+    preserveFocus: true,
+  });
+}
+
+function showLogPanel(context: vscode.ExtensionContext, cwd: string, startRef: string, label: string): void {
+  const panel = vscode.window.createWebviewPanel(
+    'revisionGraphLog',
+    vscode.l10n.t('Log: {0}', label),
+    vscode.ViewColumn.Beside,
+    {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview')],
+    },
+  );
+
+  getLogPanelHtml(panel.webview, context.extensionUri).then((html) => {
+    panel.webview.html = html;
+  });
+
+  panel.webview.onDidReceiveMessage(async (message: LogWebviewToHostMessage) => {
+    if (message.type === 'ready') {
+      try {
+        const entries = await getLogEntries(cwd, startRef);
+        const hostMessage: LogHostToWebviewMessage = { type: 'logData', data: { entries } };
+        await panel.webview.postMessage(hostMessage);
+      } catch (err) {
+        vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
+        const hostMessage: LogHostToWebviewMessage = { type: 'logError', message: (err as Error).message };
+        await panel.webview.postMessage(hostMessage);
+      }
+    } else if (message.type === 'selectCommit') {
+      try {
+        const base = await getDiffBase(cwd, message.hash);
+        const files = await diffFileChanges(cwd, base, message.hash);
+        const hostMessage: LogHostToWebviewMessage = { type: 'diffData', commitHash: message.hash, files };
+        await panel.webview.postMessage(hostMessage);
+      } catch (err) {
+        const hostMessage: LogHostToWebviewMessage = {
+          type: 'diffError',
+          commitHash: message.hash,
+          message: (err as Error).message,
+        };
+        await panel.webview.postMessage(hostMessage);
+      }
+    } else if (message.type === 'openFile') {
+      try {
+        const base = await getDiffBase(cwd, message.commitHash);
+        await openFileDiff(base, message.commitHash, message.path);
+      } catch (err) {
+        vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
+      }
+    }
+  });
 }
 
 function showCheckoutDialog(
@@ -715,6 +787,10 @@ function getComparePanelHtml(webview: vscode.Webview, extensionUri: vscode.Uri):
 
 function getCheckoutDialogHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {
   return getSimplePanelHtml(webview, extensionUri, 'checkoutDialog.js', 'checkoutDialog.html');
+}
+
+function getLogPanelHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {
+  return getSimplePanelHtml(webview, extensionUri, 'log.js', 'logPanel.html');
 }
 
 async function getWelcomeViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri, versionText: string): Promise<string> {

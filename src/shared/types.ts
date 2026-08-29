@@ -66,6 +66,7 @@ export type WebviewToHostMessage =
   | { type: 'deleteRef'; refType: RefType; refName: string }
   | { type: 'renameRef'; refType: RefType; refName: string }
   | { type: 'deleteMergedBranches' }
+  | { type: 'showLog'; commitId: string; label: string }
   | { type: 'createBranch'; startPoint: string }
   | { type: 'createTag'; startPoint: string }
   | { type: 'fetch' }
@@ -165,3 +166,32 @@ export type CheckoutWebviewToHostMessage =
 
 /** Message sent from the Activity Bar welcome view's webview back to the extension host. */
 export type WelcomeWebviewToHostMessage = { type: 'show' };
+
+// --- Log panel (a fourth, separate WebviewPanel opened from the main
+// graph's "Show Log" context-menu item): a scrollable list of a commit and
+// its ancestors, with per-commit file changes shown on selection. ---
+
+export interface LogEntry {
+  hash: string;
+  subject: string;
+  authorName: string;
+  /** Unix time in seconds. */
+  authorDate: number;
+  /** Parent hashes, in the order git reports them (first parent first). More than one means this is a merge commit. */
+  parents: string[];
+}
+
+export interface LogPanelData {
+  entries: LogEntry[];
+}
+
+export type LogHostToWebviewMessage =
+  | { type: 'logData'; data: LogPanelData }
+  | { type: 'logError'; message: string }
+  | { type: 'diffData'; commitHash: string; files: FileChange[] }
+  | { type: 'diffError'; commitHash: string; message: string };
+
+export type LogWebviewToHostMessage =
+  | { type: 'ready' }
+  | { type: 'selectCommit'; hash: string }
+  | { type: 'openFile'; commitHash: string; path: string };
