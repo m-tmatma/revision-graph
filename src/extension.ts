@@ -402,6 +402,15 @@ function showLogPanel(context: vscode.ExtensionContext, cwd: string, startRef: s
     }
   };
 
+  // Shared by every action below that can add or move a ref (checkout,
+  // create branch, create tag): brings the main graph panel's own view up
+  // to date immediately, if one happens to be open, alongside this panel's
+  // own history/ref badges -- rather than leaving either to repoWatcher's
+  // debounced external-change detection.
+  const refreshAfterRepoChange = async (focusOnHead?: boolean) => {
+    await Promise.all([activeGraphRefresh?.(focusOnHead), refreshLog()]);
+  };
+
   panel.webview.onDidReceiveMessage(async (message: LogWebviewToHostMessage) => {
     if (message.type === 'ready') {
       await refreshLog();
@@ -434,19 +443,16 @@ function showLogPanel(context: vscode.ExtensionContext, cwd: string, startRef: s
         vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
       }
     } else if (message.type === 'openCheckoutDialog') {
-      // Refreshes both this panel's own history/ref badges (the
-      // current-branch badge may now point at a different commit) and the
-      // main graph panel's current-branch highlight, if one happens to be
-      // open, rather than leaving either to repoWatcher's own debounced
-      // detection.
       showCheckoutDialog(
         context,
         cwd,
         { ref: message.ref, label: message.label, suggestedBranchName: message.suggestedBranchName },
-        async (focusOnHead) => {
-          await Promise.all([activeGraphRefresh?.(focusOnHead), refreshLog()]);
-        },
+        refreshAfterRepoChange,
       );
+    } else if (message.type === 'createBranch') {
+      await handleCreateBranch(cwd, message.startPoint, refreshAfterRepoChange);
+    } else if (message.type === 'createTag') {
+      await handleCreateTag(cwd, message.startPoint, refreshAfterRepoChange);
     }
   });
 }
