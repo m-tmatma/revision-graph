@@ -239,7 +239,7 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
       {
         label: t('Copy full hash'),
         onClick: () => {
-          void navigator.clipboard.writeText(entry.hash);
+          void navigator.clipboard.writeText(entry.hash + '\n');
         },
       },
       {
