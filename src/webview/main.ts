@@ -54,6 +54,7 @@ const toolbar = {
   refreshButton: document.getElementById('refresh-button') as HTMLButtonElement | null,
   fetchButton: document.getElementById('fetch-button') as HTMLButtonElement | null,
   checkoutButton: document.getElementById('checkout-button') as HTMLButtonElement | null,
+  deleteMergedBranchesButton: document.getElementById('delete-merged-branches-button') as HTMLButtonElement | null,
   exportSvgButton: document.getElementById('export-svg-button') as HTMLButtonElement | null,
   exportPngButton: document.getElementById('export-png-button') as HTMLButtonElement | null,
 };
@@ -70,6 +71,7 @@ if (
   !toolbar.refreshButton ||
   !toolbar.fetchButton ||
   !toolbar.checkoutButton ||
+  !toolbar.deleteMergedBranchesButton ||
   !toolbar.exportSvgButton ||
   !toolbar.exportPngButton
 ) {
@@ -148,6 +150,10 @@ toolbar.fetchButton.addEventListener('click', () => {
 });
 toolbar.checkoutButton.addEventListener('click', () => {
   const message: WebviewToHostMessage = { type: 'incrementalCheckout' };
+  vscode.postMessage(message);
+});
+toolbar.deleteMergedBranchesButton.addEventListener('click', () => {
+  const message: WebviewToHostMessage = { type: 'deleteMergedBranches' };
   vscode.postMessage(message);
 });
 for (const input of [toolbar.rangeFrom, toolbar.rangeTo]) {

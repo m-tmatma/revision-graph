@@ -239,6 +239,29 @@ export async function isBranchMerged(cwd: string, ref: string, into = 'HEAD'): P
   });
 }
 
+/**
+ * Local branches (other than the current branch, which can't be deleted
+ * anyway) that are fully merged into `into` (default `HEAD`) — i.e. every
+ * branch `git branch -d` would succeed on. Backs the toolbar's "Delete
+ * Merged Branches…" bulk-cleanup action.
+ */
+export async function listMergedLocalBranches(cwd: string, into = 'HEAD'): Promise<string[]> {
+  const [namesOutput, currentBranchOutput] = await Promise.all([
+    runGitCapture(cwd, ['for-each-ref', '--format=%(refname:short)', 'refs/heads/']),
+    // Empty (not an error) in detached HEAD — nothing then matches as current.
+    runGitCapture(cwd, ['symbolic-ref', '--short', '-q', 'HEAD']).catch(() => ''),
+  ]);
+  const currentBranch = currentBranchOutput.trim();
+
+  const names = namesOutput
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((name) => name && name !== currentBranch);
+
+  const mergedFlags = await Promise.all(names.map((name) => isBranchMerged(cwd, name, into)));
+  return names.filter((_, i) => mergedFlags[i]);
+}
+
 export async function deleteTag(cwd: string, name: string): Promise<void> {
   await runGitCapture(cwd, ['tag', '-d', name]);
 }

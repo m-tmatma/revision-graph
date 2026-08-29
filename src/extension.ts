@@ -21,6 +21,7 @@ import {
   getDefaultBranchRef,
   isBranchMerged,
   listCheckoutCandidates,
+  listMergedLocalBranches,
   readFileAtRevision,
   renameLocalBranch,
   tagExists,
@@ -217,6 +218,8 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       await handleDeleteRef(cwd, message.refType, message.refName, refresh);
     } else if (message.type === 'renameRef') {
       await handleRenameRef(cwd, message.refName, refresh);
+    } else if (message.type === 'deleteMergedBranches') {
+      await handleDeleteMergedBranches(cwd, refresh);
     } else if (message.type === 'createBranch') {
       await handleCreateBranch(cwd, message.startPoint, refresh);
     } else if (message.type === 'createTag') {
@@ -470,6 +473,55 @@ async function handleRenameRef(cwd: string, oldName: string, refreshGraph: () =>
   } catch (err) {
     vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: rename failed ({0})', (err as Error).message));
   }
+}
+
+async function handleDeleteMergedBranches(cwd: string, refreshGraph: () => Promise<void>): Promise<void> {
+  const candidates = await listMergedLocalBranches(cwd);
+  if (candidates.length === 0) {
+    vscode.window.showInformationMessage(
+      vscode.l10n.t('Git Revision Graph: no local branches are fully merged into the current branch.'),
+    );
+    return;
+  }
+
+  const picked = await vscode.window.showQuickPick(
+    candidates.map((name) => ({ label: name, picked: true })),
+    {
+      canPickMany: true,
+      placeHolder: vscode.l10n.t('Select merged branches to delete'),
+    },
+  );
+  if (!picked || picked.length === 0) return;
+
+  const deleteActionLabel = vscode.l10n.t('Delete');
+  const confirmed = await vscode.window.showWarningMessage(
+    vscode.l10n.t('Delete {0} branch(es)? This cannot be undone.', String(picked.length)),
+    { modal: true },
+    deleteActionLabel,
+  );
+  if (confirmed !== deleteActionLabel) return;
+
+  const failures: string[] = [];
+  for (const item of picked) {
+    try {
+      // Already confirmed merged by listMergedLocalBranches, so a safe
+      // (non-force) delete is expected to succeed.
+      await deleteLocalBranch(cwd, item.label);
+    } catch (err) {
+      failures.push(vscode.l10n.t('{0} ({1})', item.label, (err as Error).message));
+    }
+  }
+
+  const deletedCount = picked.length - failures.length;
+  if (deletedCount > 0) {
+    vscode.window.showInformationMessage(vscode.l10n.t('Git Revision Graph: deleted {0} branch(es).', String(deletedCount)));
+  }
+  if (failures.length > 0) {
+    vscode.window.showErrorMessage(
+      vscode.l10n.t('Git Revision Graph: failed to delete: {0}', failures.join(', ')),
+    );
+  }
+  await refreshGraph();
 }
 
 async function handleCreateBranch(
