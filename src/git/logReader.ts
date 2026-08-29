@@ -96,7 +96,10 @@ export function buildLogArgs(options: LogScopeOptions, sparse: boolean): string[
       if (!options.toRef) {
         throw new Error('range scope requires toRef');
       }
-      args.push(options.toRef);
+      // toRef/fromRef come straight from the toolbar's free-text range
+      // inputs -- --end-of-options stops git from treating a ref name that
+      // happens to start with "-" as a flag instead of a revision.
+      args.push('--end-of-options', options.toRef);
       if (options.fromRef) {
         args.push(`^${options.fromRef}`);
       }
