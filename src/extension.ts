@@ -75,7 +75,11 @@ const SIMPLE_CHECKOUT_OPTIONS: CheckoutOptions = {
 
 // Custom scheme for reading a file's content as of a given revision, so the
 // "Compare" panel can open a per-file diff via the native `vscode.diff`
-// command. URI shape: `revision-graph-git://<rev>/<repo-relative-path>`.
+// command. URI shape: `revision-graph-git:/<repo-relative-path>?<rev>` -- the
+// revision goes in the query, not the URI authority: a branch/remote-tracking
+// name commonly contains a `/` (e.g. `origin/main`), and a URI authority
+// component ends at its first `/`, silently splitting such a revision into
+// the wrong authority/path pair.
 const GIT_SHOW_SCHEME = 'revision-graph-git';
 
 // The currently-open main graph panel's own refresh function, if any --
@@ -94,7 +98,7 @@ export function activate(context: vscode.ExtensionContext): void {
         const cwd = getWorkspaceRoot();
         if (!cwd) return '';
         const path = decodeURIComponent(uri.path.replace(/^\//, ''));
-        return readFileAtRevision(cwd, uri.authority, path);
+        return readFileAtRevision(cwd, uri.query, path);
       },
     }),
     vscode.window.registerWebviewViewProvider('revisionGraph.welcomeView', createWelcomeViewProvider(context)),
@@ -351,8 +355,8 @@ async function showCompareChanges(
 }
 
 async function openFileDiff(from: string, to: string, path: string): Promise<void> {
-  const fromUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, authority: from, path: `/${path}` });
-  const toUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, authority: to, path: `/${path}` });
+  const fromUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, path: `/${path}`, query: from });
+  const toUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, path: `/${path}`, query: to });
   const title = vscode.l10n.t('{0} ({1} ↔ {2})', path, from.slice(0, 7), to.slice(0, 7));
   // Explicit ViewColumn.Beside: without it, vscode.diff opens in the
   // active editor group -- which, since this is always triggered from a
