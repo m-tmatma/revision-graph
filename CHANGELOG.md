@@ -25,6 +25,9 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Show Log panel: right-clicking a file in a commit's changed-files list
   now shows a menu with a **Copy path** action instead of the webview's
   native Cut/Copy/Paste edit menu.
+- Compare (Changed Files) panel: right-clicking a file row now shows the
+  same **Copy path** menu instead of the webview's native Cut/Copy/Paste
+  edit menu.
 
 ## 0.10.0
 
