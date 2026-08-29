@@ -129,5 +129,7 @@
   "Merge": "Merge",
   "Parents: {0}": "Eltern-Commits: {0}",
   "No changes.": "Keine Änderungen.",
-  "Copy path": "Pfad kopieren"
+  "Copy path": "Pfad kopieren",
+  "Select for Compare": "Für Vergleich auswählen",
+  "Compare {0} and {1}": "{0} mit {1} vergleichen"
 }

@@ -21,7 +21,7 @@ import { renderGraph } from './render/graphRenderer';
 import { NODE_MIN_WIDTH, NODE_PADDING_X, NODE_PADDING_Y, NODE_ROW_HEIGHT } from './render/layoutConstants';
 import { PanZoomController } from './render/panZoom';
 import { closeContextMenu, showContextMenu, type ContextMenuItem } from './render/contextMenu';
-import { resolveCheckoutTarget } from './render/checkoutTarget';
+import { refDisplayLabel, resolveCheckoutTarget } from './render/checkoutTarget';
 import { SelectionController } from './render/selection';
 import { Minimap } from './render/minimap';
 
@@ -404,19 +404,12 @@ function isRenameableRefType(type: RefType): boolean {
   return type === 'local-branch' || type === 'current-branch';
 }
 
-// Picks the most identifiable label for a node: the branch/tag name it
-// carries (preferring the current branch, then a local branch, then a tag,
-// then a remote-tracking branch) over its bare hash — used for the "Show
-// Log" panel's title so it reads e.g. "Log: main" rather than "Log: a1b2c3d"
-// whenever the right-clicked commit has a ref to name it by.
+// Used for the "Show Log" panel's title so it reads e.g. "Log: main" rather
+// than "Log: a1b2c3d" whenever the right-clicked commit has a ref to name
+// it by (refDisplayLabel is shared with the Show Log panel's own "Compare
+// with {0}" menu label).
 function nodeDisplayLabel(node: LaidOutNode | undefined, commitId: string): string {
-  const refs = node?.refs ?? [];
-  const preferred =
-    refs.find((ref) => ref.type === 'current-branch') ??
-    refs.find((ref) => ref.type === 'local-branch') ??
-    refs.find((ref) => ref.type === 'tag') ??
-    refs.find((ref) => ref.type === 'remote-branch');
-  return preferred ? preferred.name : commitId.slice(0, 7);
+  return refDisplayLabel(node?.refs ?? [], commitId);
 }
 
 // Checkout targets the right-clicked node's own local branch if it has

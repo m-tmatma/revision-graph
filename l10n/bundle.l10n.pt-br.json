@@ -129,5 +129,7 @@
   "Merge": "Mesclagem",
   "Parents: {0}": "Pais: {0}",
   "No changes.": "Sem alterações.",
-  "Copy path": "Copiar caminho"
+  "Copy path": "Copiar caminho",
+  "Select for Compare": "Selecionar para comparar",
+  "Compare {0} and {1}": "Comparar {0} com {1}"
 }

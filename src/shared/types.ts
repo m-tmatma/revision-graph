@@ -200,4 +200,5 @@ export type LogWebviewToHostMessage =
   | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string }
   | { type: 'createBranch'; startPoint: string }
   | { type: 'createTag'; startPoint: string }
-  | { type: 'compareWithCurrentBranch'; to: string };
+  | { type: 'compareWithCurrentBranch'; to: string }
+  | { type: 'compare'; from: string; to: string };
