@@ -33,6 +33,11 @@ export class PanZoomController {
   // matter, but a slow extension-host round trip (e.g. filter changes over
   // Remote-SSH) makes the race far more likely to lose.
   private sizeRetryRafHandle: number | null = null;
+  // Without this, resizing the container (e.g. the panel's split changing
+  // width) left the SVG's viewBox holding the old clientWidth/clientHeight
+  // until the next pan/zoom/centerOn recomputed it -- the graph would look
+  // wrongly cropped or zoomed in the meantime.
+  private readonly resizeObserver: ResizeObserver;
 
   constructor(
     private readonly container: HTMLElement,
@@ -49,6 +54,9 @@ export class PanZoomController {
     window.addEventListener('pointermove', this.onPointerMove);
     window.addEventListener('pointerup', this.onPointerUp);
     window.addEventListener('pointercancel', this.onPointerUp);
+
+    this.resizeObserver = new ResizeObserver(() => this.apply());
+    this.resizeObserver.observe(container);
   }
 
   /** Resets zoom to 1:1 and centers the viewport on a logical point. */
@@ -231,6 +239,7 @@ export class PanZoomController {
    * over (and repainting) an SVG that's no longer even in the DOM.
    */
   destroy(): void {
+    this.resizeObserver.disconnect();
     this.container.removeEventListener('wheel', this.onWheel);
     this.container.removeEventListener('pointerdown', this.onPointerDown);
     window.removeEventListener('pointermove', this.onPointerMove);
