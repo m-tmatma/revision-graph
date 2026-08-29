@@ -52,8 +52,8 @@ declare const __BUILD_COMMIT__: string;
 // so only non-empty for a CI-built package (see .github/workflows/ci.yml).
 declare const __BUILD_NUMBER__: string;
 
-const DEFAULT_SCOPE: LogScopeOptions = { scope: 'all-branches' };
-const DEFAULT_REDUCE_OPTIONS: ReduceOptions = { showAllTags: false, sparse: true };
+const INITIAL_SCOPE: LogScopeOptions = { scope: 'all-branches' };
+const INITIAL_REDUCE_OPTIONS: ReduceOptions = { showAllTags: true, sparse: true };
 // No force/merge/create-branch/submodule-update — the incremental-checkout
 // picker is meant as a fast, no-questions-asked branch switch, same as
 // typing `git checkout <name>` yourself. The right-click "Checkout" item
@@ -147,8 +147,8 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
 
   panel.webview.html = await getWebviewHtml(panel.webview, context.extensionUri);
 
-  let scope: LogScopeOptions = DEFAULT_SCOPE;
-  let reduce: ReduceOptions = DEFAULT_REDUCE_OPTIONS;
+  let scope: LogScopeOptions = INITIAL_SCOPE;
+  let reduce: ReduceOptions = INITIAL_REDUCE_OPTIONS;
   // Filter changes can arrive faster than the git log they trigger resolves
   // (e.g. rapidly toggling checkboxes); only the latest request's result
   // should ever reach the webview.
