@@ -179,6 +179,7 @@ export interface LogEntry {
   authorDate: number;
   /** Parent hashes, in the order git reports them (first parent first). More than one means this is a merge commit. */
   parents: string[];
+  refs: RefInfo[];
 }
 
 export interface LogPanelData {
@@ -195,4 +196,5 @@ export type LogWebviewToHostMessage =
   | { type: 'ready' }
   | { type: 'selectCommit'; hash: string }
   | { type: 'openFile'; commitHash: string; path: string }
-  | { type: 'copyCommitInfo'; hash: string };
+  | { type: 'copyCommitInfo'; hash: string }
+  | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string };

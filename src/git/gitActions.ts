@@ -4,6 +4,7 @@
 
 import { spawn } from 'node:child_process';
 import * as vscode from 'vscode';
+import { fetchRefs } from './logReader';
 import type { CheckoutOptions, FileChange, LogEntry } from '../shared/types';
 
 function runGitCapture(cwd: string, args: string[]): Promise<string> {
@@ -71,12 +72,15 @@ export async function getCommitShowSummary(cwd: string, rev: string): Promise<st
  * (clock skew between branches can list a parent before its child).
  */
 export async function getLogEntries(cwd: string, rev: string, maxCount = 300): Promise<LogEntry[]> {
-  const output = await runGitCapture(cwd, [
-    'log',
-    '--topo-order',
-    `--max-count=${maxCount}`,
-    '--format=%H\x1f%P\x1f%s\x1f%an\x1f%at',
-    rev,
+  const [output, refsByHash] = await Promise.all([
+    runGitCapture(cwd, [
+      'log',
+      '--topo-order',
+      `--max-count=${maxCount}`,
+      '--format=%H\x1f%P\x1f%s\x1f%an\x1f%at',
+      rev,
+    ]),
+    fetchRefs(cwd),
   ]);
   return output
     .split('\n')
@@ -89,6 +93,7 @@ export async function getLogEntries(cwd: string, rev: string, maxCount = 300): P
         subject: subject ?? '',
         authorName: authorName ?? '',
         authorDate: Number(authorDate ?? 0),
+        refs: refsByHash.get(hash ?? '') ?? [],
       };
     });
 }
