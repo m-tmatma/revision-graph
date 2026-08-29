@@ -19,6 +19,20 @@ When merging a PR (`gh pr merge`), always use a merge commit
 keeps each feature's individual commits visible in `master`'s history
 instead of collapsing them into one.
 
+## Pull request titles
+
+Start every PR title with the same conventional-commit-style prefix used
+in this repo's commit messages (`feat:`, `fix:`, `change:`, `refactor:`,
+`i18n:`, `docs:`, `ci:`, `chore:`), e.g. `feat: add "Show Log" panel`,
+`i18n: translate "Show Log" panel strings`. `.github/workflows/pr-labeler.yml`
+matches this prefix to auto-apply a label (`feat`, `fix`, `spec-change`,
+`refactor`, `i18n`, `docs`, `ci`, `chore`) that `.github/release.yml` then
+uses to sort merged PRs into categories for the auto-generated release
+notes — a title with no matching prefix is silently left unlabeled
+(it falls into release.yml's catch-all "Other Changes" category) rather
+than erroring, so a missing prefix is easy to not notice until someone
+checks the PR's labels.
+
 ## Committing
 
 Never commit directly to `master`. Always create a feature/chore branch
