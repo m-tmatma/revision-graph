@@ -119,7 +119,7 @@
   "Delete Merged Branches…": "Удалить слитые ветки…",
   "Git Revision Graph: no local branches are fully merged into the current branch.": "Git Revision Graph: нет локальных веток, полностью слитых с текущей веткой.",
   "Select merged branches to delete": "Выберите слитые ветки для удаления",
-  "Delete {0} branch(es)? This cannot be undone.": "Удалить {0} веток(и)? Это действие нельзя отменить.",
+  "Delete {0} branch(es)? This cannot be undone.": "Удалить выбранные ветки ({0})? Это действие нельзя отменить.",
   "Git Revision Graph: deleted {0} branch(es).": "Git Revision Graph: удалено веток: {0}.",
   "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: не удалось удалить: {0}"
 }
