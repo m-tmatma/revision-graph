@@ -131,5 +131,6 @@
   "No changes.": "변경 사항이 없습니다.",
   "Copy path": "경로 복사",
   "Select for Compare": "비교용으로 선택",
-  "Compare {0} and {1}": "{0}와(과) {1} 비교"
+  "Compare {0} and {1}": "{0}와(과) {1} 비교",
+  "Remote branches": "원격 브랜치"
 }

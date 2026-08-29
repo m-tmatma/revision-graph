@@ -21,6 +21,8 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   shortcut that pairs with whatever's currently expanded) to diff them
   directly against each other, same as the main graph view's own
   two-node selection.
+- A "Remote branches" option in the toolbar's scope filter, showing
+  only commits reachable from remote-tracking refs.
 
 ### Fixed
 
