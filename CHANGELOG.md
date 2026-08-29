@@ -3,6 +3,17 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+### Fixed
+
+- Show Log panel: right-clicking a commit now shows a menu with actions
+  relevant to that commit (**Copy full hash**, **Copy commit info**)
+  instead of the webview's native Cut/Copy/Paste edit menu.
+- Copying a commit's full hash, ref name(s), or commit info to the
+  clipboard (main graph and Show Log panel) now ends with a trailing
+  newline, so pasting it elsewhere leaves the cursor on a fresh line.
+
 ## 0.10.0
 
 ### Added
