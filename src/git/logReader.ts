@@ -92,6 +92,9 @@ export function buildLogArgs(options: LogScopeOptions, sparse: boolean): string[
     case 'local-branches':
       args.push('--branches');
       break;
+    case 'remote-branches':
+      args.push('--remotes');
+      break;
     case 'range':
       if (!options.toRef) {
         throw new Error('range scope requires toRef');

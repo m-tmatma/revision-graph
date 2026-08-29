@@ -17,6 +17,10 @@ describe('buildLogArgs', () => {
     expect(buildLogArgs({ scope: 'local-branches' }, false)).toContain('--branches');
   });
 
+  it('uses --remotes for the remote-branches scope', () => {
+    expect(buildLogArgs({ scope: 'remote-branches' }, false)).toContain('--remotes');
+  });
+
   it('builds a `to ^from` range', () => {
     const args = buildLogArgs({ scope: 'range', fromRef: 'v1.0', toRef: 'main' }, false);
     expect(args).toEqual(expect.arrayContaining(['main', '^v1.0']));

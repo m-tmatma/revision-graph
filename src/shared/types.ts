@@ -25,7 +25,7 @@ export interface GraphCommit {
 
 /** Options controlling which commits are included in the fetched log. */
 export interface LogScopeOptions {
-  scope: 'all-branches' | 'local-branches' | 'current-branch' | 'range';
+  scope: 'all-branches' | 'local-branches' | 'remote-branches' | 'current-branch' | 'range';
   /** Only used when scope === 'range'. Exclusive lower bound (git's `^from`). */
   fromRef?: string;
   /** Only used when scope === 'range'. Inclusive upper bound. */
