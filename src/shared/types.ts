@@ -65,6 +65,7 @@ export type WebviewToHostMessage =
   | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string }
   | { type: 'deleteRef'; refType: RefType; refName: string }
   | { type: 'renameRef'; refType: RefType; refName: string }
+  | { type: 'deleteMergedBranches' }
   | { type: 'createBranch'; startPoint: string }
   | { type: 'createTag'; startPoint: string }
   | { type: 'fetch' }

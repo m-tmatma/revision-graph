@@ -115,5 +115,11 @@
   "Merge local changes": "로컬 변경 사항 병합",
   "Update submodules (init + update --recursive)": "하위 모듈 업데이트 (init + update --recursive)",
   "Cancel": "취소",
-  "OK": "확인"
+  "OK": "확인",
+  "Delete Merged Branches…": "병합된 브랜치 삭제…",
+  "Git Revision Graph: no local branches are fully merged into the current branch.": "Git Revision Graph: 현재 브랜치에 완전히 병합된 로컬 브랜치가 없습니다.",
+  "Select merged branches to delete": "삭제할 병합된 브랜치를 선택하세요",
+  "Delete {0} branch(es)? This cannot be undone.": "{0}개의 브랜치를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+  "Git Revision Graph: deleted {0} branch(es).": "Git Revision Graph: {0}개의 브랜치를 삭제했습니다.",
+  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: 삭제 실패: {0}"
 }

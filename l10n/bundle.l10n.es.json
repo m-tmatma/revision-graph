@@ -115,5 +115,11 @@
   "Merge local changes": "Fusionar cambios locales",
   "Update submodules (init + update --recursive)": "Actualizar submódulos (init + update --recursive)",
   "Cancel": "Cancelar",
-  "OK": "Aceptar"
+  "OK": "Aceptar",
+  "Delete Merged Branches…": "Eliminar ramas fusionadas…",
+  "Git Revision Graph: no local branches are fully merged into the current branch.": "Git Revision Graph: no hay ramas locales completamente fusionadas en la rama actual.",
+  "Select merged branches to delete": "Seleccione las ramas fusionadas para eliminar",
+  "Delete {0} branch(es)? This cannot be undone.": "¿Eliminar {0} rama(s)? Esta acción no se puede deshacer.",
+  "Git Revision Graph: deleted {0} branch(es).": "Git Revision Graph: se eliminaron {0} rama(s).",
+  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: error al eliminar: {0}"
 }

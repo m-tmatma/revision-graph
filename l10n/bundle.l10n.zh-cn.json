@@ -115,5 +115,11 @@
   "Merge local changes": "合并本地更改",
   "Update submodules (init + update --recursive)": "更新子模块 (init + update --recursive)",
   "Cancel": "取消",
-  "OK": "确定"
+  "OK": "确定",
+  "Delete Merged Branches…": "删除已合并的分支…",
+  "Git Revision Graph: no local branches are fully merged into the current branch.": "Git Revision Graph: 没有已完全合并到当前分支的本地分支。",
+  "Select merged branches to delete": "选择要删除的已合并分支",
+  "Delete {0} branch(es)? This cannot be undone.": "删除 {0} 个分支?此操作无法撤销。",
+  "Git Revision Graph: deleted {0} branch(es).": "Git Revision Graph: 已删除 {0} 个分支。",
+  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: 删除失败: {0}"
 }

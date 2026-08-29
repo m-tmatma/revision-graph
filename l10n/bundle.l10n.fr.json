@@ -115,5 +115,11 @@
   "Merge local changes": "Fusionner les modifications locales",
   "Update submodules (init + update --recursive)": "Mettre à jour les sous-modules (init + update --recursive)",
   "Cancel": "Annuler",
-  "OK": "OK"
+  "OK": "OK",
+  "Delete Merged Branches…": "Supprimer les branches fusionnées…",
+  "Git Revision Graph: no local branches are fully merged into the current branch.": "Git Revision Graph : aucune branche locale n'est entièrement fusionnée dans la branche actuelle.",
+  "Select merged branches to delete": "Sélectionnez les branches fusionnées à supprimer",
+  "Delete {0} branch(es)? This cannot be undone.": "Supprimer {0} branche(s) ? Cette action est irréversible.",
+  "Git Revision Graph: deleted {0} branch(es).": "Git Revision Graph : {0} branche(s) supprimée(s).",
+  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph : échec de la suppression : {0}"
 }
