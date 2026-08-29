@@ -6,6 +6,7 @@
 
 import type { CompareData, CompareHostToWebviewMessage, CompareWebviewToHostMessage, FileChange } from '../shared/types';
 import { applyLocalization, t } from './l10n';
+import { showContextMenu, type ContextMenuItem } from './render/contextMenu';
 
 declare function acquireVsCodeApi(): { postMessage(message: CompareWebviewToHostMessage): void };
 
@@ -44,6 +45,22 @@ function buildRow(file: FileChange): HTMLTableRowElement {
   row.addEventListener('click', () => {
     const message: CompareWebviewToHostMessage = { type: 'openFile', path: file.path };
     vscode.postMessage(message);
+  });
+
+  // Without this, right-clicking a row falls through to the webview's
+  // native OS edit menu (Cut/Copy/Paste) -- meaningless here since the row
+  // isn't editable text. Same fix as the Show Log panel's own file rows.
+  row.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    const items: ContextMenuItem[] = [
+      {
+        label: t('Copy path'),
+        onClick: () => {
+          void navigator.clipboard.writeText(file.path + '\n');
+        },
+      },
+    ];
+    showContextMenu(event.clientX, event.clientY, items);
   });
 
   const pathCell = document.createElement('td');
