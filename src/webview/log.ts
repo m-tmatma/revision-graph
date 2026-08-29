@@ -284,6 +284,20 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
 
     items.push(
       {
+        label: t('Create branch here…'),
+        onClick: () => {
+          const message: LogWebviewToHostMessage = { type: 'createBranch', startPoint: entry.hash };
+          vscode.postMessage(message);
+        },
+      },
+      {
+        label: t('Create tag here…'),
+        onClick: () => {
+          const message: LogWebviewToHostMessage = { type: 'createTag', startPoint: entry.hash };
+          vscode.postMessage(message);
+        },
+      },
+      {
         label: t('Copy full hash'),
         onClick: () => {
           void navigator.clipboard.writeText(entry.hash + '\n');

@@ -11,6 +11,8 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   (targeting the commit's own branch when it has one, rather than
   always a detached-HEAD checkout), and color-coded branch/tag badges
   on any commit a ref points to.
+- Show Log panel: "Create branch here…" / "Create tag here…" items in
+  the per-commit context menu.
 
 ### Fixed
 
