@@ -215,6 +215,21 @@ export function parseLogRecord(record: string, refsByHash: Map<string, RefInfo[]
   };
 }
 
+// A commit's refs always include every ref pointing at it (branches, tags,
+// stash) regardless of which scope was used to decide which commits to
+// walk, matching git's own --decorate semantics -- but that can look
+// inconsistent when the user deliberately scoped to one branch kind and
+// still sees a chip for the other (e.g. selecting "Remote branches" but
+// still seeing a local branch's chip on a commit that also happens to be
+// its tip). Drop the "other kind" of branch chip for the two scopes that
+// are specifically about one branch kind or the other; every other scope
+// (all branches, current branch, range) is unaffected.
+export function filterRefsForScope(refs: RefInfo[], scope: LogScopeOptions['scope']): RefInfo[] {
+  if (scope === 'local-branches') return refs.filter((ref) => ref.type !== 'remote-branch');
+  if (scope === 'remote-branches') return refs.filter((ref) => ref.type !== 'local-branch');
+  return refs;
+}
+
 export async function fetchCommits(cwd: string, options: LogScopeOptions, sparse: boolean): Promise<GraphCommit[]> {
   const refsByHash = await fetchRefs(cwd);
   const output = await runGitBuffered(cwd, buildLogArgs(options, sparse));
@@ -222,7 +237,10 @@ export async function fetchCommits(cwd: string, options: LogScopeOptions, sparse
   const commits: GraphCommit[] = [];
   for (const record of output.split(RECORD_SEP)) {
     const commit = parseLogRecord(record.replace(/^\n/, ''), refsByHash);
-    if (commit) commits.push(commit);
+    if (commit) {
+      commit.refs = filterRefsForScope(commit.refs, options.scope);
+      commits.push(commit);
+    }
   }
   return commits;
 }

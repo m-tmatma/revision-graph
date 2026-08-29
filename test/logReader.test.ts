@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLogArgs, classifyRef, displayRefName, parseLogRecord } from '../src/git/logReader';
+import { buildLogArgs, classifyRef, displayRefName, filterRefsForScope, parseLogRecord } from '../src/git/logReader';
 import type { RefInfo } from '../src/shared/types';
 
 const FIELD_SEP = '\x1f';
@@ -44,6 +44,28 @@ describe('buildLogArgs', () => {
   it('adds --sparse only when requested (checked "Show branches and merges")', () => {
     expect(buildLogArgs({ scope: 'all-branches' }, true)).toContain('--sparse');
     expect(buildLogArgs({ scope: 'all-branches' }, false)).not.toContain('--sparse');
+  });
+});
+
+describe('filterRefsForScope', () => {
+  const refs: RefInfo[] = [
+    { name: 'main', type: 'local-branch' },
+    { name: 'origin/main', type: 'remote-branch' },
+    { name: 'v1.0', type: 'tag' },
+  ];
+
+  it('drops remote-branch refs for the local-branches scope', () => {
+    expect(filterRefsForScope(refs, 'local-branches')).toEqual([refs[0], refs[2]]);
+  });
+
+  it('drops local-branch refs for the remote-branches scope', () => {
+    expect(filterRefsForScope(refs, 'remote-branches')).toEqual([refs[1], refs[2]]);
+  });
+
+  it('keeps every ref for other scopes', () => {
+    expect(filterRefsForScope(refs, 'all-branches')).toEqual(refs);
+    expect(filterRefsForScope(refs, 'current-branch')).toEqual(refs);
+    expect(filterRefsForScope(refs, 'range')).toEqual(refs);
   });
 });
 

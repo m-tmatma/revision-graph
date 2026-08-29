@@ -24,6 +24,14 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - A "Remote branches" option in the toolbar's scope filter, showing
   only commits reachable from remote-tracking refs.
 
+### Changed
+
+- With scope set to "Local branches" or "Remote branches", a commit's
+  ref badges now only show branches of the matching kind (tags still
+  always show) — previously a commit could show a local-branch chip
+  while scoped to "Remote branches" (or vice versa) if it happened to
+  also be the other kind's tip.
+
 ### Fixed
 
 - Show Log panel: right-clicking a commit now shows a menu with actions
