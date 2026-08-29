@@ -7,6 +7,7 @@
 
 import type { FileChange, LogEntry, LogHostToWebviewMessage, LogWebviewToHostMessage } from '../shared/types';
 import { applyLocalization, t } from './l10n';
+import { showContextMenu, type ContextMenuItem } from './render/contextMenu';
 import { createSvgElement, formatDate } from './render/graphRenderer';
 import { computeLanes, type LaneRow } from './render/logLanes';
 
@@ -226,6 +227,32 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
   // isn't itself an interactive element (it's aria-hidden, decorative),
   // so a click there wouldn't otherwise reach anything.
   main.addEventListener('click', () => toggleCommit(entry.hash));
+
+  // Without this, right-clicking a row falls through to the webview's
+  // native OS edit menu (Cut/Copy/Paste) -- meaningless here since none of
+  // this row is editable text. A small custom menu with actions that
+  // actually apply to a commit replaces it, same pattern as the main
+  // graph view's node context menu.
+  main.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    const items: ContextMenuItem[] = [
+      {
+        label: t('Copy full hash'),
+        onClick: () => {
+          void navigator.clipboard.writeText(entry.hash + '\n');
+        },
+      },
+      {
+        label: t('Copy commit info'),
+        onClick: () => {
+          const message: LogWebviewToHostMessage = { type: 'copyCommitInfo', hash: entry.hash };
+          vscode.postMessage(message);
+        },
+      },
+    ];
+    showContextMenu(event.clientX, event.clientY, items);
+  });
+
   main.appendChild(button);
   li.appendChild(main);
 

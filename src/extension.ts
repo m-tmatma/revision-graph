@@ -407,6 +407,13 @@ function showLogPanel(context: vscode.ExtensionContext, cwd: string, startRef: s
       } catch (err) {
         vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
       }
+    } else if (message.type === 'copyCommitInfo') {
+      try {
+        const text = await getCommitShowSummary(cwd, message.hash);
+        await vscode.env.clipboard.writeText(text);
+      } catch (err) {
+        vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
+      }
     }
   });
 }

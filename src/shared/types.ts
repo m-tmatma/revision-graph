@@ -194,4 +194,5 @@ export type LogHostToWebviewMessage =
 export type LogWebviewToHostMessage =
   | { type: 'ready' }
   | { type: 'selectCommit'; hash: string }
-  | { type: 'openFile'; commitHash: string; path: string };
+  | { type: 'openFile'; commitHash: string; path: string }
+  | { type: 'copyCommitInfo'; hash: string };
