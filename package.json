@@ -2,7 +2,7 @@
   "name": "vscode-git-revision-graph",
   "displayName": "VSCode Git Revision Graph",
   "description": "%extension.description%",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "publisher": "tmatma",
   "icon": "resources/icon.png",
   "repository": {
