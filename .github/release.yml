@@ -2,6 +2,7 @@ changelog:
   exclude:
     labels:
       - chore
+      - ci
   categories:
     - title: ✨ Features
       labels:
@@ -24,9 +25,6 @@ changelog:
     - title: 📝 Documentation
       labels:
         - docs
-    - title: 🔧 CI
-      labels:
-        - ci
     - title: Other Changes
       labels:
         - "*"
