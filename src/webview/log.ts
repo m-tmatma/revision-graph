@@ -89,12 +89,18 @@ function clearCompareSelection(): void {
 // explicitly via Ctrl. Covers both "browsed to A, then Ctrl+right-click B"
 // (selection empty) and "browsed to A, Ctrl+left-clicked B, then
 // Ctrl+right-click B again to open the menu" (selection has only B) --
-// either way this completes the pair with A. Once two commits have been
+// either way this completes the pair with A. Deliberately narrower than
+// "selection isn't already a full pair": if the user already Ctrl-clicked
+// some other commit C (compareSelection = [C], C !== hash), prefilling
+// `expandedHash` here would evict C and silently swap in A instead --
+// exactly the explicit pick the user just made. Once two commits have been
 // deliberately Ctrl-clicked, or the expanded commit IS the one being
 // right-clicked, there's nothing to fill in and this defers entirely to
 // toggleCompareSelection.
 function selectForCompareViaContextMenu(hash: string): void {
-  if (compareSelection.length < 2 && expandedHash && expandedHash !== hash && !compareSelection.includes(expandedHash)) {
+  const shouldPairWithExpanded =
+    compareSelection.length === 0 || (compareSelection.length === 1 && compareSelection[0] === hash);
+  if (shouldPairWithExpanded && expandedHash && expandedHash !== hash) {
     compareSelection = [...compareSelection, expandedHash].slice(-2);
   }
   toggleCompareSelection(hash);
