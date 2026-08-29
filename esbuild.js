@@ -148,7 +148,17 @@ async function main() {
     // running. Re-copy on any .html change in src/webview so editing a
     // template doesn't silently require restarting watch to take effect.
     fs.watch(path.join(__dirname, 'src', 'webview'), (_eventType, filename) => {
-      if (filename && filename.endsWith('.html')) copyHtmlTemplates();
+      if (!filename || !filename.endsWith('.html')) return;
+      try {
+        copyHtmlTemplates();
+      } catch (err) {
+        // An editor's atomic save (write-temp, then rename over the target)
+        // can fire this event while the source is momentarily missing
+        // (ENOENT) -- letting that throw out of an fs.watch callback would
+        // crash `npm run watch` entirely. Leaving it uncopied here is safe:
+        // the save's own follow-up event (or the next edit) retries it.
+        console.warn(`esbuild.js: failed to re-copy HTML templates (${err.message}), will retry on the next change`);
+      }
     });
 
     console.log('watching for changes...');
