@@ -48,9 +48,14 @@ export async function getCommitSummary(cwd: string, rev: string): Promise<Commit
  * own "auto" default, which shows decorations only when stdout is a
  * terminal — our own stdout here is a pipe, not a tty, so without this
  * flag the ref decorations (branch/tag names) silently disappear.
+ *
+ * Trimmed to exactly one trailing newline (git itself emits several
+ * blank lines after a merge commit's "Merge:" line) so pasting it
+ * elsewhere leaves the cursor on a fresh line, same as the hash-only
+ * copy actions.
  */
 export async function getCommitShowSummary(cwd: string, rev: string): Promise<string> {
-  return (await runGitCapture(cwd, ['show', '--no-color', '--no-patch', '--decorate', rev])).trimEnd();
+  return (await runGitCapture(cwd, ['show', '--no-color', '--no-patch', '--decorate', rev])).trimEnd() + '\n';
 }
 
 /**

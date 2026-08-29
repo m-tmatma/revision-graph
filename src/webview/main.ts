@@ -513,7 +513,7 @@ function attachContextMenu(
       items.push({
         label: nodeRefs.length === 1 ? t('Copy ref name') : t('Copy ref names ({0})', String(nodeRefs.length)),
         onClick: () => {
-          void navigator.clipboard.writeText(nodeRefs.map(fullRefName).join('\n'));
+          void navigator.clipboard.writeText(nodeRefs.map(fullRefName).join('\n') + '\n');
         },
       });
     }
@@ -521,7 +521,7 @@ function attachContextMenu(
     items.push({
       label: t('Copy full hash'),
       onClick: () => {
-        void navigator.clipboard.writeText(commitId);
+        void navigator.clipboard.writeText(commitId + '\n');
       },
     });
 
