@@ -128,5 +128,6 @@
   "Git Revision Graph: log panel markup is missing expected elements": "Git Revision Graph: 日誌面板標記缺少必要的元素",
   "Merge": "合併",
   "Parents: {0}": "父提交: {0}",
-  "No changes.": "沒有變更。"
+  "No changes.": "沒有變更。",
+  "Copy path": "複製路徑"
 }

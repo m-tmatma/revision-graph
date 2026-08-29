@@ -22,6 +22,9 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Copying a commit's full hash, ref name(s), or commit info to the
   clipboard (main graph and Show Log panel) now ends with a trailing
   newline, so pasting it elsewhere leaves the cursor on a fresh line.
+- Show Log panel: right-clicking a file in a commit's changed-files list
+  now shows a menu with a **Copy path** action instead of the webview's
+  native Cut/Copy/Paste edit menu.
 
 ## 0.10.0
 

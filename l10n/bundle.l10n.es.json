@@ -128,5 +128,6 @@
   "Git Revision Graph: log panel markup is missing expected elements": "Git Revision Graph: al panel de registro le faltan elementos esperados",
   "Merge": "Fusión",
   "Parents: {0}": "Padres: {0}",
-  "No changes.": "Sin cambios."
+  "No changes.": "Sin cambios.",
+  "Copy path": "Copiar ruta"
 }
