@@ -3,6 +3,15 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 0.10.0
+
+### Added
+
+- A "Show Log" item in the commit context menu, opening a panel that
+  lists a commit and its ancestors with a per-commit git-graph (merges
+  and branch topology drawn as lanes) and lets you expand any commit
+  inline to see and diff its changed files.
+
 ## 0.9.0
 
 ### Added
