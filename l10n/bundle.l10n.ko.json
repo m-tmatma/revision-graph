@@ -128,5 +128,6 @@
   "Git Revision Graph: log panel markup is missing expected elements": "Git Revision Graph: 로그 패널 마크업에 필요한 요소가 없습니다",
   "Merge": "병합",
   "Parents: {0}": "부모: {0}",
-  "No changes.": "변경 사항이 없습니다."
+  "No changes.": "변경 사항이 없습니다.",
+  "Copy path": "경로 복사"
 }

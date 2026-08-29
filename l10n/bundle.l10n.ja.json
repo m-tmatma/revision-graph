@@ -133,5 +133,6 @@
   "Git Revision Graph: log panel markup is missing expected elements": "Git Revision Graph: ログパネルのマークアップに必要な要素がありません",
   "Merge": "マージ",
   "Parents: {0}": "親: {0}",
-  "No changes.": "変更はありません。"
+  "No changes.": "変更はありません。",
+  "Copy path": "パスをコピー"
 }

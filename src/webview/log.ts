@@ -81,6 +81,23 @@ function buildFileRow(hash: string, file: FileChange): HTMLLIElement {
     vscode.postMessage(message);
   });
 
+  // Same rationale as the commit row's own contextmenu handler above --
+  // without this, right-clicking a file falls through to the webview's
+  // native OS edit menu (Cut/Copy/Paste), meaningless here since the row
+  // isn't editable text.
+  button.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    const items: ContextMenuItem[] = [
+      {
+        label: t('Copy path'),
+        onClick: () => {
+          void navigator.clipboard.writeText(file.path + '\n');
+        },
+      },
+    ];
+    showContextMenu(event.clientX, event.clientY, items);
+  });
+
   const path = document.createElement('span');
   path.className = 'file-path';
   path.textContent = file.path;
