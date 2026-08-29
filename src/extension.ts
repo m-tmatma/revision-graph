@@ -270,7 +270,13 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
 }
 
 async function showIncrementalCheckout(cwd: string, refresh: (focusOnHead?: boolean) => Promise<void>): Promise<void> {
-  const candidates = await listCheckoutCandidates(cwd);
+  let candidates: Awaited<ReturnType<typeof listCheckoutCandidates>>;
+  try {
+    candidates = await listCheckoutCandidates(cwd);
+  } catch (err) {
+    vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
+    return;
+  }
   const items = candidates.map((candidate) => ({
     label: candidate.label,
     description: candidate.isCurrent
