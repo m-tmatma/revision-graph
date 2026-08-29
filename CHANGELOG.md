@@ -59,6 +59,10 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - The main graph's viewport now stays in sync when its panel is
   resized, instead of keeping the old pan/zoom dimensions until the
   next pan, zoom, or refresh.
+- Changing the scope filter (e.g. "Local branches" to "All branches")
+  now re-centers the viewport on the current branch, instead of
+  keeping the old pan/zoom position — which could leave the current
+  branch's node far off-screen, or even show an apparently-blank graph.
 
 ## 0.10.0
 
