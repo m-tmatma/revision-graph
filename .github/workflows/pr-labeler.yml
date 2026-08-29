@@ -35,6 +35,22 @@ jobs:
             chore:*) label=chore ;;
             *) label="" ;;
           esac
+
+          # Remove any other managed label first -- this workflow also runs
+          # on `edited`, and a title changing prefix (e.g. feat: -> fix:)
+          # would otherwise leave the old label stuck alongside the new one.
+          # No `|| true` here: removing a label the PR never had is already a
+          # no-op success (gh only errors if the label doesn't exist in the
+          # repo at all), so a failure here is a real one worth failing the
+          # workflow over, not one to silently swallow.
+          remove_args=""
+          for managed in feat fix spec-change refactor i18n docs ci chore; do
+            if [ "$managed" != "$label" ]; then
+              remove_args="$remove_args --remove-label $managed"
+            fi
+          done
+          gh pr edit "$PR_NUMBER" --repo "$REPO" $remove_args
+
           if [ -n "$label" ]; then
             gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "$label"
           fi

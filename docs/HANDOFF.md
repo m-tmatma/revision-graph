@@ -801,9 +801,9 @@ mechanisms rather than anything homegrown:
   `"{0} ({1} ↔ {2})"`, the diff-editor tab title) — nothing to translate,
   and `t()` already returns those unchanged when no bundle entry exists
   for them.
-- ~85 keys total, covering the extension host, all three webview panels
-  (main graph, "Changed Files", "Switch / Checkout"), and every
-  `package.json`-contributed string. Verified with a throwaway script
+- 133 keys total, covering the extension host, all four webview panels
+  (main graph, "Changed Files", "Switch / Checkout", "Show Log"), and
+  every `package.json`-contributed string. Verified with a throwaway script
   that every `t(...)` call site and `data-i18n(-placeholder)` attribute
   in the source has a matching bundle entry, and vice versa (no orphaned
   translations) — not kept in the repo, just a one-off sanity check.

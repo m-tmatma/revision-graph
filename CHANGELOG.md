@@ -36,6 +36,29 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Compare (Changed Files) panel: right-clicking a file row now shows the
   same **Copy path** menu instead of the webview's native Cut/Copy/Paste
   edit menu.
+- The "Checkout…" branch picker now reports an error instead of doing
+  nothing when listing branches fails.
+- The "Compare" panel's per-file diff now opens correctly for a
+  revision containing a "/" (e.g. `origin/main`), instead of silently
+  reading the wrong revision or failing.
+- File paths containing non-ASCII characters (e.g. Japanese filenames)
+  in the "Compare" panel and Show Log's changed-files list now show
+  and copy correctly, instead of git's escaped/quoted form.
+- A commit's `origin/HEAD` no longer shows as a redundant extra chip
+  alongside its real default branch (e.g. `origin/main`) in the main
+  graph and Show Log panel.
+- Compare (Changed Files) panel: file rows are now keyboard-operable
+  (Tab to focus, Enter/Space to open), not just clickable with a mouse.
+- Rapid filter/checkbox changes in the main graph could occasionally
+  render an older, already-superseded layout over a newer one; the
+  main graph now always shows the most recent request's result.
+- Ref-type badge text color (main graph nodes and Show Log's per-commit
+  badges) now picks black or white by actual contrast against the
+  badge's background, rather than a luminance cutoff that picked the
+  lower-contrast option for a few colors (e.g. the local-branch green).
+- The main graph's viewport now stays in sync when its panel is
+  resized, instead of keeping the old pan/zoom dimensions until the
+  next pan, zoom, or refresh.
 
 ## 0.10.0
 

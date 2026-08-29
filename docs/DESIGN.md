@@ -37,7 +37,7 @@ Extension Host                          Webview (SVG UI)
 CLI経由でgit log取得                     postMessage で
   ↓                                      GraphData を受信
 生パース → GraphCommit[]                    ↓
-  ↓                                      Web Worker内でdagreレイアウト計算
+  ↓                                      Web Worker内でd3-dagレイアウト計算
 DAG構築 + 直線区間の間引き                    ↓
   ↓                                      SVG描画(ノード/エッジ/ラベル)
 postMessage で GraphData 送信              ↓
@@ -48,7 +48,7 @@ git操作コマンド実行                        ↑
 
 **設計判断の理由**:
 - git log取得とDAG構築(TortoiseGitのワーカースレッド相当)はExtension Host側で行う。Extension HostはWebviewとは別プロセスなので、ここで多少重い処理をしてもUIはブロックしない。
-- レイアウト計算(Sugiyama相当)はWebview内のWeb Workerで行う。ノード数が数千に達する大規模リポジトリでも描画スレッドをブロックしない。dagreはWeb Worker実行をサポートしている(採用理由は後述「レイアウトアルゴリズム」参照)。
+- レイアウト計算(Sugiyama相当)はWebview内のWeb Workerで行う。ノード数が数千に達する大規模リポジトリでも描画スレッドをブロックしない。d3-dagはWeb Worker実行をサポートしている(dagreからの切り替え経緯は[docs/HANDOFF.md](./HANDOFF.md)の「Post-M4: switch layout engine from dagre to d3-dag」参照)。
 - 実際のgit変更コマンド(checkout/ブランチ削除など)はWebviewから直接実行できない(Node API不可)ため、必ずExtension Hostに委譲する。
 
 ## データモデル (TypeScript)
@@ -187,7 +187,7 @@ revision-graph/
       gitActions.ts            # checkout/削除等のgit操作
     webview/
       main.ts                  # Webviewエントリ、postMessage受信
-      layoutWorker.ts          # dagre実行用Web Worker
+      layoutWorker.ts          # d3-dag実行用Web Worker
       render/
         graphRenderer.ts        # SVG描画
         colors.ts                # ref種別カラーパレット、コントラスト計算

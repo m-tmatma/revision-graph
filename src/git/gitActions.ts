@@ -157,9 +157,14 @@ function statusFromLetter(letter: string): FileChange['status'] {
  * git's `old => new` rename notation.
  */
 export async function diffFileChanges(cwd: string, from: string, to: string): Promise<FileChange[]> {
+  // core.quotePath=false: git's default quotes any path containing a
+  // non-ASCII byte (e.g. Japanese filenames) as a C-style-escaped string
+  // rather than raw UTF-8 -- without this, FileChange.path would carry that
+  // escaped form straight through to the "Copy path" action and to opening
+  // the file's diff, instead of the actual path.
   const [numstatOutput, nameStatusOutput] = await Promise.all([
-    runGitCapture(cwd, ['diff', '--no-renames', '--numstat', from, to]),
-    runGitCapture(cwd, ['diff', '--no-renames', '--name-status', from, to]),
+    runGitCapture(cwd, ['-c', 'core.quotePath=false', 'diff', '--no-renames', '--numstat', from, to]),
+    runGitCapture(cwd, ['-c', 'core.quotePath=false', 'diff', '--no-renames', '--name-status', from, to]),
   ]);
 
   const statusByPath = new Map<string, FileChange['status']>();

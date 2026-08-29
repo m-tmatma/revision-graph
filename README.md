@@ -124,7 +124,8 @@ the Remote Extension Host". Instead, any of:
     switch to it automatically — you're offered a "Switch to" action
     afterward.
   - **Copy ref name(s)**, if it has any refs (every ref on the node, as
-    full `refs/heads/...` paths, one per line).
+    its full path — `refs/heads/...` for a branch, `refs/remotes/...` for
+    a remote-tracking branch, `refs/tags/...` for a tag — one per line).
   - **Copy full hash**.
   - **Copy commit info** — the same text `git show -s` would print for that
     commit (hash and ref decorations, author, date, and full message).

@@ -141,6 +141,26 @@ async function main() {
   if (watch) {
     const contexts = await Promise.all(configs.map((cfg) => esbuild.context(cfg)));
     await Promise.all(contexts.map((ctx) => ctx.watch()));
+
+    // esbuild's own watch only rebuilds the bundled JS/TS entry points --
+    // the HTML templates are a plain file copy with no build step, so
+    // esbuild never notices one changed on disk while `npm run watch` is
+    // running. Re-copy on any .html change in src/webview so editing a
+    // template doesn't silently require restarting watch to take effect.
+    fs.watch(path.join(__dirname, 'src', 'webview'), (_eventType, filename) => {
+      if (!filename || !filename.endsWith('.html')) return;
+      try {
+        copyHtmlTemplates();
+      } catch (err) {
+        // An editor's atomic save (write-temp, then rename over the target)
+        // can fire this event while the source is momentarily missing
+        // (ENOENT) -- letting that throw out of an fs.watch callback would
+        // crash `npm run watch` entirely. Leaving it uncopied here is safe:
+        // the save's own follow-up event (or the next edit) retries it.
+        console.warn(`esbuild.js: failed to re-copy HTML templates (${err.message}), will retry on the next change`);
+      }
+    });
+
     console.log('watching for changes...');
   } else {
     await Promise.all(configs.map((cfg) => esbuild.build(cfg)));

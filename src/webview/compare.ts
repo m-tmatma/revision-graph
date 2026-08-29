@@ -42,9 +42,20 @@ function fileExtension(path: string): string {
 
 function buildRow(file: FileChange): HTMLTableRowElement {
   const row = document.createElement('tr');
-  row.addEventListener('click', () => {
+  const openFile = () => {
     const message: CompareWebviewToHostMessage = { type: 'openFile', path: file.path };
     vscode.postMessage(message);
+  };
+  row.addEventListener('click', openFile);
+
+  // A <tr> isn't in the tab order and Enter/Space don't activate it by
+  // default -- without this, keyboard-only users have no way to open a
+  // file's diff from this row.
+  row.tabIndex = 0;
+  row.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault(); // Space would otherwise scroll the panel
+    openFile();
   });
 
   // Without this, right-clicking a row falls through to the webview's

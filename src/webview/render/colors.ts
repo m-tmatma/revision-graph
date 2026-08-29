@@ -37,7 +37,17 @@ function relativeLuminance(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-/** Picks black or white text for the best contrast against `bgHex`, per WCAG. */
+/**
+ * Picks black or white text for the best contrast against `bgHex`, per the
+ * WCAG contrast-ratio formula -- comparing both candidates directly, rather
+ * than a fixed luminance midpoint, since the formula isn't symmetric: e.g.
+ * the local-branch green (#00c300, relative luminance ~0.39) contrasts far
+ * better with black (~8.8:1) than with white (~2.4:1), even though 0.39 is
+ * below the naive "> 0.5 → black" cutoff a midpoint check would use.
+ */
 export function contrastTextColor(bgHex: string): string {
-  return relativeLuminance(bgHex) > 0.5 ? '#000000' : '#ffffff';
+  const bgLuminance = relativeLuminance(bgHex);
+  const contrastWithWhite = 1.05 / (bgLuminance + 0.05);
+  const contrastWithBlack = (bgLuminance + 0.05) / 0.05;
+  return contrastWithBlack >= contrastWithWhite ? '#000000' : '#ffffff';
 }
