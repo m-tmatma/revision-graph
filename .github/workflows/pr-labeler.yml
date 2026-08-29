@@ -1,0 +1,40 @@
+name: PR Labeler
+
+# Labels a PR from its title's conventional-commit-style prefix (feat:,
+# fix:, change:, refactor:, i18n:, docs:, ci:, chore:), so .github/release.yml
+# can sort merged PRs into categories for the auto-generated release notes
+# without anyone hand-labeling PRs. A title with no matching prefix is left
+# unlabeled (it'll land in release.yml's catch-all "Other Changes" category).
+
+on:
+  pull_request:
+    types: [opened, edited]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply label from title prefix
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          case "$TITLE" in
+            feat:*) label=feat ;;
+            fix:*) label=fix ;;
+            change:*) label=change ;;
+            refactor:*) label=refactor ;;
+            i18n:*) label=i18n ;;
+            docs:*) label=docs ;;
+            ci:*) label=ci ;;
+            chore:*) label=chore ;;
+            *) label="" ;;
+          esac
+          if [ -n "$label" ]; then
+            gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "$label"
+          fi
