@@ -132,7 +132,7 @@ Web Worker内で実行し、`postMessage`でメインスレッドに結果(`Laid
 ## 描画 (SVG)
 
 - ノード: 角丸`<rect>` + 内部に `refs` を縦積みで`<text>`ラベル表示。色は**ref種別ごとの固定パレット**(current branch / local branch / remote branch / tag / stash / other)で、TortoiseGit本家のデフォルト値(`src/TortoiseProc/Colors.cpp`のレジストリデフォルト、`CurrentBranch`=`#c80000`、`LocalBranch`=`#00c300`、`RemoteBranch`=`#ffddaa`、`Tag`=`#ffff00`、`Stash`=`#808080`、`OtherRef`=`#e0e0e0`)にそのまま合わせている(VSCodeテーマには追従しない — テーマが変わっても見た目が本家と一致することを優先)。テキスト色はコントラスト比から自動選択(WCAG相対輝度計算)。
-- エッジ: `<polyline>` でdagreの`points`をそのまま繋ぐ(dagreが既にノード境界にアンカーされた点を返すため、TortoiseGitの`cutPoint`相当の手動クリップ計算は不要)。矢印は`<polygon>`で手計算。
+- エッジ: `<polyline>` でd3-dagの`points`をそのまま繋ぐ(d3-dagが既にノード境界にアンカーされた点を返すため、TortoiseGitの`cutPoint`相当の手動クリップ計算は不要)。矢印は`<polygon>`で手計算。
 - VSCodeのテーマ変数(`--vscode-editor-background`等)をCSSカスタムプロパティ経由で使い、ライト/ダークテーマに自動追従させる。
 - SVG/PNGエクスポート: 描画済みの`<svg>`を`cloneNode`し、`width`/`height`/`viewBox`をグラフ全体の論理サイズに上書きしてシリアライズする(表示中の`viewBox`はパン/ズーム後の一部領域のため)。SVGはそのままファイル書き出し、PNGはさらに`data:image/svg+xml`の`<img>`として読み込み`<canvas>`に描画してから`toDataURL('image/png')`で書き出す。テーマ変数は独立したドキュメントコンテキストの`<img>`内では解決できないため、各属性に埋め込んだフォールバック色(`var(--vscode-x, <fallback>)`)がそのまま使われる — テーマには追従しないが表示は崩れない、という妥協。**大規模リポジトリでは論理サイズがブラウザの2D canvas上限(1辺16384px/総面積約2億6千万px、実測で`5051 x 112174`のような値になるケースを確認)を超えることがあり、その場合`canvas.toDataURL()`は例外を投げず`"data:,"`という無効な値を静かに返す**。これを書き出すと壊れたPNGファイルになるため、`exportPng`側で事前にサイズ判定し、上限超過時はSVGエクスポートを案内するエラーメッセージを表示する。
 
@@ -212,7 +212,7 @@ revision-graph/
 
 - `dagReducer.ts`と`logReader.ts`は合成データ(架空のhash/parent列)でユニットテスト
 - 実際の検証は`git-revision-graph`拡張を`F5`でExtension Development Hostとして起動し、実リポジトリ(まずはこのtortoisegitリポジトリ自体でもよい)に対してコマンドを実行し、目視でグラフ描画・フィルタ・ズーム/パン・右クリックメニューの動作を確認する
-- 大規模リポジトリ(数千コミット)でのレイアウト計算時間・描画のレスポンスを計測する。TortoiseGit自体のリポジトリ(全ブランチで12,000コミット超、間引き後1,000ノード超)で実測したところ、dagreのランク付けパス(再帰DFS)がWeb Workerの狭いスタックでオーバーフローする問題が見つかった(`RangeError: Maximum call stack size exceeded`)。メインスレッド(スタックが大きい)へのフォールバックで解消している(`webview/main.ts`)
+- 大規模リポジトリ(数千コミット)でのレイアウト計算時間・描画のレスポンスを計測する。Web Worker側のレイアウト計算(現在はd3-dag)が起動に失敗した場合や実行時に例外を投げた場合は、メインスレッド(スタックが大きい)へのフォールバックで解消している(`webview/main.ts`)。このフォールバックが必要になった経緯: TortoiseGit自体のリポジトリ(全ブランチで12,000コミット超、間引き後1,000ノード超)で実測したところ、当時使用していたdagreのランク付けパス(再帰DFS)がWeb Workerの狭いスタックでオーバーフローする問題が見つかった(`RangeError: Maximum call stack size exceeded`) — post-M4でd3-dagに切り替えた後も、Worker起動失敗など他の失敗モードに備えてフォールバック自体は維持している
 
 ## 未決事項(実装開始前に確認)
 
