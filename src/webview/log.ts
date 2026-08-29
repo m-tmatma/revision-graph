@@ -250,10 +250,23 @@ function render(entries: LogEntry[]): void {
   if (entries.length > 0) expandCommit(entries[0].hash);
 }
 
+function renderLogError(message: string): void {
+  fileListsByHash.clear();
+  buttonsByHash.clear();
+  expandedHash = undefined;
+
+  const li = document.createElement('li');
+  li.className = 'file-list-status error';
+  li.textContent = t('Git Revision Graph: {0}', message);
+  commitListEl!.replaceChildren(li);
+}
+
 window.addEventListener('message', (event: MessageEvent<LogHostToWebviewMessage>) => {
   const message = event.data;
   if (message.type === 'logData') {
     render(message.data.entries);
+  } else if (message.type === 'logError') {
+    renderLogError(message.message);
   } else if (message.type === 'diffData') {
     if (message.commitHash !== expandedHash) return; // collapsed or superseded before the reply arrived
     const fileList = fileListsByHash.get(message.commitHash);

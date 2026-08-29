@@ -187,6 +187,7 @@ export interface LogPanelData {
 
 export type LogHostToWebviewMessage =
   | { type: 'logData'; data: LogPanelData }
+  | { type: 'logError'; message: string }
   | { type: 'diffData'; commitHash: string; files: FileChange[] }
   | { type: 'diffError'; commitHash: string; message: string };
 
