@@ -132,6 +132,9 @@ function applyFilter(): void {
 // jumping to the (new) current branch is exactly what the user wants.
 let focusOnHeadForNextGraphData = true;
 
+// See handleGraphData's own comment on why this exists.
+let renderGeneration = 0;
+
 toolbar.scopeSelect.addEventListener('change', () => {
   toolbar.rangeInputs!.hidden = toolbar.scopeSelect!.value !== 'range';
   applyFilter();
@@ -641,6 +644,14 @@ async function createLayoutWorker(): Promise<Worker> {
 }
 
 async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boolean): Promise<void> {
+  // Each graphData message computes its layout independently (worker or
+  // main-thread fallback), and either can resolve out of order relative to
+  // a later message's -- a generation counter, same pattern extension.ts's
+  // own `refresh` already uses for its git-log fetches, keeps a slower,
+  // now-superseded render from clobbering a newer one.
+  const generation = ++renderGeneration;
+  const isStale = () => generation !== renderGeneration;
+
   // Consumed once per graphData message, regardless of which of the two
   // render paths below (worker success vs. main-thread fallback) ends up
   // handling it — both are the same logical render, just two possible
@@ -651,6 +662,7 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
   focusOnHeadForNextGraphData = false;
 
   if (commits.length === 0) {
+    if (isStale()) return;
     rootEl!.replaceChildren();
     setStatus(t('No commits found.'));
     return;
@@ -679,6 +691,7 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
 
   const finish = (graph: LaidOutGraph) => {
     stopTicker();
+    if (isStale()) return; // a newer graphData message superseded this one
     renderAndFocus(graph, focusOnHead);
     setStatus(null);
   };
@@ -687,18 +700,24 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
   // if the worker itself couldn't be started (see createLayoutWorker's own
   // error cases) or throws for some other reason.
   const fallbackToMainThread = (reason: string) => {
+    if (isStale()) return;
     console.warn(`Git Revision Graph: layout worker failed (${reason}), retrying on the main thread`);
     startTicker(t('Computing layout (fallback)…'));
     try {
       finish(computeLayout(nodes));
     } catch (err) {
       stopTicker();
+      if (isStale()) return;
       setStatus(t('Layout failed: {0} (reduced nodes: {1})', (err as Error).message, String(nodes.length)));
     }
   };
 
   try {
     const worker = await createLayoutWorker();
+    if (isStale()) {
+      worker.terminate();
+      return;
+    }
     startTicker(t('Computing layout…'));
 
     worker.addEventListener('error', (event) => {
