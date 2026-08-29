@@ -81,6 +81,28 @@ word-for-word translation. Append new keys after the last existing entry
 in each file rather than reordering existing ones, and verify every file
 is still valid JSON afterwards.
 
+## Changelog
+
+Every user-facing change (a new feature, a behavior change, a bug fix —
+not a refactor, test-only change, or internal tooling/CI tweak) needs a
+bullet added to `CHANGELOG.md` as part of the same commit/PR that makes
+the change — do this proactively, without waiting to be asked. Add it
+under an `## Unreleased` heading right after the intro paragraph at the
+top of the file (create that heading if it doesn't exist yet — check
+first, since an earlier unreleased change may have already added one),
+grouped under a `### Added` / `### Changed` / `### Fixed` subheading
+(Keep a Changelog categories) matching whichever fits, alongside any
+other subheadings the same `## Unreleased` section already has. Don't
+bump the version yourself (`## Unreleased` → `## X.Y.Z`) unless
+explicitly asked — that's a separate, later `chore: bump version to
+X.Y.Z` commit that promotes the whole accumulated `## Unreleased`
+section at once, when actually releasing.
+
+If a stack of dependent branches/PRs will all touch the same
+`## Unreleased` section, add each PR's own bullet on its own branch
+rather than bundling several PRs' entries into one — same rationale as
+splitting unrelated fix-up commits under "Committing" above.
+
 ## Accessibility
 
 AccessLint runs on every PR and has flagged issues on webview HTML files
