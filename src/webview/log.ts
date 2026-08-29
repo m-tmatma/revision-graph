@@ -327,6 +327,13 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
           vscode.postMessage(message);
         },
       },
+      {
+        label: t('Compare with current branch'),
+        onClick: () => {
+          const message: LogWebviewToHostMessage = { type: 'compareWithCurrentBranch', to: entry.hash };
+          vscode.postMessage(message);
+        },
+      },
     );
     showContextMenu(event.clientX, event.clientY, items);
   });

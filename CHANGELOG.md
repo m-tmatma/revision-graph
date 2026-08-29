@@ -13,6 +13,9 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   on any commit a ref points to.
 - Show Log panel: "Create branch here…" / "Create tag here…" items in
   the per-commit context menu.
+- Show Log panel: a "Compare with current branch" item in the
+  per-commit context menu, opening the Compare (Changed Files) panel
+  against HEAD.
 
 ### Fixed
 
