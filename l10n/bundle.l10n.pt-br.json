@@ -121,5 +121,12 @@
   "Select merged branches to delete": "Selecione as ramificações mescladas para excluir",
   "Delete {0} branch(es)? This cannot be undone.": "Excluir {0} ramificação(ões)? Esta ação não pode ser desfeita.",
   "Git Revision Graph: deleted {0} branch(es).": "Git Revision Graph: {0} ramificação(ões) excluída(s).",
-  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: falha ao excluir: {0}"
+  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: falha ao excluir: {0}",
+  "Show Log": "Mostrar log",
+  "Commit Log": "Log de commits",
+  "Log: {0}": "Log: {0}",
+  "Git Revision Graph: log panel markup is missing expected elements": "Git Revision Graph: faltam elementos esperados na marcação do painel de log",
+  "Merge": "Mesclagem",
+  "Parents: {0}": "Pais: {0}",
+  "No changes.": "Sem alterações."
 }

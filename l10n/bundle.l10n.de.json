@@ -121,5 +121,12 @@
   "Select merged branches to delete": "Zusammengeführte Branches zum Löschen auswählen",
   "Delete {0} branch(es)? This cannot be undone.": "{0} Branch(es) löschen? Dies kann nicht rückgängig gemacht werden.",
   "Git Revision Graph: deleted {0} branch(es).": "Git Revision Graph: {0} Branch(es) gelöscht.",
-  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: Löschen fehlgeschlagen: {0}"
+  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: Löschen fehlgeschlagen: {0}",
+  "Show Log": "Protokoll anzeigen",
+  "Commit Log": "Commit-Protokoll",
+  "Log: {0}": "Protokoll: {0}",
+  "Git Revision Graph: log panel markup is missing expected elements": "Git Revision Graph: Im Markup des Protokollbereichs fehlen erwartete Elemente",
+  "Merge": "Merge",
+  "Parents: {0}": "Eltern-Commits: {0}",
+  "No changes.": "Keine Änderungen."
 }

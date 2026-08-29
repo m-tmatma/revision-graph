@@ -121,5 +121,12 @@
   "Select merged branches to delete": "選擇要刪除的已合併分支",
   "Delete {0} branch(es)? This cannot be undone.": "刪除 {0} 個分支?此操作無法復原。",
   "Git Revision Graph: deleted {0} branch(es).": "Git Revision Graph: 已刪除 {0} 個分支。",
-  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: 刪除失敗: {0}"
+  "Git Revision Graph: failed to delete: {0}": "Git Revision Graph: 刪除失敗: {0}",
+  "Show Log": "顯示日誌",
+  "Commit Log": "提交日誌",
+  "Log: {0}": "日誌: {0}",
+  "Git Revision Graph: log panel markup is missing expected elements": "Git Revision Graph: 日誌面板標記缺少必要的元素",
+  "Merge": "合併",
+  "Parents: {0}": "父提交: {0}",
+  "No changes.": "沒有變更。"
 }
