@@ -31,6 +31,7 @@ const DEBOUNCE_MS = 500;
 export function watchRepositoryChanges(cwd: string, onChange: () => void): vscode.Disposable {
   const disposables: vscode.Disposable[] = [];
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  let disposed = false;
 
   const debouncedOnChange = () => {
     if (debounceTimer) clearTimeout(debounceTimer);
@@ -43,18 +44,33 @@ export function watchRepositoryChanges(cwd: string, onChange: () => void): vscod
   };
 
   void (async () => {
-    const extension = vscode.extensions.getExtension<GitExtensionExports>('vscode.git');
-    if (!extension) return;
-    const exports = extension.isActive ? extension.exports : await extension.activate();
-    const git = exports.getAPI(1);
+    try {
+      const extension = vscode.extensions.getExtension<GitExtensionExports>('vscode.git');
+      if (!extension) return;
+      const exports = extension.isActive ? extension.exports : await extension.activate();
+      const git = exports.getAPI(1);
 
-    // The matching repository may already be open, or may only appear
-    // later (the git extension discovers repositories asynchronously).
-    for (const repo of git.repositories) watchRepository(repo);
-    disposables.push(git.onDidOpenRepository(watchRepository));
+      // The returned Disposable can already have been disposed by the time
+      // activation finishes (e.g. the panel closed while vscode.git was
+      // still starting up) -- without this check, the subscriptions below
+      // would be pushed into `disposables` after the dispose callback (see
+      // below) already ran once against an empty array, leaking both
+      // listeners for good since nothing calls dispose() on them again.
+      if (disposed) return;
+
+      // The matching repository may already be open, or may only appear
+      // later (the git extension discovers repositories asynchronously).
+      for (const repo of git.repositories) watchRepository(repo);
+      disposables.push(git.onDidOpenRepository(watchRepository));
+    } catch {
+      // vscode.git failing to activate just means no auto-refresh on
+      // external repo changes -- not fatal, and VS Code already surfaces
+      // the underlying extension-activation failure on its own.
+    }
   })();
 
   return new vscode.Disposable(() => {
+    disposed = true;
     if (debounceTimer) clearTimeout(debounceTimer);
     for (const disposable of disposables) disposable.dispose();
   });
