@@ -132,5 +132,8 @@
   "Copy path": "경로 복사",
   "Select for Compare": "비교용으로 선택",
   "Compare {0} and {1}": "{0}와(과) {1} 비교",
-  "Remote branches": "원격 브랜치"
+  "Remote branches": "원격 브랜치",
+  "open a folder first.": "먼저 폴더를 여세요.",
+  "Version info": "버전 정보",
+  "Copy": "복사"
 }

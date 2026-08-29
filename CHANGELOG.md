@@ -7,24 +7,35 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ### Added
 
-- Show Log panel: a "Checkout" item in the per-commit context menu
+- Log sidebar: a "Checkout" item in the per-commit context menu
   (targeting the commit's own branch when it has one, rather than
   always a detached-HEAD checkout), and color-coded branch/tag badges
   on any commit a ref points to.
-- Show Log panel: "Create branch here…" / "Create tag here…" items in
+- Log sidebar: "Create branch here…" / "Create tag here…" items in
   the per-commit context menu.
-- Show Log panel: a "Compare with current branch" item in the
+- Log sidebar: a "Compare with current branch" item in the
   per-commit context menu, opening the Compare (Changed Files) panel
   against HEAD.
-- Show Log panel: Ctrl/Cmd+click two commits (or use the "Select for
+- Log sidebar: Ctrl/Cmd+click two commits (or use the "Select for
   Compare" context-menu item, including Ctrl/Cmd+right-click as a
   shortcut that pairs with whatever's currently expanded) to diff them
   directly against each other, same as the main graph view's own
   two-node selection.
 - A "Remote branches" option in the toolbar's scope filter, showing
   only commits reachable from remote-tracking refs.
+- The Activity Bar container now shows a persistent commit-log sidebar
+  (defaulting to the current branch) instead of a mostly-empty welcome
+  view — retarget it to any commit via the main graph's "Show Log"
+  context-menu item, jump to the full graph with its "Show Revision
+  Graph" button, and check the running build via its "ℹ" version-info
+  button (shown in a copyable notification).
 
 ### Changed
+
+- The sidebar's commit log now refreshes automatically after a
+  checkout, branch/tag creation, or merged-branch deletion — whether
+  triggered from the main graph, the sidebar itself, or externally —
+  as long as it's still showing the default current-branch view.
 
 - With scope set to "Local branches" or "Remote branches", a commit's
   ref badges now only show branches of the matching kind (tags still
@@ -34,13 +45,13 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ### Fixed
 
-- Show Log panel: right-clicking a commit now shows a menu with actions
+- Log sidebar: right-clicking a commit now shows a menu with actions
   relevant to that commit (**Copy full hash**, **Copy commit info**)
   instead of the webview's native Cut/Copy/Paste edit menu.
 - Copying a commit's full hash, ref name(s), or commit info to the
-  clipboard (main graph and Show Log panel) now ends with a trailing
+  clipboard (main graph and log sidebar) now ends with a trailing
   newline, so pasting it elsewhere leaves the cursor on a fresh line.
-- Show Log panel: right-clicking a file in a commit's changed-files list
+- Log sidebar: right-clicking a file in a commit's changed-files list
   now shows a menu with a **Copy path** action instead of the webview's
   native Cut/Copy/Paste edit menu.
 - Compare (Changed Files) panel: right-clicking a file row now shows the
@@ -52,18 +63,18 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   revision containing a "/" (e.g. `origin/main`), instead of silently
   reading the wrong revision or failing.
 - File paths containing non-ASCII characters (e.g. Japanese filenames)
-  in the "Compare" panel and Show Log's changed-files list now show
+  in the "Compare" panel and the log sidebar's changed-files list now show
   and copy correctly, instead of git's escaped/quoted form.
 - A commit's `origin/HEAD` no longer shows as a redundant extra chip
   alongside its real default branch (e.g. `origin/main`) in the main
-  graph and Show Log panel.
+  graph and log sidebar.
 - Compare (Changed Files) panel: file rows are now keyboard-operable
   (Tab to focus, Enter/Space to open), not just clickable with a mouse.
 - Rapid filter/checkbox changes in the main graph could occasionally
   render an older, already-superseded layout over a newer one; the
   main graph now always shows the most recent request's result.
-- Ref-type badge text color (main graph nodes and Show Log's per-commit
-  badges) now picks black or white by actual contrast against the
+- Ref-type badge text color (main graph nodes and the log sidebar's
+  per-commit badges) now picks black or white by actual contrast against the
   badge's background, rather than a luminance cutoff that picked the
   lower-contrast option for a few colors (e.g. the local-branch green).
 - The main graph's viewport now stays in sync when its panel is

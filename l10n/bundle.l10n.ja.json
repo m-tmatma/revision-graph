@@ -137,5 +137,8 @@
   "Copy path": "パスをコピー",
   "Select for Compare": "比較用に選択",
   "Compare {0} and {1}": "{0} と {1} を比較",
-  "Remote branches": "リモートブランチ"
+  "Remote branches": "リモートブランチ",
+  "open a folder first.": "先にフォルダーを開いてください。",
+  "Version info": "バージョン情報",
+  "Copy": "コピー"
 }
