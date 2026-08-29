@@ -3,6 +3,12 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 0.8.0
+
+### Changed
+
+- "Show all tags" now defaults to on.
+
 ## 0.7.0
 
 ### Added
