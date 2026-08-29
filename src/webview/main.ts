@@ -403,6 +403,21 @@ function isRenameableRefType(type: RefType): boolean {
   return type === 'local-branch' || type === 'current-branch';
 }
 
+// Picks the most identifiable label for a node: the branch/tag name it
+// carries (preferring the current branch, then a local branch, then a tag,
+// then a remote-tracking branch) over its bare hash — used for the "Show
+// Log" panel's title so it reads e.g. "Log: main" rather than "Log: a1b2c3d"
+// whenever the right-clicked commit has a ref to name it by.
+function nodeDisplayLabel(node: LaidOutNode | undefined, commitId: string): string {
+  const refs = node?.refs ?? [];
+  const preferred =
+    refs.find((ref) => ref.type === 'current-branch') ??
+    refs.find((ref) => ref.type === 'local-branch') ??
+    refs.find((ref) => ref.type === 'tag') ??
+    refs.find((ref) => ref.type === 'remote-branch');
+  return preferred ? preferred.name : commitId.slice(0, 7);
+}
+
 // Checkout targets the right-clicked node's own local branch if it has
 // one, otherwise the bare commit hash (a detached-HEAD checkout). Omitted
 // entirely if the node IS the current branch already — nothing to do.
@@ -457,6 +472,18 @@ function attachContextMenu(
 
     const checkoutItem = checkoutMenuItem(nodesById.get(commitId), commitId);
     if (checkoutItem) items.push(checkoutItem);
+
+    items.push({
+      label: t('Show Log'),
+      onClick: () => {
+        const message: WebviewToHostMessage = {
+          type: 'showLog',
+          commitId,
+          label: nodeDisplayLabel(nodesById.get(commitId), commitId),
+        };
+        vscode.postMessage(message);
+      },
+    });
 
     // Both hand off entirely to the extension host: name/message input and
     // the existing-ref overwrite check are native VSCode dialogs there
