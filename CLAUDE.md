@@ -48,6 +48,25 @@ this repo's history and its GitHub-facing text should stay consistent for
 any future contributor or reader, regardless of what language a given
 session was conducted in.
 
+## Localization
+
+Every user-facing string added or changed via `vscode.l10n.t(...)` (host
+side) or `data-i18n`/`t(...)` (webview side) needs a matching entry added
+to *all* existing `l10n/bundle.l10n.<lang>.json` files, not just the
+source string in the code — do this proactively as part of implementing
+the change, without waiting to be asked. Keep the language files in sync
+(same key count) with the source strings; a missing key isn't an error,
+it just silently falls back to the English source string in that
+language, so nothing will catch a forgotten translation except a
+deliberate check.
+
+Match each language file's existing tone/punctuation conventions for
+similar strings (e.g. formality level, how "Git Revision Graph:" prefixes
+and `{n}`-style placeholders are handled) rather than a literal
+word-for-word translation. Append new keys after the last existing entry
+in each file rather than reordering existing ones, and verify every file
+is still valid JSON afterwards.
+
 ## Accessibility
 
 AccessLint runs on every PR and has flagged issues on webview HTML files
