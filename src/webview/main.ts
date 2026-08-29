@@ -137,6 +137,12 @@ let renderGeneration = 0;
 
 toolbar.scopeSelect.addEventListener('change', () => {
   toolbar.rangeInputs!.hidden = toolbar.scopeSelect!.value !== 'range';
+  // A scope change can be at least as big a structural change as toggling
+  // "Show branches and merges" (e.g. Local branches -> All branches can
+  // jump from dozens to thousands of nodes) -- without this, the current
+  // branch's node could end up far outside the old pan/zoom position, or
+  // the view could even land somewhere with no nodes at all.
+  focusOnHeadForNextGraphData = true;
   applyFilter();
 });
 toolbar.showBranchesMergesToggle.addEventListener('change', () => {
