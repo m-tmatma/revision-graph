@@ -141,6 +141,16 @@ async function main() {
   if (watch) {
     const contexts = await Promise.all(configs.map((cfg) => esbuild.context(cfg)));
     await Promise.all(contexts.map((ctx) => ctx.watch()));
+
+    // esbuild's own watch only rebuilds the bundled JS/TS entry points --
+    // the HTML templates are a plain file copy with no build step, so
+    // esbuild never notices one changed on disk while `npm run watch` is
+    // running. Re-copy on any .html change in src/webview so editing a
+    // template doesn't silently require restarting watch to take effect.
+    fs.watch(path.join(__dirname, 'src', 'webview'), (_eventType, filename) => {
+      if (filename && filename.endsWith('.html')) copyHtmlTemplates();
+    });
+
     console.log('watching for changes...');
   } else {
     await Promise.all(configs.map((cfg) => esbuild.build(cfg)));
