@@ -78,6 +78,14 @@ const SIMPLE_CHECKOUT_OPTIONS: CheckoutOptions = {
 // command. URI shape: `revision-graph-git://<rev>/<repo-relative-path>`.
 const GIT_SHOW_SCHEME = 'revision-graph-git';
 
+// The currently-open main graph panel's own refresh function, if any --
+// lets a checkout triggered from a *different* panel (e.g. the Show Log
+// panel's own "Checkout" item) bring that graph's current-branch highlight
+// up to date immediately, the same way checking out from the graph itself
+// does, rather than relying solely on repoWatcher's debounced external-
+// change detection. Cleared when that panel is disposed.
+let activeGraphRefresh: ((focusOnHead?: boolean) => Promise<void>) | undefined;
+
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('revisionGraph.show', () => showRevisionGraph(context)),
@@ -182,7 +190,11 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
   // extension, a commit, a pull, ...), not just after our own
   // checkout/delete-ref actions, which already refresh explicitly.
   const repoWatcher = watchRepositoryChanges(cwd, () => void refresh());
-  panel.onDidDispose(() => repoWatcher.dispose());
+  activeGraphRefresh = refresh;
+  panel.onDidDispose(() => {
+    repoWatcher.dispose();
+    if (activeGraphRefresh === refresh) activeGraphRefresh = undefined;
+  });
 
   panel.webview.onDidReceiveMessage(async (message: WebviewToHostMessage) => {
     if (message.type === 'ready') {
@@ -375,17 +387,24 @@ function showLogPanel(context: vscode.ExtensionContext, cwd: string, startRef: s
     panel.webview.html = html;
   });
 
+  // Re-fetches this same ref's history and refs (e.g. after a checkout done
+  // from this panel's own "Checkout" item moves the current-branch badge),
+  // as well as the initial load.
+  const refreshLog = async () => {
+    try {
+      const entries = await getLogEntries(cwd, startRef);
+      const hostMessage: LogHostToWebviewMessage = { type: 'logData', data: { entries } };
+      await panel.webview.postMessage(hostMessage);
+    } catch (err) {
+      vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
+      const hostMessage: LogHostToWebviewMessage = { type: 'logError', message: (err as Error).message };
+      await panel.webview.postMessage(hostMessage);
+    }
+  };
+
   panel.webview.onDidReceiveMessage(async (message: LogWebviewToHostMessage) => {
     if (message.type === 'ready') {
-      try {
-        const entries = await getLogEntries(cwd, startRef);
-        const hostMessage: LogHostToWebviewMessage = { type: 'logData', data: { entries } };
-        await panel.webview.postMessage(hostMessage);
-      } catch (err) {
-        vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
-        const hostMessage: LogHostToWebviewMessage = { type: 'logError', message: (err as Error).message };
-        await panel.webview.postMessage(hostMessage);
-      }
+      await refreshLog();
     } else if (message.type === 'selectCommit') {
       try {
         const base = await getDiffBase(cwd, message.hash);
@@ -414,6 +433,20 @@ function showLogPanel(context: vscode.ExtensionContext, cwd: string, startRef: s
       } catch (err) {
         vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
       }
+    } else if (message.type === 'openCheckoutDialog') {
+      // Refreshes both this panel's own history/ref badges (the
+      // current-branch badge may now point at a different commit) and the
+      // main graph panel's current-branch highlight, if one happens to be
+      // open, rather than leaving either to repoWatcher's own debounced
+      // detection.
+      showCheckoutDialog(
+        context,
+        cwd,
+        { ref: message.ref, label: message.label, suggestedBranchName: message.suggestedBranchName },
+        async (focusOnHead) => {
+          await Promise.all([activeGraphRefresh?.(focusOnHead), refreshLog()]);
+        },
+      );
     }
   });
 }

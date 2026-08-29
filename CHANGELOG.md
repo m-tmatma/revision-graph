@@ -5,6 +5,13 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## Unreleased
 
+### Added
+
+- Show Log panel: a "Checkout" item in the per-commit context menu
+  (targeting the commit's own branch when it has one, rather than
+  always a detached-HEAD checkout), and color-coded branch/tag badges
+  on any commit a ref points to.
+
 ### Fixed
 
 - Show Log panel: right-clicking a commit now shows a menu with actions

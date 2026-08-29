@@ -5,8 +5,10 @@
 // (collapsing whichever commit was previously expanded); clicking a file
 // row opens it in VSCode's native diff editor, same as the Compare panel.
 
-import type { FileChange, LogEntry, LogHostToWebviewMessage, LogWebviewToHostMessage } from '../shared/types';
+import type { FileChange, LogEntry, LogHostToWebviewMessage, LogWebviewToHostMessage, RefInfo } from '../shared/types';
 import { applyLocalization, t } from './l10n';
+import { resolveCheckoutTarget } from './render/checkoutTarget';
+import { contrastTextColor, REF_COLORS } from './render/colors';
 import { showContextMenu, type ContextMenuItem } from './render/contextMenu';
 import { createSvgElement, formatDate } from './render/graphRenderer';
 import { computeLanes, type LaneRow } from './render/logLanes';
@@ -186,6 +188,45 @@ function buildLaneGraph(row: LaneRow, laneCount: number): SVGSVGElement {
   return svg;
 }
 
+// Checkout targets this row's own local branch if it has one, otherwise the
+// bare commit hash (a detached-HEAD checkout). Omitted entirely if the row
+// IS the current branch already — nothing to do. Same behavior as the main
+// graph view's own "Checkout" context-menu item (resolveCheckoutTarget is
+// shared between the two).
+function checkoutMenuItem(entry: LogEntry): ContextMenuItem | null {
+  const target = resolveCheckoutTarget(entry.refs, entry.hash);
+  if (!target) return null;
+
+  return {
+    label: t('Checkout {0}', target.label),
+    onClick: () => {
+      const message: LogWebviewToHostMessage = {
+        type: 'openCheckoutDialog',
+        ref: target.ref,
+        label: target.label,
+        suggestedBranchName: target.suggestedBranchName,
+      };
+      vscode.postMessage(message);
+    },
+  };
+}
+
+// Same color-by-ref-type chip the main graph view draws on a node (see
+// buildRefRow in graphRenderer.ts), so a branch/tag reads as one visual
+// language across both panels -- without this, a commit with a branch
+// pointing at it looked identical to any other, and the ref-aware
+// "Checkout" item above had nothing on-screen to hint it would resolve to
+// a branch name rather than a detached-HEAD checkout.
+function buildRefBadge(ref: RefInfo): HTMLSpanElement {
+  const badge = document.createElement('span');
+  badge.className = 'ref-badge';
+  badge.textContent = ref.name;
+  const color = REF_COLORS[ref.type];
+  badge.style.backgroundColor = color;
+  badge.style.color = contrastTextColor(color);
+  return badge;
+}
+
 function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): HTMLLIElement {
   const li = document.createElement('li');
   li.className = 'commit-row';
@@ -201,6 +242,7 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
 
   const subject = document.createElement('span');
   subject.className = 'subject';
+  for (const ref of entry.refs) subject.appendChild(buildRefBadge(ref));
   if (laneRow.isMerge) {
     const badge = document.createElement('span');
     badge.className = 'merge-badge';
@@ -235,7 +277,12 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
   // graph view's node context menu.
   main.addEventListener('contextmenu', (event) => {
     event.preventDefault();
-    const items: ContextMenuItem[] = [
+    const items: ContextMenuItem[] = [];
+
+    const checkoutItem = checkoutMenuItem(entry);
+    if (checkoutItem) items.push(checkoutItem);
+
+    items.push(
       {
         label: t('Copy full hash'),
         onClick: () => {
@@ -249,7 +296,7 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
           vscode.postMessage(message);
         },
       },
-    ];
+    );
     showContextMenu(event.clientX, event.clientY, items);
   });
 

@@ -140,7 +140,7 @@ async function getCurrentBranchName(cwd: string): Promise<string | null> {
   return output.trim() || null;
 }
 
-async function fetchRefs(cwd: string): Promise<Map<string, RefInfo[]>> {
+export async function fetchRefs(cwd: string): Promise<Map<string, RefInfo[]>> {
   const refsByHash = new Map<string, RefInfo[]>();
 
   const addRef = (hash: string, refname: string, typeOverride?: RefType) => {

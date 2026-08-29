@@ -3,7 +3,7 @@ import { computeLanes } from '../src/webview/render/logLanes';
 import type { LogEntry } from '../src/shared/types';
 
 function entry(hash: string, parents: string[]): LogEntry {
-  return { hash, parents, subject: hash, authorName: 'Test Author', authorDate: 0 };
+  return { hash, parents, subject: hash, authorName: 'Test Author', authorDate: 0, refs: [] };
 }
 
 describe('computeLanes', () => {

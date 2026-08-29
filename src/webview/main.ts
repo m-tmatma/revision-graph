@@ -21,6 +21,7 @@ import { renderGraph } from './render/graphRenderer';
 import { NODE_MIN_WIDTH, NODE_PADDING_X, NODE_PADDING_Y, NODE_ROW_HEIGHT } from './render/layoutConstants';
 import { PanZoomController } from './render/panZoom';
 import { closeContextMenu, showContextMenu, type ContextMenuItem } from './render/contextMenu';
+import { resolveCheckoutTarget } from './render/checkoutTarget';
 import { SelectionController } from './render/selection';
 import { Minimap } from './render/minimap';
 
@@ -422,35 +423,18 @@ function nodeDisplayLabel(node: LaidOutNode | undefined, commitId: string): stri
 // one, otherwise the bare commit hash (a detached-HEAD checkout). Omitted
 // entirely if the node IS the current branch already — nothing to do.
 function checkoutMenuItem(node: LaidOutNode | undefined, commitId: string): ContextMenuItem | null {
-  const refs = node?.refs ?? [];
-  if (refs.some((ref) => ref.type === 'current-branch')) return null;
-
-  const localBranch = refs.find((ref) => ref.type === 'local-branch');
-  const remoteBranch = refs.find((ref) => ref.type === 'remote-branch');
-
-  let ref: string;
-  let label: string;
-  let suggestedBranchName: string | undefined;
-
-  if (localBranch) {
-    ref = localBranch.name;
-    label = localBranch.name;
-  } else if (remoteBranch) {
-    // No local branch tracks this remote one yet — checking it out means
-    // creating a new local branch, so suggest a name (the remote branch's
-    // own name with its "<remote>/" prefix stripped).
-    ref = remoteBranch.name;
-    label = remoteBranch.name;
-    suggestedBranchName = remoteBranch.name.replace(/^[^/]+\//, '');
-  } else {
-    ref = commitId;
-    label = t('{0} (detached HEAD)', commitId.slice(0, 7));
-  }
+  const target = resolveCheckoutTarget(node?.refs ?? [], commitId);
+  if (!target) return null;
 
   return {
-    label: t('Checkout {0}', label),
+    label: t('Checkout {0}', target.label),
     onClick: () => {
-      const message: WebviewToHostMessage = { type: 'openCheckoutDialog', ref, label, suggestedBranchName };
+      const message: WebviewToHostMessage = {
+        type: 'openCheckoutDialog',
+        ref: target.ref,
+        label: target.label,
+        suggestedBranchName: target.suggestedBranchName,
+      };
       vscode.postMessage(message);
     },
   };
