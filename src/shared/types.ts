@@ -199,4 +199,5 @@ export type LogWebviewToHostMessage =
   | { type: 'copyCommitInfo'; hash: string }
   | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string }
   | { type: 'createBranch'; startPoint: string }
-  | { type: 'createTag'; startPoint: string };
+  | { type: 'createTag'; startPoint: string }
+  | { type: 'compareWithCurrentBranch'; to: string };
