@@ -165,6 +165,11 @@ export async function fetchRefs(cwd: string): Promise<Map<string, RefInfo[]>> {
       if (!line) return;
       const [hash, refname] = line.split('\x1f');
       if (!hash || !refname) return;
+      // <remote>/HEAD is a symbolic ref to the remote's default branch, not
+      // a branch itself -- same exclusion as listCheckoutCandidates, so a
+      // node doesn't get a redundant "origin/HEAD" chip alongside the real
+      // branch it points at (e.g. "origin/main").
+      if (refname.startsWith('refs/remotes/') && refname.endsWith('/HEAD')) return;
       // Highlight the checked-out branch itself, rather than a separate
       // "HEAD" label alongside it (matches TortoiseGit's own convention).
       const isCurrentBranch = currentBranchName !== null && refname === `refs/heads/${currentBranchName}`;
