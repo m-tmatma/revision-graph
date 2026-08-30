@@ -73,6 +73,10 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   now re-centers the viewport on the current branch, instead of
   keeping the old pan/zoom position — which could leave the current
   branch's node far off-screen, or even show an apparently-blank graph.
+- With scope set to "Remote branches", the checked-out branch's own
+  local-branch chip no longer leaks through — the scope filter was
+  excluding `local-branch`-typed refs but not the separate
+  `current-branch` type used for whichever branch is checked out.
 
 ## 0.10.0
 

@@ -202,6 +202,7 @@ export function parseLogRecord(record: string, refsByHash: Map<string, RefInfo[]
   // after the 6th separator, rejoined in case the message itself contains
   // the field separator character (vanishingly unlikely, but cheap to handle).
   const body = bodyParts.join(FIELD_SEP).replace(/\n+$/, '');
+  const refs = refsByHash.get(hash) ?? [];
 
   return {
     hash,
@@ -211,7 +212,13 @@ export function parseLogRecord(record: string, refsByHash: Map<string, RefInfo[]
     authorEmail: authorEmail ?? '',
     authorDate: Number(authorDateRaw) || 0,
     body,
-    refs: refsByHash.get(hash) ?? [],
+    refs,
+    // Computed from the unfiltered refs above -- filterRefsForScope (below)
+    // can later hide this commit's 'current-branch'/'head' ref from `refs`
+    // for display purposes (e.g. the "Remote branches" scope hides the
+    // checked-out branch's local chip), but the main graph's own
+    // current-branch centering must keep working regardless of scope.
+    isCurrentBranch: refs.some((ref) => ref.type === 'head' || ref.type === 'current-branch'),
   };
 }
 
@@ -226,7 +233,9 @@ export function parseLogRecord(record: string, refsByHash: Map<string, RefInfo[]
 // (all branches, current branch, range) is unaffected.
 export function filterRefsForScope(refs: RefInfo[], scope: LogScopeOptions['scope']): RefInfo[] {
   if (scope === 'local-branches') return refs.filter((ref) => ref.type !== 'remote-branch');
-  if (scope === 'remote-branches') return refs.filter((ref) => ref.type !== 'local-branch');
+  if (scope === 'remote-branches') {
+    return refs.filter((ref) => ref.type !== 'local-branch' && ref.type !== 'current-branch');
+  }
   return refs;
 }
 

@@ -62,6 +62,11 @@ describe('filterRefsForScope', () => {
     expect(filterRefsForScope(refs, 'remote-branches')).toEqual([refs[1], refs[2]]);
   });
 
+  it('also drops the checked-out current-branch ref for the remote-branches scope', () => {
+    const withCurrent: RefInfo[] = [{ name: 'main', type: 'current-branch' }, ...refs.slice(1)];
+    expect(filterRefsForScope(withCurrent, 'remote-branches')).toEqual([refs[1], refs[2]]);
+  });
+
   it('keeps every ref for other scopes', () => {
     expect(filterRefsForScope(refs, 'all-branches')).toEqual(refs);
     expect(filterRefsForScope(refs, 'current-branch')).toEqual(refs);
@@ -119,12 +124,25 @@ describe('parseLogRecord', () => {
       authorEmail: 'jane@example.com',
       authorDate: 1700000000,
       refs,
+      isCurrentBranch: false,
     });
   });
 
   it('defaults to an empty refs array when the hash has no refs', () => {
     const commit = parseLogRecord(record, new Map());
     expect(commit?.refs).toEqual([]);
+  });
+
+  it.each([
+    ['current-branch', true],
+    ['head', true],
+    ['local-branch', false],
+    ['remote-branch', false],
+    ['tag', false],
+  ] as const)('sets isCurrentBranch from a raw %s ref, independent of later scope filtering', (type, expected) => {
+    const refsByHash = new Map([['abc123', [{ name: 'main', type }]]]);
+    const commit = parseLogRecord(record, refsByHash);
+    expect(commit?.isCurrentBranch).toBe(expected);
   });
 
   it('returns undefined for an empty record', () => {

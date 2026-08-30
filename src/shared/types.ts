@@ -21,6 +21,14 @@ export interface GraphCommit {
   /** Unix time in seconds. */
   authorDate: number;
   refs: RefInfo[];
+  /**
+   * Whether this is the checked-out commit (HEAD, or the branch it points
+   * to) -- computed from the *unfiltered* refs, independent of `refs`
+   * itself possibly having its `current-branch`/`head` entry hidden by a
+   * scope filter (see logReader.ts's filterRefsForScope), so scope-based
+   * badge filtering can never break current-branch centering.
+   */
+  isCurrentBranch: boolean;
 }
 
 /** Options controlling which commits are included in the fetched log. */
@@ -87,6 +95,8 @@ export interface GraphNode {
   authorEmail: string;
   /** Unix time in seconds. */
   authorDate: number;
+  /** Carried through from GraphCommit -- see its doc comment. */
+  isCurrentBranch: boolean;
 }
 
 export interface LaidOutNode extends GraphNode {
