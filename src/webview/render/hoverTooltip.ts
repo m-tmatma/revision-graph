@@ -36,9 +36,21 @@ export class HoverTooltipController {
     document.body.appendChild(this.tooltipEl);
   }
 
-  /** Call when the cursor enters a new commit's element (a no-op if already anchored there). */
+  /**
+   * Call when the cursor enters a new commit's element -- also called
+   * again for the *same* commit after a re-render replaces the graph's
+   * DOM wholesale (a new element for the same commitId): without
+   * refreshing `currentTargetEl` here, it would keep pointing at the old,
+   * now-detached element, whose `getBoundingClientRect()` is all zeros --
+   * any later reposition (a still-visible tooltip, or a response that
+   * arrives after the re-render) would jump to the top-left corner.
+   */
   enter(commitId: string, targetEl: Element): void {
-    if (commitId === this.currentCommitId) return;
+    if (commitId === this.currentCommitId) {
+      this.currentTargetEl = targetEl;
+      if (!this.tooltipEl.hidden) this.reposition(targetEl);
+      return;
+    }
     this.currentCommitId = commitId;
     this.currentTargetEl = targetEl;
     this.hide();
