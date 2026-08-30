@@ -82,6 +82,18 @@ export class HoverTooltipController {
     }
   }
 
+  /**
+   * Call from the page's message handler when the host's request failed.
+   * Shown the same way a successful response is, but deliberately never
+   * cached -- a transient git failure shouldn't stick around forever with
+   * no way to retry short of reloading the whole webview.
+   */
+  handleError(commitId: string, message: string): void {
+    if (this.currentCommitId === commitId) {
+      this.show(message);
+    }
+  }
+
   destroy(): void {
     clearTimeout(this.hoverTimer);
     this.tooltipEl.remove();

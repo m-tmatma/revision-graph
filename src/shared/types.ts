@@ -60,7 +60,8 @@ export interface ReduceOptions {
 export type HostToWebviewMessage =
   | { type: 'graphData'; commits: GraphCommit[]; focusOnHead?: boolean }
   | { type: 'error'; message: string }
-  | { type: 'commitTooltip'; commitId: string; text: string };
+  | { type: 'commitTooltip'; commitId: string; text: string }
+  | { type: 'commitTooltipError'; commitId: string; message: string };
 
 /** Message sent from the webview back to the extension host. */
 export type WebviewToHostMessage =
@@ -191,7 +192,8 @@ export type LogHostToWebviewMessage =
   | { type: 'logError'; message: string }
   | { type: 'diffData'; commitHash: string; files: FileChange[] }
   | { type: 'diffError'; commitHash: string; message: string }
-  | { type: 'commitTooltip'; hash: string; text: string };
+  | { type: 'commitTooltip'; hash: string; text: string }
+  | { type: 'commitTooltipError'; hash: string; message: string };
 
 export type LogWebviewToHostMessage =
   | { type: 'ready' }

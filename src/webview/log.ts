@@ -559,6 +559,8 @@ window.addEventListener('message', (event: MessageEvent<LogHostToWebviewMessage>
     fileList?.replaceChildren(buildFileListStatus(t('Git Revision Graph: {0}', message.message), true));
   } else if (message.type === 'commitTooltip') {
     hoverTooltip.handleResponse(message.hash, message.text);
+  } else if (message.type === 'commitTooltipError') {
+    hoverTooltip.handleError(message.hash, message.message);
   }
 });
 

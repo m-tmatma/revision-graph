@@ -792,6 +792,8 @@ window.addEventListener('message', (event: MessageEvent<HostToWebviewMessage>) =
     setStatus(t('Error: {0}', event.data.message));
   } else if (event.data.type === 'commitTooltip') {
     hoverTooltip.handleResponse(event.data.commitId, event.data.text);
+  } else if (event.data.type === 'commitTooltipError') {
+    hoverTooltip.handleError(event.data.commitId, event.data.message);
   }
 });
 
