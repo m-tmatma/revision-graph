@@ -3,4 +3,5 @@ dist/
 out/
 *.vsix
 .vscode-test/
-.claude/
+.claude/*
+!.claude/skills/
