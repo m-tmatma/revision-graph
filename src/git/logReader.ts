@@ -234,7 +234,13 @@ export function parseLogRecord(record: string, refsByHash: Map<string, RefInfo[]
 export function filterRefsForScope(refs: RefInfo[], scope: LogScopeOptions['scope']): RefInfo[] {
   if (scope === 'local-branches') return refs.filter((ref) => ref.type !== 'remote-branch');
   if (scope === 'remote-branches') {
-    return refs.filter((ref) => ref.type !== 'local-branch' && ref.type !== 'current-branch');
+    // 'head' (a detached-HEAD commit) is just as much a local marker as
+    // 'current-branch' -- both mean "this is the checked-out commit" (see
+    // isCurrentBranch above) and should disappear from the local-only
+    // scope's chips the same way.
+    return refs.filter(
+      (ref) => ref.type !== 'local-branch' && ref.type !== 'current-branch' && ref.type !== 'head',
+    );
   }
   return refs;
 }

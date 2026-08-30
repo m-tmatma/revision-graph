@@ -67,6 +67,11 @@ describe('filterRefsForScope', () => {
     expect(filterRefsForScope(withCurrent, 'remote-branches')).toEqual([refs[1], refs[2]]);
   });
 
+  it('also drops a detached-HEAD head ref for the remote-branches scope', () => {
+    const withHead: RefInfo[] = [{ name: 'HEAD', type: 'head' }, ...refs.slice(1)];
+    expect(filterRefsForScope(withHead, 'remote-branches')).toEqual([refs[1], refs[2]]);
+  });
+
   it('keeps every ref for other scopes', () => {
     expect(filterRefsForScope(refs, 'all-branches')).toEqual(refs);
     expect(filterRefsForScope(refs, 'current-branch')).toEqual(refs);

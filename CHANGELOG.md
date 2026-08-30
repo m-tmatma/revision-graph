@@ -77,6 +77,10 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   local-branch chip no longer leaks through — the scope filter was
   excluding `local-branch`-typed refs but not the separate
   `current-branch` type used for whichever branch is checked out.
+- With scope set to "Remote branches", a detached-HEAD commit's "HEAD"
+  chip no longer leaks through either — same gap as the `current-branch`
+  fix above, but for the separate `head` ref type used when there's no
+  checked-out branch to attribute it to.
 
 ## 0.10.0
 
