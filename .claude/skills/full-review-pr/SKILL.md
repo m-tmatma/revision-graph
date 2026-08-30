@@ -24,12 +24,15 @@ haven't already explicitly asked for this in the current conversation.
    If this prints more than one hash, the repo has multiple root commits
    (unusual) — ask the user which root to base off, don't guess.
 
-2. **Create and push a branch at that commit.** Name it something like
-   `chore/full-review-base` (or `chore/full-review-base-2` etc. if that name
-   is already taken from a previous round):
+2. **Create and push a branch at that commit.** Name it `chore/full-review-base`
+   (or `chore/full-review-base-2` etc. if that name is already taken from a
+   previous round) — whatever you pick, **reuse that exact same name in step
+   3** rather than re-typing `chore/full-review-base` there, so a suffixed
+   name doesn't silently make the PR target a stale review branch:
    ```sh
-   git checkout -b chore/full-review-base <first-commit-hash>
-   git push -u origin chore/full-review-base
+   BASE_BRANCH=chore/full-review-base   # bump the suffix here if already taken
+   git checkout -b "$BASE_BRANCH" <first-commit-hash>
+   git push -u origin "$BASE_BRANCH"
    ```
    Then return to whatever branch the user was previously on
    (`git checkout -`), since this base branch has no other purpose.
@@ -39,7 +42,7 @@ haven't already explicitly asked for this in the current conversation.
    branch) — so the diff is "everything added since the beginning of
    history", i.e. the whole codebase:
    ```sh
-   gh pr create --base chore/full-review-base --head master \
+   gh pr create --base "$BASE_BRANCH" --head master \
      --title "chore: full-codebase review base for CodeRabbit" \
      --body "Review-only PR to get a full-codebase review — not meant to be merged. Will be closed once the review is complete."
    ```
@@ -79,5 +82,6 @@ haven't already explicitly asked for this in the current conversation.
    ```sh
    gh pr close <N> --comment "Full-codebase review captured; closing without merging."
    ```
-   The `chore/full-review-base` branch can be deleted at this point too
-   (locally and on `origin`) — it has no further use once the PR is closed.
+   `$BASE_BRANCH` (whatever name step 2 actually used) can be deleted at
+   this point too (locally and on `origin`) — it has no further use once
+   the PR is closed.
