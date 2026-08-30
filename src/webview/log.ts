@@ -510,7 +510,6 @@ function render(entries: LogEntry[]): void {
 
   const { rows, laneCount } = computeLanes(entries);
   commitListEl!.replaceChildren(...entries.map((entry, i) => buildCommitRow(entry, rows[i], laneCount)));
-  if (entries.length > 0) expandCommit(entries[0].hash);
 }
 
 function renderLogError(message: string): void {
