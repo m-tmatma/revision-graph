@@ -18,6 +18,7 @@ import type {
 import { computeLayout } from './computeLayout';
 import { applyLocalization, t } from './l10n';
 import { renderGraph } from './render/graphRenderer';
+import { commitLabels, isLayoutEquivalent, nodeIdentities, patchGraphRefs, type NodeIdentity } from './render/layoutReuse';
 import { NODE_MIN_WIDTH, NODE_PADDING_X, NODE_PADDING_Y, NODE_ROW_HEIGHT } from './render/layoutConstants';
 import { PanZoomController } from './render/panZoom';
 import { closeContextMenu, showContextMenu, type ContextMenuItem } from './render/contextMenu';
@@ -191,6 +192,11 @@ let panZoomController: PanZoomController | null = null;
 let selectionController: SelectionController | null = null;
 let minimapController: Minimap | null = null;
 let lastRenderedGraph: LaidOutGraph | null = null;
+// The exact node identities lastRenderedGraph was laid out from -- lets
+// handleGraphData recognize a layout-equivalent graphData message (see
+// isLayoutEquivalent) and skip straight to patchGraphRefs instead of
+// recomputing layout from scratch.
+let lastGraphNodeIdentities: NodeIdentity[] | null = null;
 
 function renderAndFocus(graph: LaidOutGraph, focusOnHead: boolean): void {
   closeContextMenu();
@@ -640,7 +646,7 @@ function buildGraphNodes(commits: GraphCommit[]): GraphNode[] {
   ctx.font = `11px ${fontFamily}`;
 
   return commits.map((commit) => {
-    const labels = commit.refs.length > 0 ? commit.refs.map((ref) => ref.name) : [commit.hash.slice(0, 7)];
+    const labels = commitLabels(commit);
     const maxLabelWidth = Math.max(...labels.map((label) => ctx.measureText(label).width));
     const width = Math.max(NODE_MIN_WIDTH, Math.ceil(maxLabelWidth) + NODE_PADDING_X);
     const height = labels.length * NODE_ROW_HEIGHT + NODE_PADDING_Y * 2;
@@ -716,6 +722,15 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
     if (isStale()) return;
     rootEl!.replaceChildren();
     setStatus(t('No commits found.'));
+    lastGraphNodeIdentities = null;
+    return;
+  }
+
+  const identities = nodeIdentities(commits);
+  if (lastRenderedGraph && lastGraphNodeIdentities && isLayoutEquivalent(lastGraphNodeIdentities, identities)) {
+    lastGraphNodeIdentities = identities;
+    renderAndFocus(patchGraphRefs(lastRenderedGraph, commits), focusOnHead);
+    setStatus(null);
     return;
   }
 
@@ -743,6 +758,7 @@ async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boole
   const finish = (graph: LaidOutGraph) => {
     stopTicker();
     if (isStale()) return; // a newer graphData message superseded this one
+    lastGraphNodeIdentities = identities;
     renderAndFocus(graph, focusOnHead);
     setStatus(null);
   };

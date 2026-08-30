@@ -17,6 +17,12 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   whenever that shortcut wouldn't be correct (e.g. "Current branch"
   scope, or a checkout target that wasn't already part of the
   previously-fetched history).
+- The main graph also skips recomputing layout entirely when a refresh's
+  commits are structurally identical to what's already on screen (same
+  commits, same parents, same ref-chip labels) — the common case after a
+  checkout — reusing the existing node positions and only moving the
+  current-branch highlight, instead of re-running layout in the Web
+  Worker from scratch.
 
 ## 0.12.0
 
