@@ -56,7 +56,7 @@
   "timed out rasterizing the SVG": "點陣化 SVG 逾時",
   "failed to rasterize the SVG": "點陣化 SVG 失敗",
   "rasterized SVG has no dimensions (naturalWidth/naturalHeight is 0)": "點陣化後的 SVG 沒有尺寸(naturalWidth/naturalHeight 為 0)",
-  "canvas 2D context unavailable": "無法取得 canvas 2D 內容",
+  "canvas 2D context unavailable": "無法取得 canvas 2D 上下文",
   "canvas produced no PNG data (got \"{0}\")": "canvas 未產生 PNG 資料(取得的值為 \"{0}\")",
   "Export failed: {0}": "匯出失敗: {0}",
   "{0} (detached HEAD)": "{0} (detached HEAD)",
