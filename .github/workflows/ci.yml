@@ -39,20 +39,15 @@ jobs:
           tar -czf "$ARCHIVE_NAME" -C release .
       # Two copies of the same release/ contents: the .tar.gz keeps the
       # installer scripts' executable bit (see the comment above), and the
-      # -zip one is the familiar, easy-to-double-click-extract format most
+      # .zip is the familiar, easy-to-double-click-extract format most
       # Windows users expect -- upload-artifact resets its own permissions
       # to 644 either way, so it's fine for the .vsix/install.bat (which
       # doesn't need executable permissions) but not for the *nix scripts.
-      # Named "-zip" (not ".zip"): the artifacts list only ever shows this
-      # bare name, with no indication it's a zip unlike the .tar.gz one
-      # above, whose name already carries its own extension; naming this
-      # one literally "....zip" would instead make GitHub's own
-      # zip-wrapping double up into a confusing "....zip.zip" on download.
       - uses: actions/upload-artifact@v7
         with:
           path: vsix-v${{ steps.version.outputs.version }}-build${{ github.run_number }}.tar.gz
           archive: false
       - uses: actions/upload-artifact@v7
         with:
-          name: vsix-v${{ steps.version.outputs.version }}-build${{ github.run_number }}-zip
+          name: vsix-v${{ steps.version.outputs.version }}-build${{ github.run_number }}
           path: release/*
