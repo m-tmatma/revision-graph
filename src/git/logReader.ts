@@ -149,8 +149,8 @@ async function getCurrentBranchName(cwd: string): Promise<string | null> {
 export async function fetchRefs(cwd: string): Promise<Map<string, RefInfo[]>> {
   const refsByHash = new Map<string, RefInfo[]>();
 
-  const addRef = (hash: string, refname: string, typeOverride?: RefType) => {
-    const info: RefInfo = { name: displayRefName(refname), type: typeOverride ?? classifyRef(refname) };
+  const addRef = (hash: string, refname: string, typeOverride?: RefType, nameOverride?: string) => {
+    const info: RefInfo = { name: nameOverride ?? displayRefName(refname), type: typeOverride ?? classifyRef(refname) };
     const existing = refsByHash.get(hash);
     if (existing) {
       existing.push(info);
@@ -182,10 +182,14 @@ export async function fetchRefs(cwd: string): Promise<Map<string, RefInfo[]>> {
 
   if (currentBranchName === null) {
     // Detached HEAD: there's no branch ref to highlight, so fall back to
-    // labeling the commit "HEAD" directly.
+    // labeling the commit "HEAD" directly. Plain "HEAD" alone reads like a
+    // branch name at a glance (it's rendered as an ordinary chip, in the
+    // same red as a real current-branch chip) -- "(detached)" is what
+    // actually distinguishes it, same idea as resolveCheckoutTarget's own
+    // "{hash} (detached HEAD)" checkout-target label.
     await runGitLines(cwd, ['rev-parse', 'HEAD'], (line) => {
       const hash = line.trim();
-      if (hash) addRef(hash, 'HEAD', 'head');
+      if (hash) addRef(hash, 'HEAD', 'head', 'HEAD (detached)');
     });
   }
 

@@ -96,6 +96,10 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   chip no longer leaks through either — same gap as the `current-branch`
   fix above, but for the separate `head` ref type used when there's no
   checked-out branch to attribute it to.
+- A detached-HEAD commit's chip now reads "HEAD (detached)" instead of
+  a bare "HEAD" — rendered as an ordinary chip in the same red as a
+  real current-branch chip, plain "HEAD" could read as an actual branch
+  name at a glance.
 
 ## 0.10.0
 
