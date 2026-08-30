@@ -17,7 +17,15 @@ if ! command -v code >/dev/null 2>&1; then
     exit 1
 fi
 
-VSIX=$(ls -1 *.vsix 2>/dev/null | head -n 1)
+# Not `ls -1 *.vsix | head -n 1` -- a filename starting with "-" would
+# otherwise be parsed as an ls option instead of a file. The leading "./"
+# keeps the selected path unambiguous too.
+VSIX=
+for f in ./*.vsix; do
+    [ -e "$f" ] || continue
+    VSIX=$f
+    break
+done
 if [ -z "$VSIX" ]; then
     echo "No .vsix file found next to this script."
     exit 1
