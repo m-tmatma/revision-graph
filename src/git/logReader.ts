@@ -253,6 +253,52 @@ export function filterRefsForScope(refs: RefInfo[], scope: LogScopeOptions['scop
   return refs;
 }
 
+/**
+ * Pure redecoration step behind redecorateAfterCheckout (below) -- given an
+ * already-fetched commit list and a freshly fetched refsByHash map, recomputes
+ * each commit's refs/isCurrentBranch the same way parseLogRecord does for a
+ * fresh `git log` record. Split out from redecorateAfterCheckout so this
+ * decision logic can be unit-tested without spawning git.
+ */
+export function redecorateCommits(
+  commits: GraphCommit[],
+  refsByHash: Map<string, RefInfo[]>,
+  scope: LogScopeOptions['scope'],
+): { commits: GraphCommit[]; sawCurrentBranch: boolean } {
+  let sawCurrentBranch = false;
+  const redecorated = commits.map((commit) => {
+    const rawRefs = refsByHash.get(commit.hash) ?? [];
+    const isCurrentBranch = rawRefs.some((ref) => ref.type === 'head' || ref.type === 'current-branch');
+    if (isCurrentBranch) sawCurrentBranch = true;
+    return { ...commit, refs: filterRefsForScope(rawRefs, scope), isCurrentBranch };
+  });
+  return { commits: redecorated, sawCurrentBranch };
+}
+
+/**
+ * Re-applies freshly fetched ref decorations to an already-fetched commit
+ * list, without re-running `git log` -- valid after a plain `git checkout`,
+ * which only moves which ref(s) point where and never changes the commit
+ * graph itself, so the (expensive, uncapped) commit walk's result is still
+ * exactly correct; only which commit carries the `current-branch`/`head`
+ * chip (and, if checkout created a new branch, one new ref chip) needs to
+ * change. Returns undefined if the new current-branch/HEAD commit isn't
+ * present in `commits` at all -- e.g. it had no ref at the time of the
+ * original fetch and `--simplify-by-decoration` pruned it, or the checkout
+ * target was never part of this scope's previously-fetched commit set (an
+ * incremental-checkout target outside the current scope, say) -- in which
+ * case only a full re-fetch can be correct.
+ */
+export async function redecorateAfterCheckout(
+  cwd: string,
+  commits: GraphCommit[],
+  scope: LogScopeOptions['scope'],
+): Promise<GraphCommit[] | undefined> {
+  const refsByHash = await fetchRefs(cwd);
+  const { commits: redecorated, sawCurrentBranch } = redecorateCommits(commits, refsByHash, scope);
+  return sawCurrentBranch ? redecorated : undefined;
+}
+
 export async function fetchCommits(cwd: string, options: LogScopeOptions, sparse: boolean): Promise<GraphCommit[]> {
   const refsByHash = await fetchRefs(cwd);
   const output = await runGitBuffered(cwd, buildLogArgs(options, sparse));

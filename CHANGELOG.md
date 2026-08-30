@@ -3,6 +3,21 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+### Changed
+
+- Checking out a branch from the main graph (via the node context menu's
+  "Checkout" item, or the toolbar's incremental-checkout button) now
+  refreshes noticeably faster on large repositories with an "All
+  branches"/"Local branches"/"Remote branches" scope: since checkout
+  never changes the commit graph itself, only which ref points where,
+  the refresh skips re-running and re-parsing the entire `git log` and
+  only re-fetches ref info, falling back to a full refresh automatically
+  whenever that shortcut wouldn't be correct (e.g. "Current branch"
+  scope, or a checkout target that wasn't already part of the
+  previously-fetched history).
+
 ## 0.12.0
 
 ### Changed

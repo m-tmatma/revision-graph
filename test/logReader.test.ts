@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildLogArgs, classifyRef, displayRefName, filterRefsForScope, parseLogRecord } from '../src/git/logReader';
-import type { RefInfo } from '../src/shared/types';
+import { buildLogArgs, classifyRef, displayRefName, filterRefsForScope, parseLogRecord, redecorateCommits } from '../src/git/logReader';
+import type { GraphCommit, RefInfo } from '../src/shared/types';
 
 const FIELD_SEP = '\x1f';
 
@@ -177,5 +177,87 @@ describe('parseLogRecord', () => {
     const commit = parseLogRecord(multilineRecord, new Map());
 
     expect(commit?.body).toBe('Merge pull request #1 from feature/x\n\nDetailed description here.');
+  });
+});
+
+describe('redecorateCommits', () => {
+  function commit(hash: string, overrides: Partial<GraphCommit> = {}): GraphCommit {
+    return {
+      hash,
+      parents: [],
+      subject: `subject-${hash}`,
+      body: `subject-${hash}\n`,
+      authorName: 'Jane Doe',
+      authorEmail: 'jane@example.com',
+      authorDate: 1700000000,
+      refs: [],
+      isCurrentBranch: false,
+      ...overrides,
+    };
+  }
+
+  it('moves the current-branch chip from the old HEAD commit to the new one', () => {
+    const oldRef: RefInfo = { name: 'main', type: 'current-branch' };
+    const commits = [commit('old-head', { refs: [oldRef], isCurrentBranch: true }), commit('new-head')];
+    const newRef: RefInfo = { name: 'feature', type: 'current-branch' };
+    const refsByHash = new Map([['new-head', [newRef]]]);
+
+    const { commits: redecorated, sawCurrentBranch } = redecorateCommits(commits, refsByHash, 'all-branches');
+
+    expect(sawCurrentBranch).toBe(true);
+    expect(redecorated.find((c) => c.hash === 'old-head')).toMatchObject({ refs: [], isCurrentBranch: false });
+    expect(redecorated.find((c) => c.hash === 'new-head')).toMatchObject({ refs: [newRef], isCurrentBranch: true });
+  });
+
+  it('preserves non-ref fields (hash, parents, subject, ...) unchanged', () => {
+    const commits = [commit('abc123', { parents: ['def456'], subject: 'Fix the thing' })];
+    const refsByHash = new Map([['abc123', [{ name: 'main', type: 'current-branch' as const }]]]);
+
+    const { commits: redecorated } = redecorateCommits(commits, refsByHash, 'all-branches');
+
+    expect(redecorated[0]).toMatchObject({
+      hash: 'abc123',
+      parents: ['def456'],
+      subject: 'Fix the thing',
+      authorName: 'Jane Doe',
+    });
+  });
+
+  it('adds a new ref chip (e.g. a branch created during checkout) without touching other commits', () => {
+    const commits = [commit('a'), commit('b')];
+    const refsByHash = new Map([
+      ['a', [{ name: 'main', type: 'current-branch' as const }]],
+      ['b', [{ name: 'feature', type: 'local-branch' as const }]],
+    ]);
+
+    const { commits: redecorated } = redecorateCommits(commits, refsByHash, 'all-branches');
+
+    expect(redecorated.find((c) => c.hash === 'b')?.refs).toEqual([{ name: 'feature', type: 'local-branch' }]);
+  });
+
+  it('reports sawCurrentBranch: false when the new HEAD commit is not present in the given commits', () => {
+    const commits = [commit('a'), commit('b')];
+    // The checked-out commit ("c") isn't in the cached list at all -- e.g.
+    // it was pruned by --simplify-by-decoration, or was never in scope.
+    const refsByHash = new Map([['c', [{ name: 'main', type: 'current-branch' as const }]]]);
+
+    const { sawCurrentBranch } = redecorateCommits(commits, refsByHash, 'all-branches');
+
+    expect(sawCurrentBranch).toBe(false);
+  });
+
+  it('applies filterRefsForScope to the redecorated refs, same as a fresh fetch would', () => {
+    const commits = [commit('a')];
+    const refsByHash = new Map([
+      ['a', [{ name: 'main', type: 'current-branch' as const }, { name: 'origin/main', type: 'remote-branch' as const }]],
+    ]);
+
+    const { commits: redecorated } = redecorateCommits(commits, refsByHash, 'remote-branches');
+
+    // 'remote-branches' scope drops the current-branch chip from display
+    // (keeping the remote-branch chip), but isCurrentBranch itself is still
+    // computed from the unfiltered refs.
+    expect(redecorated[0].refs).toEqual([{ name: 'origin/main', type: 'remote-branch' }]);
+    expect(redecorated[0].isCurrentBranch).toBe(true);
   });
 });

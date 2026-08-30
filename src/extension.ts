@@ -30,7 +30,7 @@ import {
   tagExists,
   updateSubmodules,
 } from './git/gitActions';
-import { fetchCommits } from './git/logReader';
+import { fetchCommits, redecorateAfterCheckout } from './git/logReader';
 import { watchRepositoryChanges } from './git/repoWatcher';
 import type {
   CheckoutOptions,
@@ -38,6 +38,7 @@ import type {
   CompareData,
   CompareHostToWebviewMessage,
   CompareWebviewToHostMessage,
+  GraphCommit,
   HostToWebviewMessage,
   LogHostToWebviewMessage,
   LogScopeOptions,
@@ -46,6 +47,19 @@ import type {
   ReduceOptions,
   WebviewToHostMessage,
 } from './shared/types';
+
+// Scopes whose underlying `git log` invocation doesn't reference HEAD at all
+// (see buildLogArgs in logReader.ts) -- for these, a plain checkout can only
+// move which ref points where, never change the set of commits `git log`
+// itself would return, so redecorateAfterCheckout's ref-only re-fetch is a
+// safe substitute for a full re-fetch. 'current-branch' (`git log HEAD`) and
+// 'range' (whose endpoints can themselves be 'HEAD') are excluded since
+// their commit *set* can depend on which commit HEAD points to.
+const SCOPES_SAFE_TO_SKIP_LOG_ON_CHECKOUT: ReadonlySet<LogScopeOptions['scope']> = new Set([
+  'all-branches',
+  'local-branches',
+  'remote-branches',
+]);
 
 // Injected by esbuild.js's `define` at build time (`git rev-parse --short
 // HEAD` at build time, not activation time — a packaged extension's
@@ -244,10 +258,39 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
   // while one is already in flight is simply ignored.
   let fetchInProgress = false;
 
-  const refresh = async (focusOnHead = false) => {
+  // The most recently fetched (pre-reduceDag) commit list, and the exact
+  // scope/sparse it was fetched under -- lets a checkout-triggered refresh
+  // (see `afterCheckout` below) skip straight to redecorateAfterCheckout
+  // instead of re-running `git log`. Kept in sync on every full fetch below;
+  // never written to by the redecorated path's own result under a
+  // *different* scope/sparse, since a scope/sparse change always goes
+  // through a full, non-`afterCheckout` refresh first (the 'setFilter'
+  // handler below never passes `afterCheckout`).
+  let lastFetchedCommits: GraphCommit[] | null = null;
+  let lastFetchedScope: LogScopeOptions['scope'] | null = null;
+  let lastFetchedSparse: boolean | null = null;
+
+  const refresh = async (focusOnHead = false, opts: { afterCheckout?: boolean } = {}) => {
     const generation = ++requestGeneration;
+    const requestScope = scope;
+    const requestSparse = reduce.sparse;
     try {
-      const commits = await fetchCommits(cwd, scope, reduce.sparse);
+      let commits: GraphCommit[] | undefined;
+      if (
+        opts.afterCheckout &&
+        lastFetchedCommits &&
+        lastFetchedScope === requestScope.scope &&
+        lastFetchedSparse === requestSparse &&
+        SCOPES_SAFE_TO_SKIP_LOG_ON_CHECKOUT.has(requestScope.scope)
+      ) {
+        commits = await redecorateAfterCheckout(cwd, lastFetchedCommits, requestScope.scope);
+      }
+      commits ??= await fetchCommits(cwd, requestScope, requestSparse);
+      if (generation === requestGeneration) {
+        lastFetchedCommits = commits;
+        lastFetchedScope = requestScope.scope;
+        lastFetchedSparse = requestSparse;
+      }
       const reduced = reduceDag(commits, reduce);
       if (generation !== requestGeneration) return;
       const message: HostToWebviewMessage = { type: 'graphData', commits: reduced, focusOnHead };
@@ -269,6 +312,17 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
   // an unrelated checkout elsewhere shouldn't change what it's displaying.
   const refreshEverything = async (focusOnHead?: boolean) => {
     await Promise.all([refresh(focusOnHead), logTarget.startRef === 'HEAD' ? logSidebarRefresh?.() : undefined]);
+  };
+
+  // Same as refreshEverything, but hints `refresh` that this refresh was
+  // triggered by a checkout specifically -- see SCOPES_SAFE_TO_SKIP_LOG_ON_CHECKOUT
+  // and redecorateAfterCheckout for why that's safe to skip a full `git log`
+  // re-fetch for.
+  const refreshAfterCheckout = async (focusOnHead?: boolean) => {
+    await Promise.all([
+      refresh(focusOnHead, { afterCheckout: true }),
+      logTarget.startRef === 'HEAD' ? logSidebarRefresh?.() : undefined,
+    ]);
   };
 
   // Refreshes on external repo changes too (a checkout done outside this
@@ -312,7 +366,7 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       await showCheckoutDialog(
         cwd,
         { ref: message.ref, label: message.label, suggestedBranchName: message.suggestedBranchName },
-        refreshEverything,
+        refreshAfterCheckout,
       );
     } else if (message.type === 'deleteRef') {
       await handleDeleteRef(cwd, message.refType, message.refName, refreshEverything);
@@ -348,7 +402,7 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
         Buffer.from(base64, 'base64'),
       );
     } else if (message.type === 'incrementalCheckout') {
-      await showIncrementalCheckout(cwd, refreshEverything);
+      await showIncrementalCheckout(cwd, refreshAfterCheckout);
     } else if (message.type === 'fetch') {
       if (fetchInProgress) return;
       fetchInProgress = true;
