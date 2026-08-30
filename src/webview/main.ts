@@ -24,6 +24,7 @@ import { closeContextMenu, showContextMenu, type ContextMenuItem } from './rende
 import { refDisplayLabel, resolveCheckoutTarget } from './render/checkoutTarget';
 import { SelectionController } from './render/selection';
 import { Minimap } from './render/minimap';
+import { HoverTooltipController } from './render/hoverTooltip';
 
 declare function acquireVsCodeApi(): { postMessage(message: WebviewToHostMessage): void };
 declare global {
@@ -192,6 +193,15 @@ let selectionController: SelectionController | null = null;
 let minimapController: Minimap | null = null;
 let lastRenderedGraph: LaidOutGraph | null = null;
 
+// One instance for the whole page's lifetime (its tooltip element lives in
+// document.body, outside the SVG that gets replaced on every re-render) --
+// requests the same text `git show -s`/"Copy commit info" would produce, so
+// hovering a node reads exactly the same as copying it.
+const hoverTooltip = new HoverTooltipController((commitId) => {
+  const message: WebviewToHostMessage = { type: 'requestCommitTooltip', commitId };
+  vscode.postMessage(message);
+});
+
 function renderAndFocus(graph: LaidOutGraph, focusOnHead: boolean): void {
   closeContextMenu();
   lastRenderedGraph = graph;
@@ -202,6 +212,7 @@ function renderAndFocus(graph: LaidOutGraph, focusOnHead: boolean): void {
   selectionController = newSelectionController;
   const nodesById = new Map(graph.nodes.map((node) => [node.id, node]));
   attachContextMenu(svg, newSelectionController, nodesById);
+  attachHoverTooltip(svg);
 
   if (!graphScrollEl) return;
 
@@ -605,6 +616,35 @@ function attachContextMenu(
   });
 }
 
+// Delegated over the whole SVG (one pair of listeners survives every
+// re-render, rather than one per node -- a real repo's graph can have
+// thousands) -- `mousemove` re-derives which node (if any) is currently
+// under the cursor on every move, since `mouseenter`/`mouseleave` don't
+// bubble and so can't be delegated the same way `attachContextMenu`
+// delegates its own single click-driven lookup. Only acts when that
+// derived node actually changes, though -- the tooltip itself is anchored
+// to the node, not the cursor, so it has nothing to do on every move
+// within the same node.
+function attachHoverTooltip(svg: SVGSVGElement): void {
+  let hoveredCommitId: string | null = null;
+  svg.addEventListener('mousemove', (event) => {
+    const target = event.target as Element;
+    const group = target.closest?.('[data-commit-id]') as SVGGElement | null;
+    const commitId = group?.getAttribute('data-commit-id') ?? null;
+    if (commitId === hoveredCommitId) return; // already anchored here (or already showing nothing)
+    hoveredCommitId = commitId;
+    if (commitId && group) {
+      hoverTooltip.enter(commitId, group);
+    } else {
+      hoverTooltip.leave();
+    }
+  });
+  svg.addEventListener('mouseleave', () => {
+    hoveredCommitId = null;
+    hoverTooltip.leave();
+  });
+}
+
 function buildGraphNodes(commits: GraphCommit[]): GraphNode[] {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d')!;
@@ -622,10 +662,6 @@ function buildGraphNodes(commits: GraphCommit[]): GraphNode[] {
       refs: commit.refs,
       width,
       height,
-      body: commit.body,
-      authorName: commit.authorName,
-      authorEmail: commit.authorEmail,
-      authorDate: commit.authorDate,
       isCurrentBranch: commit.isCurrentBranch,
     };
   });
@@ -754,6 +790,10 @@ window.addEventListener('message', (event: MessageEvent<HostToWebviewMessage>) =
   } else if (event.data.type === 'error') {
     rootEl!.replaceChildren();
     setStatus(t('Error: {0}', event.data.message));
+  } else if (event.data.type === 'commitTooltip') {
+    hoverTooltip.handleResponse(event.data.commitId, event.data.text);
+  } else if (event.data.type === 'commitTooltipError') {
+    hoverTooltip.handleError(event.data.commitId, event.data.message);
   }
 });
 

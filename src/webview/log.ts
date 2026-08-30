@@ -15,6 +15,7 @@ import { refDisplayLabel, resolveCheckoutTarget } from './render/checkoutTarget'
 import { contrastTextColor, REF_COLORS } from './render/colors';
 import { showContextMenu, type ContextMenuItem } from './render/contextMenu';
 import { createSvgElement, formatDate } from './render/graphRenderer';
+import { HoverTooltipController } from './render/hoverTooltip';
 import { computeLanes, type LaneRow } from './render/logLanes';
 
 // Pixel geometry for each row's lane-graph column — kept in lockstep with
@@ -56,6 +57,13 @@ versionButton.title = versionInfoLabel;
 versionButton.setAttribute('aria-label', versionInfoLabel);
 versionButton.addEventListener('click', () => {
   const message: LogWebviewToHostMessage = { type: 'showVersionInfo' };
+  vscode.postMessage(message);
+});
+
+// Requests the same text `git show -s`/"Copy commit info" would produce, so
+// hovering a row reads exactly the same as copying it.
+const hoverTooltip = new HoverTooltipController((hash) => {
+  const message: LogWebviewToHostMessage = { type: 'requestCommitTooltip', hash };
   vscode.postMessage(message);
 });
 
@@ -394,6 +402,13 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
     }
   });
 
+  // Attached directly per row rather than delegated over the whole list
+  // (unlike the main graph's own SVG-wide delegation): `mouseenter`/
+  // `mouseleave` don't bubble, and this file already attaches every other
+  // listener per row too, so this stays consistent with that.
+  main.addEventListener('mouseenter', () => hoverTooltip.enter(entry.hash, main));
+  main.addEventListener('mouseleave', () => hoverTooltip.leave());
+
   // Without this, right-clicking a row falls through to the webview's
   // native OS edit menu (Cut/Copy/Paste) -- meaningless here since none of
   // this row is editable text. A small custom menu with actions that
@@ -542,6 +557,10 @@ window.addEventListener('message', (event: MessageEvent<LogHostToWebviewMessage>
     if (message.commitHash !== expandedHash) return;
     const fileList = fileListsByHash.get(message.commitHash);
     fileList?.replaceChildren(buildFileListStatus(t('Git Revision Graph: {0}', message.message), true));
+  } else if (message.type === 'commitTooltip') {
+    hoverTooltip.handleResponse(message.hash, message.text);
+  } else if (message.type === 'commitTooltipError') {
+    hoverTooltip.handleError(message.hash, message.message);
   }
 });
 

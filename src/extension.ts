@@ -307,6 +307,26 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       } catch (err) {
         vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
       }
+    } else if (message.type === 'requestCommitTooltip') {
+      // Best-effort: on failure, the error message itself becomes the
+      // tooltip text (e.g. a stale commitId after a rebase moved history
+      // out from under a still-rendered node) rather than a dedicated error
+      // UI -- there's nothing actionable for the user to do about a hover
+      // tooltip failing beyond seeing why. Kept as a separate message type
+      // from the success case regardless, so the webview's cache never
+      // stores a transient failure as if it were the real commit summary.
+      try {
+        const text = await getCommitShowSummary(cwd, message.commitId);
+        const hostMessage: HostToWebviewMessage = { type: 'commitTooltip', commitId: message.commitId, text };
+        await panel.webview.postMessage(hostMessage);
+      } catch (err) {
+        const hostMessage: HostToWebviewMessage = {
+          type: 'commitTooltipError',
+          commitId: message.commitId,
+          message: (err as Error).message,
+        };
+        await panel.webview.postMessage(hostMessage);
+      }
     } else if (message.type === 'openCheckoutDialog') {
       await showCheckoutDialog(
         cwd,
@@ -545,6 +565,22 @@ function wireLogWebview(
         await vscode.env.clipboard.writeText(text);
       } catch (err) {
         vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
+      }
+    } else if (message.type === 'requestCommitTooltip') {
+      // Best-effort, same rationale as the main graph's own handler for
+      // this message: the error text becomes the tooltip on failure, but
+      // as a separate message type so it's never cached as a real summary.
+      try {
+        const text = await getCommitShowSummary(cwd, message.hash);
+        const hostMessage: LogHostToWebviewMessage = { type: 'commitTooltip', hash: message.hash, text };
+        await webview.postMessage(hostMessage);
+      } catch (err) {
+        const hostMessage: LogHostToWebviewMessage = {
+          type: 'commitTooltipError',
+          hash: message.hash,
+          message: (err as Error).message,
+        };
+        await webview.postMessage(hostMessage);
       }
     } else if (message.type === 'openCheckoutDialog') {
       await showCheckoutDialog(
