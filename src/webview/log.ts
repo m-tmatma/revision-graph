@@ -20,7 +20,7 @@ import { computeLanes, type LaneRow } from './render/logLanes';
 // Pixel geometry for each row's lane-graph column — kept in lockstep with
 // the matching row height in logPanel.html's CSS (.commit-button).
 const ROW_HEIGHT = 40;
-const LANE_WIDTH = 16;
+const LANE_WIDTH = 10;
 const LANE_COLORS = [
   'var(--vscode-charts-blue, #3794ff)',
   'var(--vscode-charts-orange, #d18616)',
@@ -253,7 +253,7 @@ function svgLine(x1: number, y1: number, x2: number, y2: number, color: string):
   line.setAttribute('x2', String(x2));
   line.setAttribute('y2', String(y2));
   line.setAttribute('stroke', color);
-  line.setAttribute('stroke-width', '2');
+  line.setAttribute('stroke-width', '1.5');
   return line;
 }
 
@@ -281,11 +281,11 @@ function buildLaneGraph(row: LaneRow, laneCount: number): SVGSVGElement {
   const dot = createSvgElement('circle');
   dot.setAttribute('cx', String(laneX(row.lane)));
   dot.setAttribute('cy', String(midY));
-  dot.setAttribute('r', row.isMerge ? '5' : '3.5');
+  dot.setAttribute('r', row.isMerge ? '4' : '2.75');
   dot.setAttribute('fill', laneColor(row.lane));
   if (row.isMerge) {
     dot.setAttribute('stroke', 'var(--vscode-editor-background)');
-    dot.setAttribute('stroke-width', '1.5');
+    dot.setAttribute('stroke-width', '1.25');
   }
   svg.appendChild(dot);
 
