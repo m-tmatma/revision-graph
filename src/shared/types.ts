@@ -59,9 +59,7 @@ export interface ReduceOptions {
 /** Message sent from the extension host to the webview. */
 export type HostToWebviewMessage =
   | { type: 'graphData'; commits: GraphCommit[]; focusOnHead?: boolean }
-  | { type: 'error'; message: string }
-  | { type: 'commitTooltip'; commitId: string; text: string }
-  | { type: 'commitTooltipError'; commitId: string; message: string };
+  | { type: 'error'; message: string };
 
 /** Message sent from the webview back to the extension host. */
 export type WebviewToHostMessage =
@@ -72,7 +70,6 @@ export type WebviewToHostMessage =
   | { type: 'compareWithDefaultBranch'; to: string; toLabel?: string }
   | { type: 'compareWithCurrentBranch'; to: string; toLabel?: string }
   | { type: 'copyCommitInfo'; commitId: string }
-  | { type: 'requestCommitTooltip'; commitId: string }
   | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string }
   | { type: 'deleteRef'; refType: RefType; refName: string }
   | { type: 'renameRef'; refType: RefType; refName: string }
@@ -191,9 +188,7 @@ export type LogHostToWebviewMessage =
   | { type: 'logData'; data: LogPanelData }
   | { type: 'logError'; message: string }
   | { type: 'diffData'; commitHash: string; files: FileChange[] }
-  | { type: 'diffError'; commitHash: string; message: string }
-  | { type: 'commitTooltip'; hash: string; text: string }
-  | { type: 'commitTooltipError'; hash: string; message: string };
+  | { type: 'diffError'; commitHash: string; message: string };
 
 export type LogWebviewToHostMessage =
   | { type: 'ready' }
@@ -202,7 +197,6 @@ export type LogWebviewToHostMessage =
   | { type: 'selectCommit'; hash: string }
   | { type: 'openFile'; commitHash: string; path: string }
   | { type: 'copyCommitInfo'; hash: string }
-  | { type: 'requestCommitTooltip'; hash: string }
   | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string }
   | { type: 'createBranch'; startPoint: string }
   | { type: 'createTag'; startPoint: string }

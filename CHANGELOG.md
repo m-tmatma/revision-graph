@@ -3,6 +3,14 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
+## Unreleased
+
+### Removed
+
+- The hover tooltip showing commit info (main graph and log sidebar),
+  since it got in the way while interacting with commits — use the
+  "Copy commit info" context-menu item instead.
+
 ## 0.11.0
 
 ### Added
