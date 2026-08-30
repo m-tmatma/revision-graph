@@ -21,9 +21,12 @@ code --install-extension tmatma.vscode-git-revision-graph
 
 Alternatively, install from a `.vsix` file:
 
-1. Get a `.vsix`: download the `vsix-v<version>-build<N>` artifact from a
-   [CI run](../../actions) on GitHub (it's a zip; unzip it to get the
-   `.vsix` file), or build one yourself (see
+1. Get a `.vsix`: download the `vsix-v<version>-build<N>.tar.gz` artifact
+   from a [CI run](../../actions) on GitHub (a `.tar.gz`, not a `.zip` —
+   this keeps the bundled installer scripts' executable bit intact, which
+   a plain zip download would otherwise strip; extract it with
+   `tar -xzf vsix-v<version>-build<N>.tar.gz` to get the `.vsix` file and
+   the install scripts), or build one yourself (see
    [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#build)).
 2. Install it — **don't double-click the file** (`.vsix` is also Visual
    Studio's extension package extension, so Windows may open it with the
