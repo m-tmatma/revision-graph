@@ -39,7 +39,7 @@ body:
     id: extension-version
     attributes:
       label: "Extension version / 拡張機能のバージョン"
-      description: "Shown in the Activity Bar's Git Revision Graph welcome view. / Activity Bar の Git Revision Graph ウェルカム画面に表示されます。"
+      description: "Shown via the \"ℹ\" version-info button in the Activity Bar's Git Revision Graph log sidebar. / Activity Bar の Git Revision Graph ログサイドバーの「ℹ」バージョン情報ボタンから確認できます。"
       placeholder: "e.g. 0.1.0 (abc1234)"
     validations:
       required: true
