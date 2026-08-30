@@ -140,5 +140,6 @@
   "Remote branches": "リモートブランチ",
   "open a folder first.": "先にフォルダーを開いてください。",
   "Version info": "バージョン情報",
-  "Copy": "コピー"
+  "Copy": "コピー",
+  "New branch name (optional); select options below, then press Enter": "新しいブランチ名(任意)。下のオプションを選択して Enter を押してください"
 }

@@ -135,5 +135,6 @@
   "Remote branches": "Ramas remotas",
   "open a folder first.": "abra primero una carpeta.",
   "Version info": "Información de versión",
-  "Copy": "Copiar"
+  "Copy": "Copiar",
+  "New branch name (optional); select options below, then press Enter": "Nombre de la nueva rama (opcional); seleccione las opciones a continuación y presione Entrar"
 }

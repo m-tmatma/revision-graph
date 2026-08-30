@@ -135,5 +135,6 @@
   "Remote branches": "Удалённые ветки",
   "open a folder first.": "сначала откройте папку.",
   "Version info": "Информация о версии",
-  "Copy": "Копировать"
+  "Copy": "Копировать",
+  "New branch name (optional); select options below, then press Enter": "Имя новой ветки (необязательно); выберите параметры ниже и нажмите Enter"
 }

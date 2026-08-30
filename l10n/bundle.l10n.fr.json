@@ -135,5 +135,6 @@
   "Remote branches": "Branches distantes",
   "open a folder first.": "ouvrez d'abord un dossier.",
   "Version info": "Informations de version",
-  "Copy": "Copier"
+  "Copy": "Copier",
+  "New branch name (optional); select options below, then press Enter": "Nom de la nouvelle branche (facultatif) ; sélectionnez les options ci-dessous, puis appuyez sur Entrée"
 }

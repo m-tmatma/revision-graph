@@ -36,12 +36,16 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   checkout, branch/tag creation, or merged-branch deletion — whether
   triggered from the main graph, the sidebar itself, or externally —
   as long as it's still showing the default current-branch view.
-
 - With scope set to "Local branches" or "Remote branches", a commit's
   ref badges now only show branches of the matching kind (tags still
   always show) — previously a commit could show a local-branch chip
   while scoped to "Remote branches" (or vice versa) if it happened to
   also be the other kind's tip.
+- The "Checkout" dialog is now a native VS Code QuickPick instead of a
+  webview panel — it no longer eats up half the window's width as an
+  editor column just to show a small options form, and creating a
+  branch is a single screen (type the name, then pick any options)
+  instead of a separate follow-up step.
 
 ### Fixed
 

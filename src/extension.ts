@@ -32,10 +32,8 @@ import {
 import { fetchCommits } from './git/logReader';
 import { watchRepositoryChanges } from './git/repoWatcher';
 import type {
-  CheckoutHostToWebviewMessage,
   CheckoutOptions,
   CheckoutTarget,
-  CheckoutWebviewToHostMessage,
   CompareData,
   CompareHostToWebviewMessage,
   CompareWebviewToHostMessage,
@@ -310,8 +308,7 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
         vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
       }
     } else if (message.type === 'openCheckoutDialog') {
-      showCheckoutDialog(
-        context,
+      await showCheckoutDialog(
         cwd,
         { ref: message.ref, label: message.label, suggestedBranchName: message.suggestedBranchName },
         refreshEverything,
@@ -550,8 +547,7 @@ function wireLogWebview(
         vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
       }
     } else if (message.type === 'openCheckoutDialog') {
-      showCheckoutDialog(
-        context,
+      await showCheckoutDialog(
         cwd,
         { ref: message.ref, label: message.label, suggestedBranchName: message.suggestedBranchName },
         refreshAfterRepoChange,
@@ -570,58 +566,98 @@ function wireLogWebview(
   return { refreshLog, handleMessage };
 }
 
-function showCheckoutDialog(
-  context: vscode.ExtensionContext,
+interface CheckoutFlagItem extends vscode.QuickPickItem {
+  flag: 'track' | 'overwriteExisting' | 'force' | 'merge' | 'updateSubmodules';
+}
+
+// A native QuickPick instead of a WebviewPanel: a webview panel always
+// occupies a full editor column (min. ~50% of the window width when opened
+// beside the main graph) no matter how narrow its own content is, which is
+// far more screen space than this small options form needs. QuickPick
+// floats above the editor grid instead, so the main graph's column keeps
+// its full width throughout.
+//
+// Uses the lower-level `createQuickPick` API rather than the `showQuickPick`
+// convenience wrapper so the QuickPick's own filter input box can double as
+// the new-branch-name field (via `alwaysShow` on every item, the flag list
+// stays fully visible no matter what's typed) instead of a separate
+// InputBox step -- typing a name *is* the "create a new branch" signal, so
+// there's no separate checkbox for it either.
+async function showCheckoutDialog(
   cwd: string,
   target: CheckoutTarget,
   refreshGraph: (focusOnHead?: boolean) => Promise<void>,
-): void {
-  const panel = vscode.window.createWebviewPanel(
-    'revisionGraphCheckout',
-    vscode.l10n.t('Switch / Checkout'),
-    vscode.ViewColumn.Beside,
-    {
-      enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview')],
+): Promise<void> {
+  // These only take effect when a branch name was typed (see checkoutRef in
+  // gitActions.ts) -- offering them regardless is harmless since picking
+  // them without a name simply has no effect.
+  const items: CheckoutFlagItem[] = [
+    { flag: 'track', label: vscode.l10n.t('Track'), alwaysShow: true },
+    { flag: 'overwriteExisting', label: vscode.l10n.t('Overwrite existing branch if present'), alwaysShow: true },
+    { flag: 'force', label: vscode.l10n.t('Force (overwrite local changes)'), alwaysShow: true },
+    { flag: 'merge', label: vscode.l10n.t('Merge local changes'), alwaysShow: true },
+    { flag: 'updateSubmodules', label: vscode.l10n.t('Update submodules (init + update --recursive)'), alwaysShow: true },
+  ];
+
+  const quickPick = vscode.window.createQuickPick<CheckoutFlagItem>();
+  quickPick.title = vscode.l10n.t('Switch to {0}', target.label);
+  quickPick.placeholder = vscode.l10n.t('New branch name (optional); select options below, then press Enter');
+  quickPick.canSelectMany = true;
+  quickPick.items = items;
+  // A remote-tracking branch with no local branch of its own implies
+  // creating one, same as `git checkout <remote-branch>` would offer.
+  quickPick.value = target.suggestedBranchName ?? '';
+  quickPick.selectedItems = target.suggestedBranchName ? items.filter((item) => item.flag === 'track') : [];
+
+  const accepted = await new Promise<{ name: string; selected: readonly CheckoutFlagItem[] } | undefined>(
+    (resolve) => {
+      let result: { name: string; selected: readonly CheckoutFlagItem[] } | undefined;
+      quickPick.onDidAccept(() => {
+        result = { name: quickPick.value.trim(), selected: quickPick.selectedItems };
+        quickPick.hide();
+      });
+      quickPick.onDidHide(() => {
+        resolve(result);
+        quickPick.dispose();
+      });
+      quickPick.show();
     },
   );
+  if (!accepted) return;
 
-  getCheckoutDialogHtml(panel.webview, context.extensionUri).then((html) => {
-    panel.webview.html = html;
-  });
+  const selectedFlags = new Set(accepted.selected.map((item) => item.flag));
+  const options: CheckoutOptions = {
+    createBranch: accepted.name !== '',
+    newBranchName: accepted.name,
+    track: selectedFlags.has('track'),
+    overwriteExisting: selectedFlags.has('overwriteExisting'),
+    force: selectedFlags.has('force'),
+    merge: selectedFlags.has('merge'),
+    updateSubmodules: selectedFlags.has('updateSubmodules'),
+  };
 
-  panel.webview.onDidReceiveMessage(async (message: CheckoutWebviewToHostMessage) => {
-    if (message.type === 'ready') {
-      const hostMessage: CheckoutHostToWebviewMessage = { type: 'checkoutTarget', target };
-      await panel.webview.postMessage(hostMessage);
-    } else if (message.type === 'cancel') {
-      panel.dispose();
-    } else if (message.type === 'submit') {
-      try {
-        await checkoutRef(cwd, target.ref, message.options);
-        panel.dispose();
-        vscode.window.showInformationMessage(vscode.l10n.t('Git Revision Graph: checked out {0}', target.label));
-      } catch (err) {
-        vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: checkout failed ({0})', (err as Error).message));
-        return;
-      }
+  try {
+    await checkoutRef(cwd, target.ref, options);
+    vscode.window.showInformationMessage(vscode.l10n.t('Git Revision Graph: checked out {0}', target.label));
+  } catch (err) {
+    vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: checkout failed ({0})', (err as Error).message));
+    return;
+  }
 
-      // Checkout already succeeded at this point, so a submodule-update
-      // failure is reported separately rather than as a checkout failure --
-      // and the graph still refreshes either way.
-      if (message.options.updateSubmodules) {
-        try {
-          await updateSubmodules(cwd);
-        } catch (err) {
-          vscode.window.showErrorMessage(
-            vscode.l10n.t('Git Revision Graph: submodule update failed ({0})', (err as Error).message),
-          );
-        }
-      }
-
-      await refreshGraph(true);
+  // Checkout already succeeded at this point, so a submodule-update
+  // failure is reported separately rather than as a checkout failure --
+  // and the graph still refreshes either way.
+  if (options.updateSubmodules) {
+    try {
+      await updateSubmodules(cwd);
+    } catch (err) {
+      vscode.window.showErrorMessage(
+        vscode.l10n.t('Git Revision Graph: submodule update failed ({0})', (err as Error).message),
+      );
     }
-  });
+  }
+
+  await refreshGraph(true);
 }
 
 async function handleFetch(cwd: string, refreshGraph: () => Promise<void>): Promise<void> {
@@ -942,10 +978,6 @@ async function getSimplePanelHtml(
 
 function getComparePanelHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {
   return getSimplePanelHtml(webview, extensionUri, 'compare.js', 'comparePanel.html');
-}
-
-function getCheckoutDialogHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {
-  return getSimplePanelHtml(webview, extensionUri, 'checkoutDialog.js', 'checkoutDialog.html');
 }
 
 function getLogSidebarHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {

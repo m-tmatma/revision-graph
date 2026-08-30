@@ -138,8 +138,9 @@ export type CompareHostToWebviewMessage = { type: 'compareData'; data: CompareDa
 
 export type CompareWebviewToHostMessage = { type: 'ready' } | { type: 'openFile'; path: string };
 
-// --- Checkout dialog (a third, separate WebviewPanel opened from the main
-// graph's "Checkout" context-menu item) ---
+// --- Checkout target/options (used from the main graph's "Checkout"
+// context-menu item -- resolved via a native QuickPick/InputBox flow in
+// extension.ts rather than a webview, so no message protocol is needed) ---
 
 export interface CheckoutTarget {
   /** Branch name, tag name, or commit hash — whatever `git checkout` should target. */
@@ -166,13 +167,6 @@ export interface CheckoutOptions {
   /** Run `git submodule update --init --recursive` after a successful checkout. */
   updateSubmodules: boolean;
 }
-
-export type CheckoutHostToWebviewMessage = { type: 'checkoutTarget'; target: CheckoutTarget };
-
-export type CheckoutWebviewToHostMessage =
-  | { type: 'ready' }
-  | { type: 'submit'; options: CheckoutOptions }
-  | { type: 'cancel' };
 
 // --- Log sidebar (the Activity Bar container's sole view): a persistent
 // scrollable list of a commit and its ancestors, with per-commit file
