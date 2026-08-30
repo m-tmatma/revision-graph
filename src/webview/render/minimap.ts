@@ -54,9 +54,17 @@ export class Minimap {
   ) {
     container.replaceChildren();
 
+    // The container sits inside a flex-laid-out parent that may not have
+    // been measured yet at construction time (the same pre-layout race
+    // PanZoomController documents and works around with `whenSized`) -- a
+    // 0 clientWidth/clientHeight would otherwise zero out maxWidth/
+    // maxHeight, making fitScale 0 and markerSize Infinity below. Falling
+    // back to the caps (rather than 0) keeps fitScale finite either way.
     const parent = container.parentElement;
-    const maxWidth = Math.min(MAX_WIDTH_CAP, (parent?.clientWidth ?? MAX_WIDTH_CAP) * MAX_WIDTH_FRACTION);
-    const maxHeight = Math.min(MAX_HEIGHT_CAP, (parent?.clientHeight ?? MAX_HEIGHT_CAP) * MAX_HEIGHT_FRACTION);
+    const parentWidth = parent?.clientWidth || MAX_WIDTH_CAP / MAX_WIDTH_FRACTION;
+    const parentHeight = parent?.clientHeight || MAX_HEIGHT_CAP / MAX_HEIGHT_FRACTION;
+    const maxWidth = Math.min(MAX_WIDTH_CAP, parentWidth * MAX_WIDTH_FRACTION);
+    const maxHeight = Math.min(MAX_HEIGHT_CAP, parentHeight * MAX_HEIGHT_FRACTION);
     const fitScale = Math.min(maxWidth / graph.width, maxHeight / graph.height);
     container.style.width = `${Math.min(maxWidth, Math.max(MIN_WIDTH, graph.width * fitScale))}px`;
     container.style.height = `${Math.min(maxHeight, graph.height * fitScale)}px`;
