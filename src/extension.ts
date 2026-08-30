@@ -471,10 +471,18 @@ async function showCompareChanges(
   });
 }
 
+// `from`/`to` aren't always commit hashes -- compareWithDefaultBranch passes
+// a branch name (e.g. "origin/main") and compareWithCurrentBranch passes
+// "HEAD", and truncating either to 7 characters produces a misleading
+// label (e.g. "origin/"). Only a real full hash gets shortened.
+function shortRev(rev: string): string {
+  return /^[0-9a-f]{40}$/.test(rev) ? rev.slice(0, 7) : rev;
+}
+
 async function openFileDiff(from: string, to: string, path: string): Promise<void> {
   const fromUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, path: `/${path}`, query: from });
   const toUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, path: `/${path}`, query: to });
-  const title = vscode.l10n.t('{0} ({1} ↔ {2})', path, from.slice(0, 7), to.slice(0, 7));
+  const title = vscode.l10n.t('{0} ({1} ↔ {2})', path, shortRev(from), shortRev(to));
   // Explicit ViewColumn.Beside: without it, vscode.diff opens in the
   // active editor group -- which, since this is always triggered from a
   // click inside the Compare/Log webview panel, is that panel's own
