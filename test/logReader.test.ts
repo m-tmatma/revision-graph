@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildLogArgs, classifyRef, displayRefName, parseLogRecord } from '../src/git/logReader';
+import { buildLogArgs, classifyRef, displayRefName, filterRefsForScope, parseLogRecord } from '../src/git/logReader';
 import type { RefInfo } from '../src/shared/types';
 
 const FIELD_SEP = '\x1f';
@@ -44,6 +44,38 @@ describe('buildLogArgs', () => {
   it('adds --sparse only when requested (checked "Show branches and merges")', () => {
     expect(buildLogArgs({ scope: 'all-branches' }, true)).toContain('--sparse');
     expect(buildLogArgs({ scope: 'all-branches' }, false)).not.toContain('--sparse');
+  });
+});
+
+describe('filterRefsForScope', () => {
+  const refs: RefInfo[] = [
+    { name: 'main', type: 'local-branch' },
+    { name: 'origin/main', type: 'remote-branch' },
+    { name: 'v1.0', type: 'tag' },
+  ];
+
+  it('drops remote-branch refs for the local-branches scope', () => {
+    expect(filterRefsForScope(refs, 'local-branches')).toEqual([refs[0], refs[2]]);
+  });
+
+  it('drops local-branch refs for the remote-branches scope', () => {
+    expect(filterRefsForScope(refs, 'remote-branches')).toEqual([refs[1], refs[2]]);
+  });
+
+  it('also drops the checked-out current-branch ref for the remote-branches scope', () => {
+    const withCurrent: RefInfo[] = [{ name: 'main', type: 'current-branch' }, ...refs.slice(1)];
+    expect(filterRefsForScope(withCurrent, 'remote-branches')).toEqual([refs[1], refs[2]]);
+  });
+
+  it('also drops a detached-HEAD head ref for the remote-branches scope', () => {
+    const withHead: RefInfo[] = [{ name: 'HEAD', type: 'head' }, ...refs.slice(1)];
+    expect(filterRefsForScope(withHead, 'remote-branches')).toEqual([refs[1], refs[2]]);
+  });
+
+  it('keeps every ref for other scopes', () => {
+    expect(filterRefsForScope(refs, 'all-branches')).toEqual(refs);
+    expect(filterRefsForScope(refs, 'current-branch')).toEqual(refs);
+    expect(filterRefsForScope(refs, 'range')).toEqual(refs);
   });
 });
 
@@ -97,12 +129,25 @@ describe('parseLogRecord', () => {
       authorEmail: 'jane@example.com',
       authorDate: 1700000000,
       refs,
+      isCurrentBranch: false,
     });
   });
 
   it('defaults to an empty refs array when the hash has no refs', () => {
     const commit = parseLogRecord(record, new Map());
     expect(commit?.refs).toEqual([]);
+  });
+
+  it.each([
+    ['current-branch', true],
+    ['head', true],
+    ['local-branch', false],
+    ['remote-branch', false],
+    ['tag', false],
+  ] as const)('sets isCurrentBranch from a raw %s ref, independent of later scope filtering', (type, expected) => {
+    const refsByHash = new Map([['abc123', [{ name: 'main', type }]]]);
+    const commit = parseLogRecord(record, refsByHash);
+    expect(commit?.isCurrentBranch).toBe(expected);
   });
 
   it('returns undefined for an empty record', () => {

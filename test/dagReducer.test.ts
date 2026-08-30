@@ -12,6 +12,7 @@ function commit(hash: string, parents: string[], refs: RefInfo[] = []): GraphCom
     authorEmail: 'test@example.com',
     authorDate: 0,
     refs,
+    isCurrentBranch: false,
   };
 }
 

@@ -217,9 +217,7 @@ function renderAndFocus(graph: LaidOutGraph, focusOnHead: boolean): void {
     // view carries HEAD/current-branch (or there's no previous view to
     // carry over — the very first render, by construction, always wants
     // focusOnHead anyway).
-    const headNode = graph.nodes.find((node) =>
-      node.refs.some((ref) => ref.type === 'head' || ref.type === 'current-branch'),
-    );
+    const headNode = graph.nodes.find((node) => node.isCurrentBranch);
     if (headNode) {
       // Nothing renders above the current branch (e.g. it's up to date with
       // its remote) when no other node's top edge sits above its own —
@@ -628,6 +626,7 @@ function buildGraphNodes(commits: GraphCommit[]): GraphNode[] {
       authorName: commit.authorName,
       authorEmail: commit.authorEmail,
       authorDate: commit.authorDate,
+      isCurrentBranch: commit.isCurrentBranch,
     };
   });
 }

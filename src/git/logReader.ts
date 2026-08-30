@@ -202,6 +202,7 @@ export function parseLogRecord(record: string, refsByHash: Map<string, RefInfo[]
   // after the 6th separator, rejoined in case the message itself contains
   // the field separator character (vanishingly unlikely, but cheap to handle).
   const body = bodyParts.join(FIELD_SEP).replace(/\n+$/, '');
+  const refs = refsByHash.get(hash) ?? [];
 
   return {
     hash,
@@ -211,8 +212,37 @@ export function parseLogRecord(record: string, refsByHash: Map<string, RefInfo[]
     authorEmail: authorEmail ?? '',
     authorDate: Number(authorDateRaw) || 0,
     body,
-    refs: refsByHash.get(hash) ?? [],
+    refs,
+    // Computed from the unfiltered refs above -- filterRefsForScope (below)
+    // can later hide this commit's 'current-branch'/'head' ref from `refs`
+    // for display purposes (e.g. the "Remote branches" scope hides the
+    // checked-out branch's local chip), but the main graph's own
+    // current-branch centering must keep working regardless of scope.
+    isCurrentBranch: refs.some((ref) => ref.type === 'head' || ref.type === 'current-branch'),
   };
+}
+
+// A commit's refs always include every ref pointing at it (branches, tags,
+// stash) regardless of which scope was used to decide which commits to
+// walk, matching git's own --decorate semantics -- but that can look
+// inconsistent when the user deliberately scoped to one branch kind and
+// still sees a chip for the other (e.g. selecting "Remote branches" but
+// still seeing a local branch's chip on a commit that also happens to be
+// its tip). Drop the "other kind" of branch chip for the two scopes that
+// are specifically about one branch kind or the other; every other scope
+// (all branches, current branch, range) is unaffected.
+export function filterRefsForScope(refs: RefInfo[], scope: LogScopeOptions['scope']): RefInfo[] {
+  if (scope === 'local-branches') return refs.filter((ref) => ref.type !== 'remote-branch');
+  if (scope === 'remote-branches') {
+    // 'head' (a detached-HEAD commit) is just as much a local marker as
+    // 'current-branch' -- both mean "this is the checked-out commit" (see
+    // isCurrentBranch above) and should disappear from the local-only
+    // scope's chips the same way.
+    return refs.filter(
+      (ref) => ref.type !== 'local-branch' && ref.type !== 'current-branch' && ref.type !== 'head',
+    );
+  }
+  return refs;
 }
 
 export async function fetchCommits(cwd: string, options: LogScopeOptions, sparse: boolean): Promise<GraphCommit[]> {
@@ -222,7 +252,10 @@ export async function fetchCommits(cwd: string, options: LogScopeOptions, sparse
   const commits: GraphCommit[] = [];
   for (const record of output.split(RECORD_SEP)) {
     const commit = parseLogRecord(record.replace(/^\n/, ''), refsByHash);
-    if (commit) commits.push(commit);
+    if (commit) {
+      commit.refs = filterRefsForScope(commit.refs, options.scope);
+      commits.push(commit);
+    }
   }
   return commits;
 }

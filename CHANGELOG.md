@@ -24,6 +24,14 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - A "Remote branches" option in the toolbar's scope filter, showing
   only commits reachable from remote-tracking refs.
 
+### Changed
+
+- With scope set to "Local branches" or "Remote branches", a commit's
+  ref badges now only show branches of the matching kind (tags still
+  always show) — previously a commit could show a local-branch chip
+  while scoped to "Remote branches" (or vice versa) if it happened to
+  also be the other kind's tip.
+
 ### Fixed
 
 - Show Log panel: right-clicking a commit now shows a menu with actions
@@ -65,6 +73,14 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   now re-centers the viewport on the current branch, instead of
   keeping the old pan/zoom position — which could leave the current
   branch's node far off-screen, or even show an apparently-blank graph.
+- With scope set to "Remote branches", the checked-out branch's own
+  local-branch chip no longer leaks through — the scope filter was
+  excluding `local-branch`-typed refs but not the separate
+  `current-branch` type used for whichever branch is checked out.
+- With scope set to "Remote branches", a detached-HEAD commit's "HEAD"
+  chip no longer leaks through either — same gap as the `current-branch`
+  fix above, but for the separate `head` ref type used when there's no
+  checked-out branch to attribute it to.
 
 ## 0.10.0
 
