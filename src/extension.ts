@@ -307,6 +307,15 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
       } catch (err) {
         vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
       }
+    } else if (message.type === 'requestCommitTooltip') {
+      // Best-effort: on failure, the error message itself becomes the
+      // tooltip text (e.g. a stale commitId after a rebase moved history
+      // out from under a still-rendered node) rather than a separate error
+      // path -- there's nothing actionable for the user to do about a
+      // hover tooltip failing beyond seeing why.
+      const text = await getCommitShowSummary(cwd, message.commitId).catch((err: Error) => err.message);
+      const hostMessage: HostToWebviewMessage = { type: 'commitTooltip', commitId: message.commitId, text };
+      await panel.webview.postMessage(hostMessage);
     } else if (message.type === 'openCheckoutDialog') {
       await showCheckoutDialog(
         cwd,
@@ -546,6 +555,12 @@ function wireLogWebview(
       } catch (err) {
         vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
       }
+    } else if (message.type === 'requestCommitTooltip') {
+      // Best-effort, same rationale as the main graph's own handler for
+      // this message: the error text itself becomes the tooltip on failure.
+      const text = await getCommitShowSummary(cwd, message.hash).catch((err: Error) => err.message);
+      const hostMessage: LogHostToWebviewMessage = { type: 'commitTooltip', hash: message.hash, text };
+      await webview.postMessage(hostMessage);
     } else if (message.type === 'openCheckoutDialog') {
       await showCheckoutDialog(
         cwd,

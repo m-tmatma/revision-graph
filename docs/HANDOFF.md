@@ -1178,3 +1178,48 @@ jobs at once:
 `CheckoutOptions` are unchanged and still shared, since they describe the
 checkout itself rather than a message protocol. `esbuild.js` lost the
 `checkoutDialogConfig` entry point and the `'checkoutDialog.html'` copy.
+
+## Post-M4: hovering a commit shows the same text as "Copy commit info"
+
+The main graph used to give every node a native `<title>` tooltip (a
+custom, shorter format: hash, author/email/date, and body), built entirely
+from data already fetched for the graph -- cheap, but not the same text as
+**Copy commit info**'s `git show -s` output (which also includes ref
+decorations and matches its exact author/date formatting).
+
+Rather than reimplement `git show`'s formatting client-side (indentation,
+exact date format with timezone, decoration bracket syntax) from data the
+graph doesn't even carry (no author-date timezone offset, for one),
+`src/webview/render/hoverTooltip.ts`'s `HoverTooltipController` requests
+the real thing on demand: after a ~300ms hover delay (so moving the mouse
+across many nodes doesn't spawn a `git show` per node in passing), it asks
+the extension host (a new `requestCommitTooltip`/`commitTooltip` message
+pair, mirrored on both the main graph's and the log sidebar's protocols)
+for `getCommitShowSummary(cwd, commitId)` -- the exact same function
+"Copy commit info" already calls -- and shows the response in a small
+floating `div` positioned near the cursor, clamped to the viewport. Per-
+commit results are cached client-side so re-hovering the same commit is
+instant, and a response is only shown if it's still relevant to whatever's
+currently hovered (the user may have moved to a different commit, or
+none, before the async round-trip finishes).
+
+Wired differently on each side, matching each file's own existing event-
+listener style rather than forcing one pattern everywhere:
+- **Main graph**: one `mousemove`/`mouseleave` pair delegated over the
+  whole SVG root (`attachHoverTooltip`), re-deriving which node (if any)
+  is under the cursor via `closest('[data-commit-id]')` on every move --
+  `mouseenter`/`mouseleave` don't bubble, so they can't be delegated the
+  same way `attachContextMenu`'s single click-driven lookup already is.
+  Re-attached on every re-render, same as `attachContextMenu`, since a new
+  `<svg>` replaces the old one each time.
+- **Log sidebar**: `mouseenter`/`mousemove`/`mouseleave` attached directly
+  on each row inside `buildCommitRow`, matching that file's existing
+  per-row listener style (click, contextmenu) rather than delegating.
+
+The old native `<title>` tooltip (`graphRenderer.ts`'s `buildTooltip`) is
+gone -- showing both at once would have meant two overlapping tooltips
+with different content and timing. Removing it also made `GraphNode`'s
+`body`/`authorName`/`authorEmail`/`authorDate` fields entirely dead (they
+existed solely to feed that old tooltip), so those came off `GraphNode`
+too; `GraphCommit` keeps them, since `parseLogRecord` still parses them as
+part of a commit's raw data.

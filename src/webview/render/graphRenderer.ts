@@ -91,9 +91,6 @@ function buildNode(node: LaidOutNode): SVGGElement {
   // Lets selection.ts find which node a click landed on.
   group.setAttribute('data-commit-id', node.id);
   group.style.cursor = 'pointer';
-  // A <title> as the first child gives every part of the node group a
-  // native browser tooltip on hover, with no extra JS/CSS needed.
-  group.appendChild(buildTooltip(node));
 
   const rect = createSvgElement('rect');
   rect.setAttribute('width', String(node.width));
@@ -110,13 +107,6 @@ function buildNode(node: LaidOutNode): SVGGElement {
   }
 
   return group;
-}
-
-function buildTooltip(node: LaidOutNode): SVGTitleElement {
-  const title = createSvgElement('title');
-  const dateLine = `${node.authorName} <${node.authorEmail}> ${formatDate(node.authorDate)}`;
-  title.textContent = `${node.id}\n${dateLine}\n\n${node.body}`;
-  return title;
 }
 
 export function formatDate(unixSeconds: number): string {

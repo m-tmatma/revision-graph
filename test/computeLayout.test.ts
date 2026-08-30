@@ -9,10 +9,6 @@ function node(id: string, parents: string[]): GraphNode {
     refs: [],
     width: 80,
     height: 40,
-    body: id,
-    authorName: 'Test Author',
-    authorEmail: 'test@example.com',
-    authorDate: 0,
     isCurrentBranch: false,
   };
 }

@@ -29,6 +29,10 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   context-menu item, jump to the full graph with its "Show Revision
   Graph" button, and check the running build via its "ℹ" version-info
   button (shown in a copyable notification).
+- Hovering a commit (in the main graph or the log sidebar) now shows a
+  tooltip with the same text as **Copy commit info** (`git show -s`'s
+  output: hash, ref decorations, author, date, and full message),
+  after a short delay.
 
 ### Changed
 
