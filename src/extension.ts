@@ -998,7 +998,8 @@ async function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri)
     .replaceAll('__NONCE__', nonce)
     .replaceAll('__SCRIPT_URI__', scriptUri.toString())
     .replaceAll('__WORKER_URI__', workerUri.toString())
-    .replaceAll('__L10N_BUNDLE_JSON__', l10nBundleJson);
+    .replaceAll('__L10N_BUNDLE_JSON__', l10nBundleJson)
+    .replaceAll('__LANG__', vscode.env.language);
 }
 
 // Shared by the compare and checkout-dialog panels: neither needs a Web
@@ -1028,7 +1029,8 @@ async function getSimplePanelHtml(
     .replaceAll('__CSP__', csp)
     .replaceAll('__NONCE__', nonce)
     .replaceAll('__SCRIPT_URI__', scriptUri.toString())
-    .replaceAll('__L10N_BUNDLE_JSON__', l10nBundleJson);
+    .replaceAll('__L10N_BUNDLE_JSON__', l10nBundleJson)
+    .replaceAll('__LANG__', vscode.env.language);
 }
 
 function getComparePanelHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {
