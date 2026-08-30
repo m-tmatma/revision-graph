@@ -463,7 +463,11 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
       {
         label: t('Compare with current branch'),
         onClick: () => {
-          const message: LogWebviewToHostMessage = { type: 'compareWithCurrentBranch', to: entry.hash };
+          const message: LogWebviewToHostMessage = {
+            type: 'compareWithCurrentBranch',
+            to: entry.hash,
+            toLabel: refDisplayLabel(entry.refs, entry.hash),
+          };
           vscode.postMessage(message);
         },
       },
@@ -481,7 +485,7 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
       items.push({
         label: t('Compare {0} and {1}', fromLabel, toLabel),
         onClick: () => {
-          const message: LogWebviewToHostMessage = { type: 'compare', from, to };
+          const message: LogWebviewToHostMessage = { type: 'compare', from, to, fromLabel, toLabel };
           vscode.postMessage(message);
         },
       });

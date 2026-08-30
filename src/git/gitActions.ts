@@ -140,6 +140,23 @@ export async function getDefaultBranchRef(cwd: string): Promise<string> {
   throw new Error(vscode.l10n.t("couldn't determine the default branch (no origin/HEAD, and no local main or master)"));
 }
 
+/**
+ * A display label for whatever's currently checked out — the branch name,
+ * or a short hash if HEAD is detached. Used for the Compare panel's tab
+ * title instead of the literal "HEAD" sent to git. Resolved fresh here
+ * (rather than derived from the webview's own graph data) because that
+ * graph data can have its current-branch/head ref hidden by the active
+ * scope filter (e.g. "Remote branches"), which would otherwise lose the
+ * label even though the repo's actual HEAD hasn't changed.
+ */
+export async function getCurrentBranchLabel(cwd: string): Promise<string> {
+  const branch = await runGitCapture(cwd, ['symbolic-ref', '--short', '-q', 'HEAD']).catch(() => '');
+  if (branch.trim()) return branch.trim();
+
+  const hash = await runGitCapture(cwd, ['rev-parse', 'HEAD']);
+  return hash.trim().slice(0, 7);
+}
+
 function statusFromLetter(letter: string): FileChange['status'] {
   switch (letter[0]) {
     case 'A':

@@ -136,5 +136,7 @@
   "open a folder first.": "abra primero una carpeta.",
   "Version info": "Información de versión",
   "Copy": "Copiar",
-  "New branch name (optional); select options below, then press Enter": "Nombre de la nueva rama (opcional); seleccione las opciones a continuación y presione Entrar"
+  "New branch name (optional); select options below, then press Enter": "Nombre de la nueva rama (opcional); seleccione las opciones a continuación y presione Entrar",
+  "{0} ↔ {1}": "{0} ↔ {1}",
+  "{0} ({1} ↔ {2})": "{0} ({1} ↔ {2})"
 }

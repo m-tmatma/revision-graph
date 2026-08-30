@@ -36,6 +36,14 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ### Changed
 
+- The "Changed Files" panel's own editor tab title now shows the two
+  compared revisions — a branch or tag name when either side has one
+  (e.g. "main ↔ v1.2.0"), otherwise a short hash (e.g. "54e873f ↔
+  5a427b9") — instead of a fixed "Changed Files" label, so multiple
+  Compare tabs open at once are distinguishable from each other.
+  "Compare with current branch" shows the current branch's own name
+  here too (e.g. "main ↔ v1.2.0") rather than the literal "HEAD" —
+  or, with a detached HEAD, the checked-out commit's own short hash.
 - The sidebar's commit log now refreshes automatically after a
   checkout, branch/tag creation, or merged-branch deletion — whether
   triggered from the main graph, the sidebar itself, or externally —

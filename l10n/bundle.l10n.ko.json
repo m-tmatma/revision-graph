@@ -136,5 +136,7 @@
   "open a folder first.": "먼저 폴더를 여세요.",
   "Version info": "버전 정보",
   "Copy": "복사",
-  "New branch name (optional); select options below, then press Enter": "새 브랜치 이름(선택 사항). 아래 옵션을 선택한 다음 Enter 키를 누르세요"
+  "New branch name (optional); select options below, then press Enter": "새 브랜치 이름(선택 사항). 아래 옵션을 선택한 다음 Enter 키를 누르세요",
+  "{0} ↔ {1}": "{0} ↔ {1}",
+  "{0} ({1} ↔ {2})": "{0} ({1} ↔ {2})"
 }

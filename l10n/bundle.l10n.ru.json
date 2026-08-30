@@ -136,5 +136,7 @@
   "open a folder first.": "сначала откройте папку.",
   "Version info": "Информация о версии",
   "Copy": "Копировать",
-  "New branch name (optional); select options below, then press Enter": "Имя новой ветки (необязательно); выберите параметры ниже и нажмите Enter"
+  "New branch name (optional); select options below, then press Enter": "Имя новой ветки (необязательно); выберите параметры ниже и нажмите Enter",
+  "{0} ↔ {1}": "{0} ↔ {1}",
+  "{0} ({1} ↔ {2})": "{0} ({1} ↔ {2})"
 }
