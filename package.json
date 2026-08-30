@@ -78,7 +78,7 @@
     "package": "node esbuild.js --production",
     "typecheck": "tsc --noEmit -p .",
     "test": "vitest run",
-    "vsix": "vsce package --no-dependencies"
+    "vsix": "npm run package && vsce package --no-dependencies"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
