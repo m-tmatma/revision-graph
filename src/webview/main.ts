@@ -22,7 +22,7 @@ import { renderGraph } from './render/graphRenderer';
 import { NODE_MIN_WIDTH, NODE_PADDING_X, NODE_PADDING_Y, NODE_ROW_HEIGHT } from './render/layoutConstants';
 import { PanZoomController } from './render/panZoom';
 import { closeContextMenu, showContextMenu, type ContextMenuItem } from './render/contextMenu';
-import { refDisplayLabel, resolveCheckoutTarget } from './render/checkoutTarget';
+import { currentBranchLabel, refDisplayLabel, resolveCheckoutTarget } from './render/checkoutTarget';
 import { SelectionController } from './render/selection';
 import { Minimap } from './render/minimap';
 import { HoverTooltipController } from './render/hoverTooltip';
@@ -555,7 +555,13 @@ function attachContextMenu(
       items.push({
         label: t('Compare'),
         onClick: () => {
-          const message: WebviewToHostMessage = { type: 'compare', from: first, to: second };
+          const message: WebviewToHostMessage = {
+            type: 'compare',
+            from: first,
+            to: second,
+            fromLabel: nodeDisplayLabel(nodesById.get(first), first),
+            toLabel: nodeDisplayLabel(nodesById.get(second), second),
+          };
           vscode.postMessage(message);
         },
       });
@@ -573,7 +579,11 @@ function attachContextMenu(
       items.push({
         label: t('Compare with default branch'),
         onClick: () => {
-          const message: WebviewToHostMessage = { type: 'compareWithDefaultBranch', to: commitId };
+          const message: WebviewToHostMessage = {
+            type: 'compareWithDefaultBranch',
+            to: commitId,
+            toLabel: nodeDisplayLabel(nodesById.get(commitId), commitId),
+          };
           vscode.postMessage(message);
         },
       });
@@ -584,7 +594,12 @@ function attachContextMenu(
       items.push({
         label: t('Compare with current branch'),
         onClick: () => {
-          const message: WebviewToHostMessage = { type: 'compareWithCurrentBranch', to: commitId };
+          const message: WebviewToHostMessage = {
+            type: 'compareWithCurrentBranch',
+            to: commitId,
+            toLabel: nodeDisplayLabel(nodesById.get(commitId), commitId),
+            fromLabel: currentBranchLabel(Array.from(nodesById, ([id, node]) => [id, node.refs])),
+          };
           vscode.postMessage(message);
         },
       });

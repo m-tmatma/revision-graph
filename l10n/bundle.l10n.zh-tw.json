@@ -136,5 +136,7 @@
   "open a folder first.": "請先開啟一個資料夾。",
   "Version info": "版本資訊",
   "Copy": "複製",
-  "New branch name (optional); select options below, then press Enter": "新分支名稱（選用）；在下方選擇選項，然後按 Enter"
+  "New branch name (optional); select options below, then press Enter": "新分支名稱（選用）；在下方選擇選項，然後按 Enter",
+  "{0} ↔ {1}": "{0} ↔ {1}",
+  "{0} ({1} ↔ {2})": "{0} ({1} ↔ {2})"
 }

@@ -49,3 +49,20 @@ export function refDisplayLabel(refs: RefInfo[], commitId: string): string {
     refs.find((ref) => ref.type === 'remote-branch');
   return preferred ? preferred.name : commitId.slice(0, 7);
 }
+
+// The display label for whichever commit is currently checked out, so
+// "Compare with current branch" can show e.g. "main" instead of the literal
+// "HEAD" it sends to git -- reusing refDisplayLabel means a detached HEAD
+// (refs carry a 'head' ref, not 'current-branch') falls through to that
+// commit's own short hash instead, same as any other commit with no
+// preferred ref. Returns undefined only when the checked-out commit isn't
+// among the ones being searched (e.g. the Show Log panel retargeted away
+// from HEAD), in which case the caller falls back to displaying "HEAD".
+export function currentBranchLabel(items: Iterable<[commitId: string, refs: RefInfo[]]>): string | undefined {
+  for (const [commitId, refs] of items) {
+    if (refs.some((ref) => ref.type === 'current-branch' || ref.type === 'head')) {
+      return refDisplayLabel(refs, commitId);
+    }
+  }
+  return undefined;
+}

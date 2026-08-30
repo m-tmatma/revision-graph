@@ -136,5 +136,7 @@
   "open a folder first.": "Bitte zuerst einen Ordner öffnen.",
   "Version info": "Versionsinfo",
   "Copy": "Kopieren",
-  "New branch name (optional); select options below, then press Enter": "Neuer Branch-Name (optional); Optionen unten auswählen, dann Eingabetaste drücken"
+  "New branch name (optional); select options below, then press Enter": "Neuer Branch-Name (optional); Optionen unten auswählen, dann Eingabetaste drücken",
+  "{0} ↔ {1}": "{0} ↔ {1}",
+  "{0} ({1} ↔ {2})": "{0} ({1} ↔ {2})"
 }

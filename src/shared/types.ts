@@ -68,9 +68,9 @@ export type WebviewToHostMessage =
   | { type: 'ready' }
   | { type: 'error'; message: string }
   | { type: 'setFilter'; scope: LogScopeOptions; reduce: ReduceOptions }
-  | { type: 'compare'; from: string; to: string }
-  | { type: 'compareWithDefaultBranch'; to: string }
-  | { type: 'compareWithCurrentBranch'; to: string }
+  | { type: 'compare'; from: string; to: string; fromLabel?: string; toLabel?: string }
+  | { type: 'compareWithDefaultBranch'; to: string; toLabel?: string }
+  | { type: 'compareWithCurrentBranch'; to: string; toLabel?: string; fromLabel?: string }
   | { type: 'copyCommitInfo'; commitId: string }
   | { type: 'requestCommitTooltip'; commitId: string }
   | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string }
@@ -206,5 +206,5 @@ export type LogWebviewToHostMessage =
   | { type: 'openCheckoutDialog'; ref: string; label: string; suggestedBranchName?: string }
   | { type: 'createBranch'; startPoint: string }
   | { type: 'createTag'; startPoint: string }
-  | { type: 'compareWithCurrentBranch'; to: string }
-  | { type: 'compare'; from: string; to: string };
+  | { type: 'compareWithCurrentBranch'; to: string; toLabel?: string; fromLabel?: string }
+  | { type: 'compare'; from: string; to: string; fromLabel?: string; toLabel?: string };

@@ -290,16 +290,16 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
     } else if (message.type === 'error') {
       vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', message.message));
     } else if (message.type === 'compare') {
-      await showCompareChanges(context, cwd, message.from, message.to);
+      await showCompareChanges(context, cwd, message.from, message.to, message.fromLabel, message.toLabel);
     } else if (message.type === 'compareWithDefaultBranch') {
       try {
         const defaultBranch = await getDefaultBranchRef(cwd);
-        await showCompareChanges(context, cwd, defaultBranch, message.to);
+        await showCompareChanges(context, cwd, defaultBranch, message.to, undefined, message.toLabel);
       } catch (err) {
         vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
       }
     } else if (message.type === 'compareWithCurrentBranch') {
-      await showCompareChanges(context, cwd, 'HEAD', message.to);
+      await showCompareChanges(context, cwd, 'HEAD', message.to, message.fromLabel, message.toLabel);
     } else if (message.type === 'copyCommitInfo') {
       try {
         const text = await getCommitShowSummary(cwd, message.commitId);
@@ -433,6 +433,8 @@ async function showCompareChanges(
   cwd: string,
   from: string,
   to: string,
+  fromLabel?: string,
+  toLabel?: string,
 ): Promise<void> {
   let fromSummary: { hash: string; subject: string };
   let toSummary: { hash: string; subject: string };
@@ -448,9 +450,16 @@ async function showCompareChanges(
     return;
   }
 
+  // Distinguishes multiple Compare tabs open at once from each other --
+  // fromLabel/toLabel (when the caller supplied one) is the commit's own
+  // branch/tag name, e.g. "main" or a tag pointed at the compared commit;
+  // shortRev falls back to the original ref name when `from`/`to` was
+  // already one itself (e.g. "HEAD" from compareWithCurrentBranch) rather
+  // than resolving it down to a hash, and only shortens an actual full
+  // commit hash (the two-commit-selection case with no label).
   const panel = vscode.window.createWebviewPanel(
     'revisionGraphCompare',
-    vscode.l10n.t('Changed Files'),
+    vscode.l10n.t('{0} ↔ {1}', fromLabel ?? shortRev(from), toLabel ?? shortRev(to)),
     vscode.ViewColumn.Beside,
     {
       enableScripts: true,
@@ -601,9 +610,9 @@ function wireLogWebview(
     } else if (message.type === 'createTag') {
       await handleCreateTag(cwd, message.startPoint, refreshAfterRepoChange);
     } else if (message.type === 'compareWithCurrentBranch') {
-      await showCompareChanges(context, cwd, 'HEAD', message.to);
+      await showCompareChanges(context, cwd, 'HEAD', message.to, message.fromLabel, message.toLabel);
     } else if (message.type === 'compare') {
-      await showCompareChanges(context, cwd, message.from, message.to);
+      await showCompareChanges(context, cwd, message.from, message.to, message.fromLabel, message.toLabel);
     }
   };
 

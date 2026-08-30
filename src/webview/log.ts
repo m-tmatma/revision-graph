@@ -11,7 +11,7 @@
 
 import type { FileChange, LogEntry, LogHostToWebviewMessage, LogWebviewToHostMessage, RefInfo } from '../shared/types';
 import { applyLocalization, t } from './l10n';
-import { refDisplayLabel, resolveCheckoutTarget } from './render/checkoutTarget';
+import { currentBranchLabel, refDisplayLabel, resolveCheckoutTarget } from './render/checkoutTarget';
 import { contrastTextColor, REF_COLORS } from './render/colors';
 import { showContextMenu, type ContextMenuItem } from './render/contextMenu';
 import { createSvgElement, formatDate } from './render/graphRenderer';
@@ -463,7 +463,12 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
       {
         label: t('Compare with current branch'),
         onClick: () => {
-          const message: LogWebviewToHostMessage = { type: 'compareWithCurrentBranch', to: entry.hash };
+          const message: LogWebviewToHostMessage = {
+            type: 'compareWithCurrentBranch',
+            to: entry.hash,
+            toLabel: refDisplayLabel(entry.refs, entry.hash),
+            fromLabel: currentBranchLabel(Array.from(entriesByHash, ([hash, logEntry]) => [hash, logEntry.refs])),
+          };
           vscode.postMessage(message);
         },
       },
@@ -481,7 +486,7 @@ function buildCommitRow(entry: LogEntry, laneRow: LaneRow, laneCount: number): H
       items.push({
         label: t('Compare {0} and {1}', fromLabel, toLabel),
         onClick: () => {
-          const message: LogWebviewToHostMessage = { type: 'compare', from, to };
+          const message: LogWebviewToHostMessage = { type: 'compare', from, to, fromLabel, toLabel };
           vscode.postMessage(message);
         },
       });

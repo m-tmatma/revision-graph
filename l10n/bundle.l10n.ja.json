@@ -141,5 +141,7 @@
   "open a folder first.": "先にフォルダーを開いてください。",
   "Version info": "バージョン情報",
   "Copy": "コピー",
-  "New branch name (optional); select options below, then press Enter": "新しいブランチ名(任意)。下のオプションを選択して Enter を押してください"
+  "New branch name (optional); select options below, then press Enter": "新しいブランチ名(任意)。下のオプションを選択して Enter を押してください",
+  "{0} ↔ {1}": "{0} ↔ {1}",
+  "{0} ({1} ↔ {2})": "{0} ({1} ↔ {2})"
 }
