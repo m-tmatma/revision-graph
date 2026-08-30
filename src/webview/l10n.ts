@@ -16,10 +16,19 @@ import * as l10n from '@vscode/l10n';
 declare global {
   interface Window {
     __L10N_BUNDLE__?: Record<string, string>;
+    __LANG__?: string;
   }
 }
 
 l10n.config({ contents: window.__L10N_BUNDLE__ ?? {} });
+
+// The static template's own `<html lang="en">` is a fixed fallback (AccessLint
+// checks that attribute's value is a real, valid tag, which a template
+// placeholder token isn't) -- set from vscode.env.language here instead, once
+// script actually runs, same as the l10n bundle contents just above.
+if (window.__LANG__) {
+  document.documentElement.lang = window.__LANG__;
+}
 
 export const t = l10n.t;
 
