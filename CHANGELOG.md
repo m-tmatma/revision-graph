@@ -59,8 +59,8 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Copying a commit's ref name(s) or commit info to the clipboard (main
   graph and log sidebar) now ends with a trailing newline, so pasting
   it elsewhere leaves the cursor on a fresh line. **Copy full hash**
-  is unchanged (no trailing newline), matching how other tools copy a
-  bare hash.
+  now omits the trailing newline, matching how other tools copy a bare
+  hash.
 - Log sidebar: right-clicking a file in a commit's changed-files list
   now shows a menu with a **Copy path** action instead of the webview's
   native Cut/Copy/Paste edit menu.
