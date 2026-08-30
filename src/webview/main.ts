@@ -670,18 +670,40 @@ function buildGraphNodes(commits: GraphCommit[]): GraphNode[] {
 // `new Worker(vscode-webview-resource-uri)` fails silently in VSCode's
 // webview sandbox (the resource origin isn't Worker-loadable directly), so
 // fetch the script and construct a blob: URL instead.
+// Fetched and turned into an object URL once for the page's whole lifetime,
+// rather than on every graphData message -- a long session's worth of
+// external-change auto-refreshes would otherwise accumulate one unrevoked
+// blob URL per render (Worker.terminate() doesn't release it). Caches the
+// in-flight promise too, not just the eventual URL, so two calls racing
+// before the first fetch resolves share the same fetch instead of issuing
+// a second one.
+let layoutWorkerBlobUrlPromise: Promise<string> | undefined;
+
+function getLayoutWorkerBlobUrl(): Promise<string> {
+  if (!layoutWorkerBlobUrlPromise) {
+    layoutWorkerBlobUrlPromise = (async () => {
+      const workerUri = window.__LAYOUT_WORKER_URI__;
+      if (!workerUri) {
+        throw new Error(t('layout worker URI was not injected into the webview'));
+      }
+      const response = await fetch(workerUri);
+      if (!response.ok) {
+        throw new Error(t('failed to fetch layout worker script (HTTP {0})', String(response.status)));
+      }
+      const code = await response.text();
+      return URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
+    })().catch((err: unknown) => {
+      // A failed fetch shouldn't be cached forever -- the next render
+      // should retry rather than repeat the same stale failure.
+      layoutWorkerBlobUrlPromise = undefined;
+      throw err;
+    });
+  }
+  return layoutWorkerBlobUrlPromise;
+}
+
 async function createLayoutWorker(): Promise<Worker> {
-  const workerUri = window.__LAYOUT_WORKER_URI__;
-  if (!workerUri) {
-    throw new Error(t('layout worker URI was not injected into the webview'));
-  }
-  const response = await fetch(workerUri);
-  if (!response.ok) {
-    throw new Error(t('failed to fetch layout worker script (HTTP {0})', String(response.status)));
-  }
-  const code = await response.text();
-  const blobUrl = URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
-  return new Worker(blobUrl);
+  return new Worker(await getLayoutWorkerBlobUrl());
 }
 
 async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boolean): Promise<void> {
