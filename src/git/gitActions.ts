@@ -9,7 +9,11 @@ import type { CheckoutOptions, FileChange, LogEntry } from '../shared/types';
 
 function runGitCapture(cwd: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn('git', args, { cwd });
+    // No terminal is attached to this process -- an interactive credential
+    // prompt (e.g. fetchAll's `git fetch` against a remote with no
+    // credential helper configured) would otherwise block forever instead
+    // of failing, leaving fetchInProgress stuck true in showRevisionGraph.
+    const child = spawn('git', args, { cwd, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } });
     const stdoutChunks: Buffer[] = [];
     child.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
 
@@ -289,7 +293,10 @@ export async function renameLocalBranch(cwd: string, oldName: string, newName: s
  */
 export async function isBranchMerged(cwd: string, ref: string, into = 'HEAD'): Promise<boolean> {
   return new Promise((resolve, reject) => {
-    const child = spawn('git', ['merge-base', '--is-ancestor', ref, into], { cwd });
+    const child = spawn('git', ['merge-base', '--is-ancestor', ref, into], {
+      cwd,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    });
     let stderr = '';
     child.stderr.on('data', (chunk) => {
       stderr += chunk.toString();

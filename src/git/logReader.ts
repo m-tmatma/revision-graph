@@ -15,7 +15,9 @@ const RECORD_SEP = '\x1e';
 
 function runGitLines(cwd: string, args: string[], onLine: (line: string) => void): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn('git', args, { cwd });
+    // No terminal is attached to this process -- an interactive credential
+    // prompt would otherwise block forever instead of failing.
+    const child = spawn('git', args, { cwd, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } });
     const rl = readline.createInterface({ input: child.stdout });
     rl.on('line', onLine);
 
@@ -40,7 +42,9 @@ function runGitLines(cwd: string, args: string[], onLine: (line: string) => void
 // commit message, since that can no longer be parsed one line at a time.
 function runGitBuffered(cwd: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn('git', args, { cwd });
+    // No terminal is attached to this process -- an interactive credential
+    // prompt would otherwise block forever instead of failing.
+    const child = spawn('git', args, { cwd, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } });
     const stdoutChunks: Buffer[] = [];
     child.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
 
