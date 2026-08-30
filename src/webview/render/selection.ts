@@ -28,6 +28,12 @@ export class SelectionController {
     return this.state;
   }
 
+  /** Restores a selection carried over from a previous render (see main.ts's renderAndFocus). */
+  setState(state: SelectionState): void {
+    this.state = state;
+    this.applyHighlight();
+  }
+
   destroy(): void {
     this.svg.removeEventListener('pointerdown', this.onPointerDown);
     window.removeEventListener('pointerup', this.onPointerUp);

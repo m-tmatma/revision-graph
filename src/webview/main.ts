@@ -207,10 +207,24 @@ function renderAndFocus(graph: LaidOutGraph, focusOnHead: boolean): void {
   lastRenderedGraph = graph;
   const svg = renderGraph(rootEl!, graph);
 
+  // Carried over the same way pan/zoom state is below (and for the same
+  // reason): a re-render (an automatic refresh from repo-watcher noticing
+  // an external commit/checkout/pull, say) shouldn't silently drop a
+  // two-commit Compare selection the user made deliberately. Only ids
+  // that still exist in the new graph are kept -- one could have been
+  // pruned by dagReducer's own elision, or the commit could simply be
+  // gone from this scope now.
+  const previousSelection = selectionController?.getState();
   selectionController?.destroy();
   const newSelectionController = new SelectionController(svg);
   selectionController = newSelectionController;
   const nodesById = new Map(graph.nodes.map((node) => [node.id, node]));
+  if (previousSelection) {
+    newSelectionController.setState({
+      first: previousSelection.first !== null && nodesById.has(previousSelection.first) ? previousSelection.first : null,
+      second: previousSelection.second !== null && nodesById.has(previousSelection.second) ? previousSelection.second : null,
+    });
+  }
   attachContextMenu(svg, newSelectionController, nodesById);
   attachHoverTooltip(svg);
 
