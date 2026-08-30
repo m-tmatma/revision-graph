@@ -516,7 +516,7 @@ function attachContextMenu(
     items.push({
       label: t('Copy full hash'),
       onClick: () => {
-        void navigator.clipboard.writeText(commitId + '\n');
+        void navigator.clipboard.writeText(commitId);
       },
     });
 
