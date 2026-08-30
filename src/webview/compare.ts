@@ -99,10 +99,25 @@ function buildRow(file: FileChange): HTMLTableRowElement {
   return row;
 }
 
+// Two revisions with no differences between them is a normal, expected
+// case (e.g. comparing a branch against itself) -- without this,
+// replaceChildren() with nothing to render left just the table header
+// with no indication the comparison actually finished, indistinguishable
+// from data never having arrived at all.
+function buildEmptyRow(): HTMLTableRowElement {
+  const row = document.createElement('tr');
+  row.className = 'empty-state';
+  const cell = document.createElement('td');
+  cell.colSpan = 5;
+  cell.textContent = t('No changes.');
+  row.appendChild(cell);
+  return row;
+}
+
 function render(data: CompareData): void {
   fromRevEl!.textContent = t('{0}: {1}', data.from.hash.slice(0, 7), data.from.subject);
   toRevEl!.textContent = t('{0}: {1}', data.to.hash.slice(0, 7), data.to.subject);
-  fileListEl!.replaceChildren(...data.files.map(buildRow));
+  fileListEl!.replaceChildren(...(data.files.length > 0 ? data.files.map(buildRow) : [buildEmptyRow()]));
 }
 
 window.addEventListener('message', (event: MessageEvent<CompareHostToWebviewMessage>) => {
