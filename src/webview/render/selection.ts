@@ -1,5 +1,5 @@
 // Node selection: click selects a single node, Ctrl/Cmd+click adds a second
-// (for the upcoming "compare" context-menu action). Selected nodes are
+// (for the "Compare" context-menu action). Selected nodes are
 // highlighted by restyling their <rect> directly, per DESIGN.md's "選択"
 // section.
 

@@ -1,7 +1,8 @@
 // Webview entry point: requests commit data from the extension host,
 // measures node sizes, delegates layout to the Web Worker, and renders the
-// resulting graph as SVG with pan/zoom. Node selection, context menu, and
-// tooltips are not yet implemented (remaining M3 scope).
+// resulting graph as SVG with pan/zoom, node selection (SelectionController),
+// a right-click context menu (attachContextMenu), and an on-demand hover
+// tooltip (HoverTooltipController).
 
 import type {
   GraphCommit,

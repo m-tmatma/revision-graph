@@ -1,8 +1,8 @@
 // Custom right-click context menu: webviews can't use VSCode's native menu
 // API, so this is a small absolutely-positioned HTML/CSS menu built and
-// torn down on demand. Currently offers only "Compare" (see main.ts); more
-// items (checkout, delete ref, copy hash) land as the rest of M3's
-// context-menu scope is built out.
+// torn down on demand. Populated per node by attachContextMenu in main.ts
+// (checkout, create branch/tag, copy hash/ref name(s)/commit info,
+// compare, delete/rename ref, ...).
 
 export interface ContextMenuItem {
   label: string;
