@@ -1,8 +1,8 @@
 // Custom right-click context menu: webviews can't use VSCode's native menu
 // API, so this is a small absolutely-positioned HTML/CSS menu built and
-// torn down on demand. Currently offers only "Compare" (see main.ts); more
-// items (checkout, delete ref, copy hash) land as the rest of M3's
-// context-menu scope is built out.
+// torn down on demand. Populated per node by attachContextMenu in main.ts
+// (checkout, create branch/tag, copy hash/ref name(s)/commit info,
+// compare, delete/rename ref, ...).
 
 export interface ContextMenuItem {
   label: string;
@@ -10,6 +10,10 @@ export interface ContextMenuItem {
 }
 
 let openMenuEl: HTMLElement | null = null;
+// Whatever had focus right before the menu opened (the right-clicked node,
+// typically) -- restored on close so a keyboard user ends up back where
+// they started instead of losing their place in the document.
+let previouslyFocusedEl: HTMLElement | null = null;
 
 function onOutsidePointerDown(event: PointerEvent): void {
   if (openMenuEl && !openMenuEl.contains(event.target as Node)) closeContextMenu();
@@ -25,6 +29,8 @@ export function closeContextMenu(): void {
   openMenuEl = null;
   document.removeEventListener('pointerdown', onOutsidePointerDown, true);
   document.removeEventListener('keydown', onKeyDown, true);
+  previouslyFocusedEl?.focus();
+  previouslyFocusedEl = null;
 }
 
 export function showContextMenu(x: number, y: number, items: ContextMenuItem[]): void {
@@ -32,6 +38,7 @@ export function showContextMenu(x: number, y: number, items: ContextMenuItem[]):
   if (items.length === 0) return;
 
   const menu = document.createElement('div');
+  menu.setAttribute('role', 'menu');
   Object.assign(menu.style, {
     position: 'fixed',
     left: `${x}px`,
@@ -50,6 +57,7 @@ export function showContextMenu(x: number, y: number, items: ContextMenuItem[]):
   for (const item of items) {
     const button = document.createElement('button');
     button.type = 'button';
+    button.setAttribute('role', 'menuitem');
     button.textContent = item.label;
     Object.assign(button.style, {
       display: 'block',
@@ -68,6 +76,14 @@ export function showContextMenu(x: number, y: number, items: ContextMenuItem[]):
     button.addEventListener('mouseleave', () => {
       button.style.background = 'transparent';
     });
+    // Mirrors the hover styling above so a keyboard-focused item (Tab, or
+    // the initial auto-focus below) is visible without a mouse.
+    button.addEventListener('focus', () => {
+      button.style.background = 'var(--vscode-menu-selectionBackground, #094771)';
+    });
+    button.addEventListener('blur', () => {
+      button.style.background = 'transparent';
+    });
     button.addEventListener('click', () => {
       closeContextMenu();
       item.onClick();
@@ -75,8 +91,13 @@ export function showContextMenu(x: number, y: number, items: ContextMenuItem[]):
     menu.appendChild(button);
   }
 
+  previouslyFocusedEl = document.activeElement as HTMLElement | null;
   document.body.appendChild(menu);
   openMenuEl = menu;
+  // Without this, focus stays on whatever was right-clicked and a keyboard
+  // user has to tab through the rest of the document before reaching the
+  // menu at all.
+  menu.querySelector('button')?.focus();
 
   // Keep the menu on-screen if it would overflow the viewport.
   const rect = menu.getBoundingClientRect();

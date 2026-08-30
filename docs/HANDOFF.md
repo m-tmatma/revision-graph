@@ -19,9 +19,12 @@ merges, tags), modeled on TortoiseGit's "Revision Graph" feature.
   left as-is, so it no longer matches the repo name.
 - **Design doc**: [docs/DESIGN.md](./DESIGN.md) — the full approved design (see
   summary below). Committed on `master` (commit `5af0b58`).
-- **Current work branch**: `feature/m1-core-graph`, branched from `master`, **not
-  yet pushed / no PR opened**. Contains uncommitted new files (see "Current file
-  state" below).
+- **Work branch at the time this was written (2026-08-22, historical)**:
+  `feature/m1-core-graph`, branched from `master`, not yet pushed / no PR
+  opened. Contains uncommitted new files (see "Current file state" below).
+  Long since merged -- see the dated `## M1 status` / `## M2 status` / ...
+  `## Post-M4: ...` sections below for how the project actually progressed
+  from here; there's no single "current branch" any more.
 
 ## Key decisions made in this thread
 

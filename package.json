@@ -76,9 +76,9 @@
     "build": "node esbuild.js",
     "watch": "node esbuild.js --watch",
     "package": "node esbuild.js --production",
-    "typecheck": "tsc --noEmit -p .",
+    "typecheck": "tsc --noEmit -p . && tsc --noEmit -p tsconfig.worker.json",
     "test": "vitest run",
-    "vsix": "vsce package --no-dependencies"
+    "vsix": "npm run package && vsce package --no-dependencies"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

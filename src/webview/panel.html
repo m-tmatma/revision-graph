@@ -162,7 +162,7 @@
       <button id="export-png-button" type="button" data-i18n="Export PNG">Export PNG</button>
     </div>
     <div id="graph-scroll">
-      <div id="graph-status" data-i18n="Loading revision graph…">Loading revision graph…</div>
+      <div id="graph-status" role="status" aria-live="polite" data-i18n="Loading revision graph…">Loading revision graph…</div>
       <div id="graph-root"></div>
       <div id="minimap"></div>
     </div>
@@ -170,6 +170,7 @@
   <script nonce="__NONCE__">
     window.__LAYOUT_WORKER_URI__ = "__WORKER_URI__";
     window.__L10N_BUNDLE__ = __L10N_BUNDLE_JSON__;
+    window.__LANG__ = "__LANG__";
   </script>
   <script nonce="__NONCE__" src="__SCRIPT_URI__"></script>
 </body>

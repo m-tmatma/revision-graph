@@ -471,10 +471,18 @@ async function showCompareChanges(
   });
 }
 
+// `from`/`to` aren't always commit hashes -- compareWithDefaultBranch passes
+// a branch name (e.g. "origin/main") and compareWithCurrentBranch passes
+// "HEAD", and truncating either to 7 characters produces a misleading
+// label (e.g. "origin/"). Only a real full hash gets shortened.
+function shortRev(rev: string): string {
+  return /^[0-9a-f]{40}$/.test(rev) ? rev.slice(0, 7) : rev;
+}
+
 async function openFileDiff(from: string, to: string, path: string): Promise<void> {
   const fromUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, path: `/${path}`, query: from });
   const toUri = vscode.Uri.from({ scheme: GIT_SHOW_SCHEME, path: `/${path}`, query: to });
-  const title = vscode.l10n.t('{0} ({1} ↔ {2})', path, from.slice(0, 7), to.slice(0, 7));
+  const title = vscode.l10n.t('{0} ({1} ↔ {2})', path, shortRev(from), shortRev(to));
   // Explicit ViewColumn.Beside: without it, vscode.diff opens in the
   // active editor group -- which, since this is always triggered from a
   // click inside the Compare/Log webview panel, is that panel's own
@@ -719,7 +727,18 @@ async function handleDeleteRef(
   let message = vscode.l10n.t('Delete {0}? This cannot be undone.', refName);
   let isUnmergedLocalBranch = false;
   if (refType === 'local-branch' || refType === 'current-branch') {
-    isUnmergedLocalBranch = !(await isBranchMerged(cwd, refName));
+    try {
+      isUnmergedLocalBranch = !(await isBranchMerged(cwd, refName));
+    } catch (err) {
+      // e.g. refName no longer exists (deleted outside this extension) --
+      // `git merge-base --is-ancestor` then exits with neither 0 nor 1,
+      // which isBranchMerged treats as a real failure rather than "not
+      // merged". Reported the same way the actual delete below reports a
+      // failure, rather than letting it propagate out of this message
+      // handler with no feedback at all.
+      vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: delete failed ({0})', (err as Error).message));
+      return;
+    }
     if (isUnmergedLocalBranch) {
       message += '\n\n' + vscode.l10n.t('This branch is not yet fully merged into HEAD.');
     }
@@ -979,7 +998,8 @@ async function getWebviewHtml(webview: vscode.Webview, extensionUri: vscode.Uri)
     .replaceAll('__NONCE__', nonce)
     .replaceAll('__SCRIPT_URI__', scriptUri.toString())
     .replaceAll('__WORKER_URI__', workerUri.toString())
-    .replaceAll('__L10N_BUNDLE_JSON__', l10nBundleJson);
+    .replaceAll('__L10N_BUNDLE_JSON__', l10nBundleJson)
+    .replaceAll('__LANG__', vscode.env.language);
 }
 
 // Shared by the compare and checkout-dialog panels: neither needs a Web
@@ -1009,7 +1029,8 @@ async function getSimplePanelHtml(
     .replaceAll('__CSP__', csp)
     .replaceAll('__NONCE__', nonce)
     .replaceAll('__SCRIPT_URI__', scriptUri.toString())
-    .replaceAll('__L10N_BUNDLE_JSON__', l10nBundleJson);
+    .replaceAll('__L10N_BUNDLE_JSON__', l10nBundleJson)
+    .replaceAll('__LANG__', vscode.env.language);
 }
 
 function getComparePanelHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {

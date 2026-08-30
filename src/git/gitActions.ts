@@ -9,7 +9,11 @@ import type { CheckoutOptions, FileChange, LogEntry } from '../shared/types';
 
 function runGitCapture(cwd: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn('git', args, { cwd });
+    // No terminal is attached to this process -- an interactive credential
+    // prompt (e.g. fetchAll's `git fetch` against a remote with no
+    // credential helper configured) would otherwise block forever instead
+    // of failing, leaving fetchInProgress stuck true in showRevisionGraph.
+    const child = spawn('git', args, { cwd, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } });
     const stdoutChunks: Buffer[] = [];
     child.stdout.on('data', (chunk: Buffer) => stdoutChunks.push(chunk));
 
@@ -289,7 +293,10 @@ export async function renameLocalBranch(cwd: string, oldName: string, newName: s
  */
 export async function isBranchMerged(cwd: string, ref: string, into = 'HEAD'): Promise<boolean> {
   return new Promise((resolve, reject) => {
-    const child = spawn('git', ['merge-base', '--is-ancestor', ref, into], { cwd });
+    const child = spawn('git', ['merge-base', '--is-ancestor', ref, into], {
+      cwd,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    });
     let stderr = '';
     child.stderr.on('data', (chunk) => {
       stderr += chunk.toString();
@@ -312,20 +319,20 @@ export async function isBranchMerged(cwd: string, ref: string, into = 'HEAD'): P
  * Merged Branches…" bulk-cleanup action.
  */
 export async function listMergedLocalBranches(cwd: string, into = 'HEAD'): Promise<string[]> {
-  const [namesOutput, currentBranchOutput] = await Promise.all([
-    runGitCapture(cwd, ['for-each-ref', '--format=%(refname:short)', 'refs/heads/']),
+  // A single `--merged` query instead of one `git merge-base --is-ancestor`
+  // process per local branch (a repo with hundreds of local branches would
+  // otherwise start hundreds of concurrent git processes at once).
+  const [mergedOutput, currentBranchOutput] = await Promise.all([
+    runGitCapture(cwd, ['for-each-ref', '--format=%(refname:short)', `--merged=${into}`, 'refs/heads/']),
     // Empty (not an error) in detached HEAD — nothing then matches as current.
     runGitCapture(cwd, ['symbolic-ref', '--short', '-q', 'HEAD']).catch(() => ''),
   ]);
   const currentBranch = currentBranchOutput.trim();
 
-  const names = namesOutput
+  return mergedOutput
     .split('\n')
     .map((line) => line.trim())
     .filter((name) => name && name !== currentBranch);
-
-  const mergedFlags = await Promise.all(names.map((name) => isBranchMerged(cwd, name, into)));
-  return names.filter((_, i) => mergedFlags[i]);
 }
 
 export async function deleteTag(cwd: string, name: string): Promise<void> {

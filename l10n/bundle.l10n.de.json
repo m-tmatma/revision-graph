@@ -52,7 +52,7 @@
   "Copied": "Kopiert",
   "Minimap error: {0}": "Minimap-Fehler: {0}",
   "no graph rendered yet": "noch kein Graph gerendert",
-  "graph is too large to export as PNG ({0}x{1} exceeds the browser's canvas size limit) — use Export SVG instead": "Der Graph ist zu groß, um als PNG exportiert zu werden ({0}x{1} überschreitet die Canvas-Größenbegrenzung des Browsers) — verwenden Sie stattdessen SVG exportieren",
+  "graph is too large to export as PNG ({0}x{1} exceeds the browser's canvas size limit) — use Export SVG instead": "Der Graph ist zu groß, um als PNG exportiert zu werden ({0}x{1} überschreitet die Canvas-Größenbegrenzung des Browsers) — verwenden Sie stattdessen „SVG exportieren“",
   "timed out rasterizing the SVG": "Zeitüberschreitung beim Rastern des SVG",
   "failed to rasterize the SVG": "Rastern des SVG fehlgeschlagen",
   "rasterized SVG has no dimensions (naturalWidth/naturalHeight is 0)": "Das gerasterte SVG hat keine Abmessungen (naturalWidth/naturalHeight ist 0)",

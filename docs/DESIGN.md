@@ -115,7 +115,7 @@ TortoiseGitの`RevisionGraphDlgFunc.cpp`のロジックをそのまま移植す�
 
 このステップ3/4(直線区間の間引き)はトグルの状態に関わらず**常に**実行する — 実際のTortoiseGitの挙動を確認したところ、直線的な履歴が個別ノードとして展開表示されることはチェックの有無に関わらず一切なかったため、それに合わせた。「全タグ表示」トグルはステップ2の判定(タグのみを保護対象に含めるか)に関わる。
 
-「Show branches and merges」トグルは代わりに、`git log`取得時に`--simplify-by-decoration`を付けるかどうかを切り替える(`logReader.ts`の`buildLogArgs`)。TortoiseGit自身もこのgitオプション経由で「refに無関係なマージコミット」の間引きをgit本体に任せており(`RevisionGraphDlgFunc.cpp`の`m_bShowBranchingsMerges`)、同じ方式を踏襲した(自前でgitの履歴簡略化アルゴリズムを再実装するのは非現実的なため)。デフォルトはON(`--simplify-by-decoration`を付けない=間引かない=TortoiseGitのデフォルトチェック状態に合わせた)。
+`git log`取得時には`--simplify-by-decoration`を常に付与する(`logReader.ts`の`buildLogArgs`)。「Show branches and merges」トグルはそれとは別に、その上で`--sparse`を追加するかどうかを切り替える。TortoiseGit自身もこの2つのgitオプションの組み合わせで「refに無関係なマージコミット」の間引きの度合いをgit本体に任せており(`RevisionGraphDlgFunc.cpp`の`m_bShowBranchingsMerges`)、同じ方式を踏襲した(自前でgitの履歴簡略化アルゴリズムを再実装するのは非現実的なため)。デフォルトはON(`--sparse`を付ける=間引かれたマージも維持する=TortoiseGitのデフォルトチェック状態に合わせた)。以前のバージョンではこのトグルを`--simplify-by-decoration`自体のON/OFFとして扱っており、チェック時(デフォルト)に簡略化フラグを一切送らない設計だった — TortoiseGitの実際の2モードよりもずっと間引かれない履歴になり、大規模リポジトリでグラフが実機のTortoiseGitより明らかにノイズの多い見た目になる直接の原因だった(詳細はHANDOFF.mdの該当Post-M4項目を参照)。
 
 **この設計に至るまでの試行錯誤**: 当初は「トグルOFF時のみステップ3/4を実行し、ONなら間引かれたコミットを個別ノードとして展開表示する」設計だったが、大規模リポジトリの検証で複数の問題が判明した。(1) 間引かれたコミットをdagreのレイアウト対象に含めると、直線区間が長い場合にdagreの再帰的なランク付けパスがスタックオーバーフローする(下記「検証方法」参照)。(2) dagreに`minlen`でランク間隔だけ確保させる方式に変えても、dagre内部が長いminlenエッジをダミーノードの連なりに展開するため同じ問題が再発した。(3) レイアウト後に手動でスペースを挿入する方式(再帰なし)で安全性は確保できたが、実際にTortoiseGitの挙動を確認したところ、そもそも直線区間を個別展開する仕様ではなかったことが判明し、この設計自体を撤回した。
 

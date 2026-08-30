@@ -7,7 +7,13 @@ name: PR Labeler
 # unlabeled (it'll land in release.yml's catch-all "Other Changes" category).
 
 on:
-  pull_request:
+  # pull_request_target (not pull_request), since a fork PR's default
+  # GITHUB_TOKEN is downgraded to read-only under `pull_request` regardless
+  # of the `permissions:` block below, which would otherwise silently fail
+  # every gh pr edit call for a fork-originated PR. Safe here specifically
+  # because this job never checks out or executes any PR-supplied code --
+  # it only reads the trusted event payload's PR title string.
+  pull_request_target:
     types: [opened, edited]
 
 permissions:

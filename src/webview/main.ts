@@ -1,7 +1,8 @@
 // Webview entry point: requests commit data from the extension host,
 // measures node sizes, delegates layout to the Web Worker, and renders the
-// resulting graph as SVG with pan/zoom. Node selection, context menu, and
-// tooltips are not yet implemented (remaining M3 scope).
+// resulting graph as SVG with pan/zoom, node selection (SelectionController),
+// a right-click context menu (attachContextMenu), and an on-demand hover
+// tooltip (HoverTooltipController).
 
 import type {
   GraphCommit,
@@ -207,10 +208,24 @@ function renderAndFocus(graph: LaidOutGraph, focusOnHead: boolean): void {
   lastRenderedGraph = graph;
   const svg = renderGraph(rootEl!, graph);
 
+  // Carried over the same way pan/zoom state is below (and for the same
+  // reason): a re-render (an automatic refresh from repo-watcher noticing
+  // an external commit/checkout/pull, say) shouldn't silently drop a
+  // two-commit Compare selection the user made deliberately. Only ids
+  // that still exist in the new graph are kept -- one could have been
+  // pruned by dagReducer's own elision, or the commit could simply be
+  // gone from this scope now.
+  const previousSelection = selectionController?.getState();
   selectionController?.destroy();
   const newSelectionController = new SelectionController(svg);
   selectionController = newSelectionController;
   const nodesById = new Map(graph.nodes.map((node) => [node.id, node]));
+  if (previousSelection) {
+    newSelectionController.setState({
+      first: previousSelection.first !== null && nodesById.has(previousSelection.first) ? previousSelection.first : null,
+      second: previousSelection.second !== null && nodesById.has(previousSelection.second) ? previousSelection.second : null,
+    });
+  }
   attachContextMenu(svg, newSelectionController, nodesById);
   attachHoverTooltip(svg);
 
@@ -670,18 +685,40 @@ function buildGraphNodes(commits: GraphCommit[]): GraphNode[] {
 // `new Worker(vscode-webview-resource-uri)` fails silently in VSCode's
 // webview sandbox (the resource origin isn't Worker-loadable directly), so
 // fetch the script and construct a blob: URL instead.
+// Fetched and turned into an object URL once for the page's whole lifetime,
+// rather than on every graphData message -- a long session's worth of
+// external-change auto-refreshes would otherwise accumulate one unrevoked
+// blob URL per render (Worker.terminate() doesn't release it). Caches the
+// in-flight promise too, not just the eventual URL, so two calls racing
+// before the first fetch resolves share the same fetch instead of issuing
+// a second one.
+let layoutWorkerBlobUrlPromise: Promise<string> | undefined;
+
+function getLayoutWorkerBlobUrl(): Promise<string> {
+  if (!layoutWorkerBlobUrlPromise) {
+    layoutWorkerBlobUrlPromise = (async () => {
+      const workerUri = window.__LAYOUT_WORKER_URI__;
+      if (!workerUri) {
+        throw new Error(t('layout worker URI was not injected into the webview'));
+      }
+      const response = await fetch(workerUri);
+      if (!response.ok) {
+        throw new Error(t('failed to fetch layout worker script (HTTP {0})', String(response.status)));
+      }
+      const code = await response.text();
+      return URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
+    })().catch((err: unknown) => {
+      // A failed fetch shouldn't be cached forever -- the next render
+      // should retry rather than repeat the same stale failure.
+      layoutWorkerBlobUrlPromise = undefined;
+      throw err;
+    });
+  }
+  return layoutWorkerBlobUrlPromise;
+}
+
 async function createLayoutWorker(): Promise<Worker> {
-  const workerUri = window.__LAYOUT_WORKER_URI__;
-  if (!workerUri) {
-    throw new Error(t('layout worker URI was not injected into the webview'));
-  }
-  const response = await fetch(workerUri);
-  if (!response.ok) {
-    throw new Error(t('failed to fetch layout worker script (HTTP {0})', String(response.status)));
-  }
-  const code = await response.text();
-  const blobUrl = URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
-  return new Worker(blobUrl);
+  return new Worker(await getLayoutWorkerBlobUrl());
 }
 
 async function handleGraphData(commits: GraphCommit[], hostRequestedFocus: boolean): Promise<void> {

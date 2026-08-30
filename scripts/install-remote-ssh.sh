@@ -11,9 +11,10 @@
 # Server's own CLI binary directly under ~/.vscode-server(-insiders), which
 # always targets the extension host actually running on this machine --
 # the same one Remote-SSH, Dev Containers, and WSL connections all use.
-# Two layouts are checked, since this varies by VS Code version:
-#   - ~/.vscode-server/code-<commit>                     (current)
-#   - ~/.vscode-server/bin/<commit>/bin/remote-cli/code   (older)
+# Three layouts are checked, since this varies by VS Code version:
+#   - ~/.vscode-server/cli/servers/Stable-<commit>/server/bin/remote-cli/code  (current, 1.82+)
+#   - ~/.vscode-server/code-<commit>                                          (older)
+#   - ~/.vscode-server/bin/<commit>/bin/remote-cli/code                       (oldest)
 #
 # This needs the server to have started at least once already (i.e. you've
 # connected from a VS Code window before) -- the binary doesn't exist until
@@ -36,7 +37,11 @@ if [ -z "$VSIX" ]; then
     exit 1
 fi
 
-REMOTE_CLI=$(ls -t "$HOME"/.vscode-server*/code-* "$HOME"/.vscode-server*/bin/*/bin/remote-cli/code 2>/dev/null | head -n 1)
+REMOTE_CLI=$(ls -t \
+    "$HOME"/.vscode-server*/cli/servers/*/server/bin/remote-cli/code \
+    "$HOME"/.vscode-server*/code-* \
+    "$HOME"/.vscode-server*/bin/*/bin/remote-cli/code \
+    2>/dev/null | head -n 1)
 if [ -z "$REMOTE_CLI" ]; then
     echo "No VS Code Server found under ~/.vscode-server(-insiders)."
     echo "Connect to this host from VS Code at least once first, then try again."
@@ -44,6 +49,7 @@ if [ -z "$REMOTE_CLI" ]; then
 fi
 
 case "$REMOTE_CLI" in
+    */cli/servers/*/server/bin/remote-cli/code) SERVER_ROOT=${REMOTE_CLI%/bin/remote-cli/code} ;;
     */bin/*/bin/remote-cli/code) SERVER_ROOT=${REMOTE_CLI%/bin/*/bin/remote-cli/code} ;;
     *) SERVER_ROOT=${REMOTE_CLI%/code-*} ;;
 esac

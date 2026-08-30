@@ -56,6 +56,13 @@
     .deleted {
       color: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
     }
+    .empty-state {
+      opacity: 0.7;
+      cursor: default;
+    }
+    .empty-state:hover {
+      background: transparent;
+    }
     .visually-hidden {
       position: absolute;
       width: 1px;
@@ -96,6 +103,7 @@
   </main>
   <script nonce="__NONCE__">
     window.__L10N_BUNDLE__ = __L10N_BUNDLE_JSON__;
+    window.__LANG__ = "__LANG__";
   </script>
   <script nonce="__NONCE__" src="__SCRIPT_URI__"></script>
 </body>
