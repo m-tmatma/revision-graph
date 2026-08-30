@@ -25,8 +25,8 @@ Alternatively, install from a `.vsix` file:
    GitHub, or build one yourself (see
    [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#build)). Two copies of the
    same contents are published — pick whichever's more convenient:
-   - `vsix-v<version>-build<N>` (a `.zip`; unzip it to get the `.vsix` file
-     and the install scripts)
+   - `vsix-v<version>-build<N>-zip` (unzip it to get the `.vsix` file and
+     the install scripts)
    - `vsix-v<version>-build<N>.tar.gz` (extract with
      `tar -xzf vsix-v<version>-build<N>.tar.gz`) — keeps the bundled
      `.sh`/`.command` installer scripts' executable bit intact, which the
