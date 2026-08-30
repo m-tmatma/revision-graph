@@ -9,7 +9,7 @@ All planned milestones are implemented:
 
 - Core display: fetch the commit history, collapse non-branching straight
   runs, lay out the DAG, render it as SVG (Milestone 1)
-- Filtering (scope, straight-run collapsing, tag visibility), pan/zoom,
+- Filtering (scope, "Show branches and merges", tag visibility), pan/zoom,
   node selection, tooltips, and the full context menu (checkout, copy
   hash, copy ref name(s), compare, delete ref) (Milestones 2 and 3)
 - Automatic refresh when the repo changes outside the extension — a
