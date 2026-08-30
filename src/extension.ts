@@ -719,7 +719,18 @@ async function handleDeleteRef(
   let message = vscode.l10n.t('Delete {0}? This cannot be undone.', refName);
   let isUnmergedLocalBranch = false;
   if (refType === 'local-branch' || refType === 'current-branch') {
-    isUnmergedLocalBranch = !(await isBranchMerged(cwd, refName));
+    try {
+      isUnmergedLocalBranch = !(await isBranchMerged(cwd, refName));
+    } catch (err) {
+      // e.g. refName no longer exists (deleted outside this extension) --
+      // `git merge-base --is-ancestor` then exits with neither 0 nor 1,
+      // which isBranchMerged treats as a real failure rather than "not
+      // merged". Reported the same way the actual delete below reports a
+      // failure, rather than letting it propagate out of this message
+      // handler with no feedback at all.
+      vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: delete failed ({0})', (err as Error).message));
+      return;
+    }
     if (isUnmergedLocalBranch) {
       message += '\n\n' + vscode.l10n.t('This branch is not yet fully merged into HEAD.');
     }
