@@ -9,6 +9,9 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 - Log sidebar: the first (topmost) commit is no longer auto-expanded on
   load — every commit starts collapsed until clicked.
+- Log sidebar: the per-commit lane graph's branch lines are now spaced
+  more tightly, leaving more room for the commit text when history is
+  deeply branched.
 
 ### Removed
 
