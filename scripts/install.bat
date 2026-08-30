@@ -1,6 +1,6 @@
 @echo off
 rem Double-click this file to install the extension's .vsix into VS Code.
-setlocal enabledelayedexpansion
+setlocal
 cd /d "%~dp0"
 
 where code >nul 2>nul
@@ -22,8 +22,8 @@ if not defined VSIX (
     exit /b 1
 )
 
-echo Installing !VSIX! ...
-call code --install-extension "!VSIX!"
+echo Installing %VSIX% ...
+call code --install-extension "%VSIX%"
 if errorlevel 1 (
     echo Installation failed.
     pause
