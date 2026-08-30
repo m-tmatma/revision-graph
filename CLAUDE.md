@@ -48,6 +48,22 @@ implementing and verifying the build, describe what changed and wait for
 the user to confirm before committing — including a small fix-up commit
 on an already-open PR's branch.
 
+`dist/` is gitignored and never auto-invalidated — switching branches,
+rebasing, or merging changes the source under your feet without
+touching `dist/`, and esbuild only adds/updates outputs for entry
+points still in `esbuild.js`'s config, it never deletes an orphaned one
+(e.g. removing a webview entry point leaves its old `dist/webview/*.js`
+sitting there). A stale build can silently desync two files that must
+agree (e.g. a webview script's `getElementById` calls vs. its HTML
+template's ids) without any error until the webview actually throws at
+runtime — which then just leaves it stuck on whatever placeholder its
+static HTML shows (e.g. "Loading…"), with the real error visible only
+in the Webview Developer Tools console. Always run `npm run build`
+again immediately before asking for manual verification, even if a
+build already succeeded earlier in the same session on a different
+branch — don't assume yesterday's (or five-minutes-ago's) build is
+still valid for whatever's checked out now.
+
 When fixing multiple review findings (CodeRabbit, a human reviewer, etc.)
 on the same PR, don't bundle unrelated ones into a single fix-up commit
 just because they landed at the same time — split them into one commit
