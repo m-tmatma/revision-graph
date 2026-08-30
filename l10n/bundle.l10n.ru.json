@@ -132,5 +132,8 @@
   "Copy path": "Копировать путь",
   "Select for Compare": "Выбрать для сравнения",
   "Compare {0} and {1}": "Сравнить {0} и {1}",
-  "Remote branches": "Удалённые ветки"
+  "Remote branches": "Удалённые ветки",
+  "open a folder first.": "сначала откройте папку.",
+  "Version info": "Информация о версии",
+  "Copy": "Копировать"
 }

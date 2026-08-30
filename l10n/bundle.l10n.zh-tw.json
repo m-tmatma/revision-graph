@@ -132,5 +132,8 @@
   "Copy path": "複製路徑",
   "Select for Compare": "選取以進行比較",
   "Compare {0} and {1}": "比較 {0} 和 {1}",
-  "Remote branches": "遠端分支"
+  "Remote branches": "遠端分支",
+  "open a folder first.": "請先開啟一個資料夾。",
+  "Version info": "版本資訊",
+  "Copy": "複製"
 }

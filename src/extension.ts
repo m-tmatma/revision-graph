@@ -46,7 +46,6 @@ import type {
   RefType,
   ReduceOptions,
   WebviewToHostMessage,
-  WelcomeWebviewToHostMessage,
 } from './shared/types';
 
 // Injected by esbuild.js's `define` at build time (`git rev-parse --short
@@ -90,6 +89,16 @@ const GIT_SHOW_SCHEME = 'revision-graph-git';
 // change detection. Cleared when that panel is disposed.
 let activeGraphRefresh: ((focusOnHead?: boolean) => Promise<void>) | undefined;
 
+// The Activity Bar container's sole view, and the currently-shown commit's
+// startRef/label -- read by createLogSidebarProvider on (re)resolve, and
+// written by the main graph's "showLog" handler to retarget an
+// already-resolved view. `label` stays undefined for the default "current
+// branch" state so the view keeps its normal title instead of being
+// permanently relabeled after the very first resolve.
+let logSidebarView: vscode.WebviewView | undefined;
+let logSidebarRefresh: (() => Promise<void>) | undefined;
+let logTarget: { startRef: string; label: string | undefined } = { startRef: 'HEAD', label: undefined };
+
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand('revisionGraph.show', () => showRevisionGraph(context)),
@@ -101,15 +110,17 @@ export function activate(context: vscode.ExtensionContext): void {
         return readFileAtRevision(cwd, uri.query, path);
       },
     }),
-    vscode.window.registerWebviewViewProvider('revisionGraph.welcomeView', createWelcomeViewProvider(context)),
+    vscode.window.registerWebviewViewProvider('revisionGraph.welcomeView', createLogSidebarProvider(context)),
   );
 }
 
-// The Activity Bar container's sole view: a "Show Revision Graph" button
-// plus the running version/build commit hash (see __BUILD_COMMIT__ above),
-// shown so a stale Extension Development Host or installed build is easy to
-// tell apart from a fresh one at a glance.
-function createWelcomeViewProvider(context: vscode.ExtensionContext): vscode.WebviewViewProvider {
+// The Activity Bar container's sole view: a persistent commit-log view
+// (defaulting to the current branch), a "Show Revision Graph" button, and a
+// version-info button (see __BUILD_COMMIT__ above) so a stale Extension
+// Development Host or installed build is easy to spot at a glance.
+// Retargeted to a specific commit by the main graph's "Show Log"
+// context-menu item instead of that opening a separate editor tab.
+function createLogSidebarProvider(context: vscode.ExtensionContext): vscode.WebviewViewProvider {
   return {
     resolveWebviewView(webviewView) {
       webviewView.webview.options = {
@@ -117,25 +128,84 @@ function createWelcomeViewProvider(context: vscode.ExtensionContext): vscode.Web
         localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview')],
       };
 
-      const versionText = __BUILD_NUMBER__
-        ? vscode.l10n.t(
-            'Version {0} ({1}, build {2})',
-            context.extension.packageJSON.version,
-            __BUILD_COMMIT__,
-            __BUILD_NUMBER__,
-          )
-        : vscode.l10n.t('Version {0} ({1})', context.extension.packageJSON.version, __BUILD_COMMIT__);
-      void getWelcomeViewHtml(webviewView.webview, context.extensionUri, versionText).then((html) => {
+      logSidebarView = webviewView;
+      webviewView.title = logTarget.label;
+      webviewView.onDidDispose(() => {
+        if (logSidebarView === webviewView) {
+          logSidebarView = undefined;
+          logSidebarRefresh = undefined;
+        }
+      });
+
+      void getLogSidebarHtml(webviewView.webview, context.extensionUri).then((html) => {
         webviewView.webview.html = html;
       });
 
-      webviewView.webview.onDidReceiveMessage((message: WelcomeWebviewToHostMessage) => {
+      // Shared by both branches below: neither needs cwd, so they're
+      // handled identically whether or not a workspace is open.
+      const handleCommonMessage = (message: LogWebviewToHostMessage): boolean => {
         if (message.type === 'show') {
           void vscode.commands.executeCommand('revisionGraph.show');
+          return true;
         }
+        if (message.type === 'showVersionInfo') {
+          void showVersionInfoMessage(context);
+          return true;
+        }
+        return false;
+      };
+
+      const cwd = getWorkspaceRoot();
+      if (!cwd) {
+        // No wiring beyond the buttons and an error in place of a log that
+        // has nothing to read -- otherwise the client's initial "ready"
+        // message has nothing listening for it, and the view sits on its
+        // "Loading…" placeholder forever instead of saying why.
+        webviewView.webview.onDidReceiveMessage((message: LogWebviewToHostMessage) => {
+          if (handleCommonMessage(message)) return;
+          if (message.type === 'ready') {
+            const hostMessage: LogHostToWebviewMessage = {
+              type: 'logError',
+              message: vscode.l10n.t('open a folder first.'),
+            };
+            void webviewView.webview.postMessage(hostMessage);
+          }
+        });
+        return;
+      }
+
+      const { refreshLog, handleMessage } = wireLogWebview(context, cwd, webviewView.webview, () => logTarget.startRef);
+      logSidebarRefresh = refreshLog;
+
+      webviewView.webview.onDidReceiveMessage(async (message: LogWebviewToHostMessage) => {
+        if (handleCommonMessage(message)) return;
+        await handleMessage(message);
       });
     },
   };
+}
+
+function getVersionText(context: vscode.ExtensionContext): string {
+  return __BUILD_NUMBER__
+    ? vscode.l10n.t(
+        'Version {0} ({1}, build {2})',
+        context.extension.packageJSON.version,
+        __BUILD_COMMIT__,
+        __BUILD_NUMBER__,
+      )
+    : vscode.l10n.t('Version {0} ({1})', context.extension.packageJSON.version, __BUILD_COMMIT__);
+}
+
+// Shows the version/build info via a native notification instead of inline
+// in the sidebar, freeing up that space for more of the log -- "Copy"
+// copies the same text the notification displays.
+async function showVersionInfoMessage(context: vscode.ExtensionContext): Promise<void> {
+  const versionText = getVersionText(context);
+  const copyLabel = vscode.l10n.t('Copy');
+  const selection = await vscode.window.showInformationMessage(versionText, copyLabel);
+  if (selection === copyLabel) {
+    await vscode.env.clipboard.writeText(versionText);
+  }
 }
 
 export function deactivate(): void {}
@@ -190,10 +260,22 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
     }
   };
 
+  // Wraps `refresh` so that a repo-mutating action triggered from *this*
+  // panel (checkout, create branch/tag, delete/rename ref, fetch, ...) also
+  // brings the sidebar's log up to date when it's showing the default
+  // current-branch view -- the reverse direction of wireLogWebview's own
+  // refreshAfterRepoChange, which already keeps this graph in sync with
+  // actions taken from the sidebar. Only refreshes the sidebar when it's on
+  // 'HEAD': if it's been retargeted to a specific commit (via "Show Log"),
+  // an unrelated checkout elsewhere shouldn't change what it's displaying.
+  const refreshEverything = async (focusOnHead?: boolean) => {
+    await Promise.all([refresh(focusOnHead), logTarget.startRef === 'HEAD' ? logSidebarRefresh?.() : undefined]);
+  };
+
   // Refreshes on external repo changes too (a checkout done outside this
   // extension, a commit, a pull, ...), not just after our own
   // checkout/delete-ref actions, which already refresh explicitly.
-  const repoWatcher = watchRepositoryChanges(cwd, () => void refresh());
+  const repoWatcher = watchRepositoryChanges(cwd, () => void refreshEverything());
   activeGraphRefresh = refresh;
   panel.onDidDispose(() => {
     repoWatcher.dispose();
@@ -232,20 +314,32 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
         context,
         cwd,
         { ref: message.ref, label: message.label, suggestedBranchName: message.suggestedBranchName },
-        refresh,
+        refreshEverything,
       );
     } else if (message.type === 'deleteRef') {
-      await handleDeleteRef(cwd, message.refType, message.refName, refresh);
+      await handleDeleteRef(cwd, message.refType, message.refName, refreshEverything);
     } else if (message.type === 'renameRef') {
-      await handleRenameRef(cwd, message.refName, refresh);
+      await handleRenameRef(cwd, message.refName, refreshEverything);
     } else if (message.type === 'deleteMergedBranches') {
-      await handleDeleteMergedBranches(cwd, refresh);
+      await handleDeleteMergedBranches(cwd, refreshEverything);
     } else if (message.type === 'showLog') {
-      showLogPanel(context, cwd, message.commitId, message.label);
+      logTarget = { startRef: message.commitId, label: message.label };
+      if (logSidebarView) {
+        logSidebarView.title = message.label;
+        logSidebarView.show(true);
+        await logSidebarRefresh?.();
+      } else {
+        // Not resolved yet (the Activity Bar container has never been
+        // opened this session) -- <viewId>.focus is VS Code's own
+        // auto-generated command to reveal (and thus resolve) a
+        // contributed view; resolveWebviewView then picks up the
+        // logTarget set just above on its own.
+        await vscode.commands.executeCommand('revisionGraph.welcomeView.focus');
+      }
     } else if (message.type === 'createBranch') {
-      await handleCreateBranch(cwd, message.startPoint, refresh);
+      await handleCreateBranch(cwd, message.startPoint, refreshEverything);
     } else if (message.type === 'createTag') {
-      await handleCreateTag(cwd, message.startPoint, refresh);
+      await handleCreateTag(cwd, message.startPoint, refreshEverything);
     } else if (message.type === 'exportSvg') {
       await exportToFile('revision-graph.svg', { [vscode.l10n.t('SVG Image')]: ['svg'] }, Buffer.from(message.svg, 'utf-8'));
     } else if (message.type === 'exportPng') {
@@ -256,12 +350,12 @@ async function showRevisionGraph(context: vscode.ExtensionContext): Promise<void
         Buffer.from(base64, 'base64'),
       );
     } else if (message.type === 'incrementalCheckout') {
-      await showIncrementalCheckout(cwd, refresh);
+      await showIncrementalCheckout(cwd, refreshEverything);
     } else if (message.type === 'fetch') {
       if (fetchInProgress) return;
       fetchInProgress = true;
       try {
-        await handleFetch(cwd, refresh);
+        await handleFetch(cwd, refreshEverything);
       } finally {
         fetchInProgress = false;
       }
@@ -382,33 +476,36 @@ async function openFileDiff(from: string, to: string, path: string): Promise<voi
   });
 }
 
-function showLogPanel(context: vscode.ExtensionContext, cwd: string, startRef: string, label: string): void {
-  const panel = vscode.window.createWebviewPanel(
-    'revisionGraphLog',
-    vscode.l10n.t('Log: {0}', label),
-    vscode.ViewColumn.Beside,
-    {
-      enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist', 'webview')],
-    },
-  );
+interface LogWebviewHandle {
+  refreshLog: () => Promise<void>;
+  handleMessage: (message: LogWebviewToHostMessage) => Promise<void>;
+}
 
-  getLogPanelHtml(panel.webview, context.extensionUri).then((html) => {
-    panel.webview.html = html;
-  });
-
+// Shared by the log sidebar (the only caller now, but kept generic over
+// `webview` rather than assuming a WebviewView) since the same message
+// protocol and git-command wiring applies regardless of what's hosting it.
+// `getStartRef` is a getter rather than a plain value so a caller whose
+// target can change over time (the sidebar, retargeted by "Show Log") can
+// have `refreshLog` always re-read the current one instead of closing over
+// a stale ref from whenever the webview first resolved.
+function wireLogWebview(
+  context: vscode.ExtensionContext,
+  cwd: string,
+  webview: vscode.Webview,
+  getStartRef: () => string,
+): LogWebviewHandle {
   // Re-fetches this same ref's history and refs (e.g. after a checkout done
   // from this panel's own "Checkout" item moves the current-branch badge),
   // as well as the initial load.
   const refreshLog = async () => {
     try {
-      const entries = await getLogEntries(cwd, startRef);
+      const entries = await getLogEntries(cwd, getStartRef());
       const hostMessage: LogHostToWebviewMessage = { type: 'logData', data: { entries } };
-      await panel.webview.postMessage(hostMessage);
+      await webview.postMessage(hostMessage);
     } catch (err) {
       vscode.window.showErrorMessage(vscode.l10n.t('Git Revision Graph: {0}', (err as Error).message));
       const hostMessage: LogHostToWebviewMessage = { type: 'logError', message: (err as Error).message };
-      await panel.webview.postMessage(hostMessage);
+      await webview.postMessage(hostMessage);
     }
   };
 
@@ -421,7 +518,7 @@ function showLogPanel(context: vscode.ExtensionContext, cwd: string, startRef: s
     await Promise.all([activeGraphRefresh?.(focusOnHead), refreshLog()]);
   };
 
-  panel.webview.onDidReceiveMessage(async (message: LogWebviewToHostMessage) => {
+  const handleMessage = async (message: LogWebviewToHostMessage): Promise<void> => {
     if (message.type === 'ready') {
       await refreshLog();
     } else if (message.type === 'selectCommit') {
@@ -429,14 +526,14 @@ function showLogPanel(context: vscode.ExtensionContext, cwd: string, startRef: s
         const base = await getDiffBase(cwd, message.hash);
         const files = await diffFileChanges(cwd, base, message.hash);
         const hostMessage: LogHostToWebviewMessage = { type: 'diffData', commitHash: message.hash, files };
-        await panel.webview.postMessage(hostMessage);
+        await webview.postMessage(hostMessage);
       } catch (err) {
         const hostMessage: LogHostToWebviewMessage = {
           type: 'diffError',
           commitHash: message.hash,
           message: (err as Error).message,
         };
-        await panel.webview.postMessage(hostMessage);
+        await webview.postMessage(hostMessage);
       }
     } else if (message.type === 'openFile') {
       try {
@@ -468,7 +565,9 @@ function showLogPanel(context: vscode.ExtensionContext, cwd: string, startRef: s
     } else if (message.type === 'compare') {
       await showCompareChanges(context, cwd, message.from, message.to);
     }
-  });
+  };
+
+  return { refreshLog, handleMessage };
 }
 
 function showCheckoutDialog(
@@ -849,11 +948,6 @@ function getCheckoutDialogHtml(webview: vscode.Webview, extensionUri: vscode.Uri
   return getSimplePanelHtml(webview, extensionUri, 'checkoutDialog.js', 'checkoutDialog.html');
 }
 
-function getLogPanelHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {
+function getLogSidebarHtml(webview: vscode.Webview, extensionUri: vscode.Uri): Promise<string> {
   return getSimplePanelHtml(webview, extensionUri, 'log.js', 'logPanel.html');
-}
-
-async function getWelcomeViewHtml(webview: vscode.Webview, extensionUri: vscode.Uri, versionText: string): Promise<string> {
-  const html = await getSimplePanelHtml(webview, extensionUri, 'welcomeView.js', 'welcomeView.html');
-  return html.replaceAll('__VERSION_TEXT__', versionText);
 }

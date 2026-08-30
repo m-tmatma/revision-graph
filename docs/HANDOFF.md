@@ -739,13 +739,16 @@ it, so we do too.
 new Activity Bar container (`resources/activity-bar-icon.svg` — a plain
 diamond of four nodes/edges, standing in for a small branch+merge graph;
 VS Code re-colors it to match the theme, so the SVG's own fill color
-doesn't matter). Its one view (`revisionGraph.welcomeView`) never has any
-real content — `extension.ts` registers a `TreeDataProvider` for it whose
-`getChildren` always returns `[]`, purely so VS Code treats the view as
-"empty" and falls back to the `viewsWelcome` contribution: a single
-"Show Revision Graph" button (`command:revisionGraph.show`) that opens
-the graph the same way the existing Command Palette entry and SCM
-title-bar button already do.
+doesn't matter). Its one view (`revisionGraph.welcomeView`, `type:
+"webview"`) is a `WebviewViewProvider` (`extension.ts`'s
+`createLogSidebarProvider`) reusing the Show Log panel's own `log.js`/
+`logPanel.html` — a "Show Revision Graph" button
+(`command:revisionGraph.show`) plus a persistent commit-log view (see
+"log sidebar" entry below), rather than a `viewsWelcome` button-only
+fallback. (An even earlier iteration of this view really was a bare
+`TreeDataProvider` returning `[]` specifically to trigger `viewsWelcome`
+— replaced once a webview gave more room for the version-info footer,
+then again by the current log sidebar.)
 
 ## Post-M4: localization (Japanese first)
 
@@ -1079,3 +1082,38 @@ the actual repository that motivated this investigation is still needed —
 none of this session's synthetic reproductions exactly matched its true
 compute time, so the improvement is strong evidence, not final proof, until
 confirmed there directly.
+
+## Post-M4: the Activity Bar view becomes a persistent log sidebar
+
+The Activity Bar's sole view (`revisionGraph.welcomeView`) used to be a
+static screen: a "Show Revision Graph" button, a short description
+paragraph, and the version/build-hash footer — otherwise permanently
+empty, wasting the rest of the sidebar's vertical space. Requested
+directly off a screenshot showing that empty area.
+
+Rather than build a third, separate commit-list implementation, the
+sidebar now reuses the Show Log panel's own webview bundle (`log.js`/
+`logPanel.html`) wholesale: `welcomeView.ts`/`welcomeView.html` are gone,
+and `logPanel.html` gained the old welcome screen's header button and
+version-info footer around the existing commit list (flex column layout:
+fixed-height header, flex-grow scrollable list, fixed-height footer).
+
+Two behavioral pieces from the "always show something, and let 'Show
+Log' retarget it" request:
+- **Defaults to the current branch.** `extension.ts` keeps a
+  module-level `logTarget = { startRef: 'HEAD', label: undefined }`;
+  `logTarget.label` stays `undefined` for this default state so the
+  view keeps VS Code's normal "Git Revision Graph" title instead of
+  being permanently relabeled after the first resolve.
+- **"Show Log" retargets the same view instead of opening a new editor
+  tab.** The main graph's `showLog` handler updates `logTarget`, then
+  either `logSidebarView.show(true)` + re-fetches (if the view is
+  already resolved) or runs `revisionGraph.welcomeView.focus` — VS
+  Code's own auto-generated command to reveal (and thereby resolve) a
+  contributed view for the first time, which then picks up the
+  already-updated `logTarget` on its own initial `ready` handshake.
+  `showLogPanel`'s old `WebviewPanel`-per-request approach is gone
+  entirely; the message-handling logic it used to own now lives in
+  `wireLogWebview`, a plain function over a `vscode.Webview` (works
+  the same whether that's a `WebviewPanel` or a `WebviewView`) so the
+  sidebar isn't duplicating that wiring.

@@ -132,5 +132,8 @@
   "Copy path": "Copiar ruta",
   "Select for Compare": "Seleccionar para comparar",
   "Compare {0} and {1}": "Comparar {0} con {1}",
-  "Remote branches": "Ramas remotas"
+  "Remote branches": "Ramas remotas",
+  "open a folder first.": "abra primero una carpeta.",
+  "Version info": "Información de versión",
+  "Copy": "Copiar"
 }

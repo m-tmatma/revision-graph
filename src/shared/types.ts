@@ -174,12 +174,12 @@ export type CheckoutWebviewToHostMessage =
   | { type: 'submit'; options: CheckoutOptions }
   | { type: 'cancel' };
 
-/** Message sent from the Activity Bar welcome view's webview back to the extension host. */
-export type WelcomeWebviewToHostMessage = { type: 'show' };
-
-// --- Log panel (a fourth, separate WebviewPanel opened from the main
-// graph's "Show Log" context-menu item): a scrollable list of a commit and
-// its ancestors, with per-commit file changes shown on selection. ---
+// --- Log sidebar (the Activity Bar container's sole view): a persistent
+// scrollable list of a commit and its ancestors, with per-commit file
+// changes shown on selection -- defaults to the current branch, and can be
+// retargeted to any commit via the main graph's "Show Log" context-menu
+// item. Also carries a "Show Revision Graph" button and the running
+// version/build commit hash. ---
 
 export interface LogEntry {
   hash: string;
@@ -204,6 +204,8 @@ export type LogHostToWebviewMessage =
 
 export type LogWebviewToHostMessage =
   | { type: 'ready' }
+  | { type: 'show' }
+  | { type: 'showVersionInfo' }
   | { type: 'selectCommit'; hash: string }
   | { type: 'openFile'; commitHash: string; path: string }
   | { type: 'copyCommitInfo'; hash: string }

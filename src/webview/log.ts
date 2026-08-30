@@ -1,9 +1,13 @@
-// Webview entry point for the "Show Log" panel: a scrollable list of a
-// commit and its ancestors, TortoiseGit "Log" dialog-style, with branch/
-// merge topology drawn as a small per-row graph (see logLanes.ts). Clicking
-// a commit expands its changed files inline, directly under that row
-// (collapsing whichever commit was previously expanded); clicking a file
-// row opens it in VSCode's native diff editor, same as the Compare panel.
+// Webview entry point for the Activity Bar's log sidebar: a scrollable
+// list of a commit and its ancestors, TortoiseGit "Log" dialog-style, with
+// branch/merge topology drawn as a small per-row graph (see logLanes.ts).
+// Clicking a commit expands its changed files inline, directly under that
+// row (collapsing whichever commit was previously expanded); clicking a
+// file row opens it in VSCode's native diff editor, same as the Compare
+// panel. Also carries a "Show Revision Graph" button and a small version-
+// info button (shows the running version/build commit hash via a VS Code
+// notification, with a "Copy" action), taking over the old static welcome
+// screen's role now that this view always shows something more useful.
 
 import type { FileChange, LogEntry, LogHostToWebviewMessage, LogWebviewToHostMessage, RefInfo } from '../shared/types';
 import { applyLocalization, t } from './l10n';
@@ -32,10 +36,28 @@ const vscode = acquireVsCodeApi();
 applyLocalization(document);
 
 const commitListEl = document.getElementById('commit-list');
+const showButton = document.getElementById('show-button') as HTMLButtonElement | null;
+const versionButton = document.getElementById('version-button') as HTMLButtonElement | null;
 
-if (!commitListEl) {
+if (!commitListEl || !showButton || !versionButton) {
   throw new Error(t('Git Revision Graph: log panel markup is missing expected elements'));
 }
+
+showButton.addEventListener('click', () => {
+  const message: LogWebviewToHostMessage = { type: 'show' };
+  vscode.postMessage(message);
+});
+
+// Localized here rather than via applyLocalization's data-i18n (that only
+// covers textContent/placeholder) since this button's label is an icon,
+// not text -- title/aria-label carry the actual accessible name.
+const versionInfoLabel = t('Version info');
+versionButton.title = versionInfoLabel;
+versionButton.setAttribute('aria-label', versionInfoLabel);
+versionButton.addEventListener('click', () => {
+  const message: LogWebviewToHostMessage = { type: 'showVersionInfo' };
+  vscode.postMessage(message);
+});
 
 let expandedHash: string | undefined;
 const fileListsByHash = new Map<string, HTMLUListElement>();
