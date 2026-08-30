@@ -12,7 +12,7 @@ const watch = process.argv.includes('--watch');
 
 function copyHtmlTemplates() {
   fs.mkdirSync(path.join(__dirname, 'dist', 'webview'), { recursive: true });
-  for (const name of ['panel.html', 'comparePanel.html', 'checkoutDialog.html', 'logPanel.html']) {
+  for (const name of ['panel.html', 'comparePanel.html', 'logPanel.html']) {
     fs.copyFileSync(path.join(__dirname, 'src', 'webview', name), path.join(__dirname, 'dist', 'webview', name));
   }
 }
@@ -91,18 +91,6 @@ const compareConfig = {
 };
 
 /** @type {import('esbuild').BuildOptions} */
-const checkoutDialogConfig = {
-  entryPoints: ['src/webview/checkoutDialog.ts'],
-  bundle: true,
-  outfile: 'dist/webview/checkoutDialog.js',
-  platform: 'browser',
-  format: 'iife',
-  target: 'es2022',
-  sourcemap: !production,
-  minify: production,
-};
-
-/** @type {import('esbuild').BuildOptions} */
 const logPanelConfig = {
   entryPoints: ['src/webview/log.ts'],
   bundle: true,
@@ -120,7 +108,6 @@ async function main() {
     webviewMainConfig,
     layoutWorkerConfig,
     compareConfig,
-    checkoutDialogConfig,
     logPanelConfig,
   ];
   copyHtmlTemplates();

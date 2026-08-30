@@ -135,5 +135,6 @@
   "Remote branches": "远程分支",
   "open a folder first.": "请先打开一个文件夹。",
   "Version info": "版本信息",
-  "Copy": "复制"
+  "Copy": "复制",
+  "New branch name (optional); select options below, then press Enter": "新分支名称(可选);在下方选择选项,然后按 Enter"
 }

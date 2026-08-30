@@ -1094,9 +1094,13 @@ directly off a screenshot showing that empty area.
 Rather than build a third, separate commit-list implementation, the
 sidebar now reuses the Show Log panel's own webview bundle (`log.js`/
 `logPanel.html`) wholesale: `welcomeView.ts`/`welcomeView.html` are gone,
-and `logPanel.html` gained the old welcome screen's header button and
-version-info footer around the existing commit list (flex column layout:
-fixed-height header, flex-grow scrollable list, fixed-height footer).
+and `logPanel.html` gained a header (flex row: "Show Revision Graph"
+button, plus a small circular "ℹ" version-info button) above the existing
+scrollable commit list. The version-info button shows the build's
+version/commit/build-number via a native `showInformationMessage`
+notification with a "Copy" action, rather than an inline footer — frees
+up sidebar height for more of the log, and a notification is easier to
+copy from than selecting text out of a webview.
 
 Two behavioral pieces from the "always show something, and let 'Show
 Log' retarget it" request:
@@ -1117,3 +1121,60 @@ Log' retarget it" request:
   `wireLogWebview`, a plain function over a `vscode.Webview` (works
   the same whether that's a `WebviewPanel` or a `WebviewView`) so the
   sidebar isn't duplicating that wiring.
+
+## Post-M4: the Checkout dialog becomes a native QuickPick/InputBox flow
+
+The "Switch / Checkout" dialog (see M4 status above) used to be its own
+`WebviewPanel`, opened with `ViewColumn.Beside`. Reported as feeling too
+wide: a webview panel always occupies a full editor column (VS Code
+splits the window roughly in half for a new `Beside` column) regardless
+of how narrow its own content is — a lot of wasted space for a small
+fixed-width options form. Tried constraining just the column's share via
+`vscode.setEditorLayout` first, but that only trades the problem for a
+worse one: shrinking the dialog's column necessarily grows or shrinks
+*other* columns too (the total editor width is fixed), so the main
+graph's own column would end up narrower than before the dialog was
+opened, no matter the ratio chosen.
+
+The only way to keep the main graph's column completely unaffected is
+for the dialog to not occupy an editor column at all — so it's now a
+plain native flow in `extension.ts`'s `showCheckoutDialog` (`async`,
+returns `Promise<void>`, no longer takes a `context` param since there's
+no webview/HTML to load). First cut used a `showQuickPick` multi-select
+for the boolean flags (including a "Create new branch" checkbox) followed
+by a separate `showInputBox` step for the branch name when that checkbox
+was picked — reworked once more after feedback that the separate
+branch-name screen was an unnecessary extra step: the branch name can
+just as well be typed directly into the QuickPick's own filter box.
+
+Now a single `vscode.window.createQuickPick<CheckoutFlagItem>()` (the
+lower-level API, not the `showQuickPick` convenience wrapper) does both
+jobs at once:
+- `quickPick.items` are the five boolean flags (track, overwrite
+  existing, force, merge, update submodules) with `alwaysShow: true` on
+  each — normally a QuickPick's input box filters `items` by fuzzy match
+  against what's typed, which would hide the flag list the moment a
+  branch name is typed; `alwaysShow` keeps them visible regardless, so
+  the same input box can double as free-text entry instead of a filter.
+- `quickPick.value` is read as the branch name on accept; there's no
+  "Create new branch" checkbox any more — a non-empty typed name *is*
+  the signal (`options.createBranch = accepted.name !== ''`), so
+  `track`/`overwriteExisting` (only meaningful together with a branch
+  name, see `checkoutRef` in `gitActions.ts`) being pickable regardless
+  is harmless, same reasoning as before.
+- `quickPick.value` and `quickPick.selectedItems` (pre-set to just
+  `track`) are pre-filled when `target.suggestedBranchName` is set,
+  matching the old webview's auto-fill for checking out a
+  remote-tracking branch with no local branch of its own.
+- Wrapped in a `new Promise` resolved from `onDidHide` (not
+  `onDidAccept` directly, so Escape and the accept path share one
+  resolution point) — `onDidAccept` just records the result and calls
+  `quickPick.hide()`, which then fires `onDidHide` either way.
+  `undefined` (Escape, never accepted) aborts the flow, same as the old
+  dialog's Cancel button.
+
+`checkoutDialog.ts`/`.html` and the `CheckoutHostToWebviewMessage`/
+`CheckoutWebviewToHostMessage` types are gone entirely — `CheckoutTarget`/
+`CheckoutOptions` are unchanged and still shared, since they describe the
+checkout itself rather than a message protocol. `esbuild.js` lost the
+`checkoutDialogConfig` entry point and the `'checkoutDialog.html'` copy.
