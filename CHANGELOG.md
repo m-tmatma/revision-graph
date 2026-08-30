@@ -3,7 +3,7 @@
 All notable changes to the "Git Revision Graph" extension are documented
 here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
-## Unreleased
+## 0.12.0
 
 ### Changed
 
