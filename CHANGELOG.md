@@ -5,6 +5,11 @@ here. Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## Unreleased
 
+### Changed
+
+- Log sidebar: the first (topmost) commit is no longer auto-expanded on
+  load — every commit starts collapsed until clicked.
+
 ### Removed
 
 - The hover tooltip showing commit info (main graph and log sidebar),
